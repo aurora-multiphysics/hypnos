@@ -39,8 +39,7 @@ class BaseCubitInstance:
     """Instance of component in cubit, referenced via cubitInstance attribute"""
     def __init__(self, name, dimensions, position, euler_angles):
         self.name = name
-        self.cubitInstance = create_cubit_blob(dimensions, position, euler_angles, id=self.id)
-        self.id = cubit.get_last_id("volume")
+        self.cubitInstance, self.id = create_cubit_blob(dimensions, position, euler_angles)
 
 
 # very basic implementations for component classes
@@ -54,7 +53,7 @@ class ExternalComponentAssembly(BaseCubitInstance):
         BaseCubitInstance.__init__(self, name, dimensions, position, euler_angles)
         self.manufacturer = manufacturer
 
-def create_cubit_blob(dims, pos, euler_angles, id: int):
+def create_cubit_blob(dims, pos, euler_angles):
     '''create blob with dimensions dims. Rotate it about the y-axis, x-axis, y-axis by specified angles. Move it to position pos'''
     # create cube or cuboid
     if len(dims) == 1:
@@ -63,6 +62,7 @@ def create_cubit_blob(dims, pos, euler_angles, id: int):
         blob = cubit.brick(dims[0], dims[1], dims[2])
     else:
         pass
+    id = cubit.get_last_id("volume")
     # orientate according to euler angles
     axis_list = ['y', 'x', 'y']
     for i in range(3): # hard-coding in 3D?
@@ -71,7 +71,7 @@ def create_cubit_blob(dims, pos, euler_angles, id: int):
     # move to specified position
     cubit.move(blob, pos)
     # return instance for further manipulation
-    return blob
+    return blob, id
 
 
 
