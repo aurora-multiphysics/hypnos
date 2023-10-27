@@ -36,14 +36,11 @@ class NativeComponentAssembly:
 
 # everything instanced in cubit will need a name/dims/pos/euler_angles/id
 class BaseCubitInstance:
-    # I FEEL LIKE THIS IS PRETTY SCUFFED IS THERE A BETTER WAY
-    id_counter= 1
     """Instance of component in cubit, referenced via cubitInstance attribute"""
     def __init__(self, name, dimensions, position, euler_angles):
         self.name = name
-        self.id = BaseCubitInstance.id_counter
-        BaseCubitInstance.id_counter+= 1
         self.cubitInstance = create_cubit_blob(dimensions, position, euler_angles, id=self.id)
+        self.id = cubit.get_last_id("volume")
 
 
 # very basic implementations for component classes
