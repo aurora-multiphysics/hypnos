@@ -4,42 +4,52 @@ import cubit
 cubit.init(['cubit', '-nojournal'])
 import json
 
-filename = "sample_input.json"
-
+filename = "sample_morphology.json"   
     
-def object_reader(object: dict):
-    '''set up object instance according to the class name provided'''
-    if object["class"] == "complex component":
+def object_reader(json_object: dict):
+    '''set up json_object instance according to the class name provided'''
+    if json_object["class"] == "complex component":
         return ComplexComponent(
-            name= object["name"],
-            material= object["material"],
-            dimensions= object["dimensions"],
-            position= object["position"],
-            euler_angles= object["euler_angles"]
+            name= json_object["name"],
+            material= json_object["material"],
+            dimensions= json_object["dimensions"],
+            position= json_object["position"],
+            euler_angles= json_object["euler_angles"]
         )
-    elif object["class"] == "external component assembly":
+    elif json_object["class"] == "external component assembly":
         return ExternalComponentAssembly(
-            name= object["name"],
-            manufacturer= object["manufacturer"],
-            dimensions= object["dimensions"],
-            position= object["position"],
-            euler_angles= object["euler_angles"]
+            name= json_object["name"],
+            manufacturer= json_object["manufacturer"],
+            dimensions= json_object["dimensions"],
+            position= json_object["position"],
+            euler_angles= json_object["euler_angles"]
+        )
+    elif json_object["class"] == "native component assembly":
+        return NativeComponentAssembly(
+            morphology= json_object["morphology"],
+            component_list= json_object["components"]
         )
 
 class NativeComponentAssembly:
     """collection of components, referenced by name"""
-    def __init__(self):
-        self.assemblyDict = {}
-        self.morphology = ""
+    def __init__(self, morphology, component_list):
+        self.components = {}
+        self.morphology = morphology
+        self.setup_assembly(component_list)
     def add_component(self, name: str, component):
-        self.assemblyDict[name] = component
+        self.components[name] = component
+    def setup_assembly(self, component_list: list):
+        for component_dict in component_list:
+            self.add_component(component_dict["name"], object_reader(component_dict))
+
+
 
 # everything instanced in cubit will need a name/dims/pos/euler_angles/id
 class BaseCubitInstance:
     """Instance of component in cubit, referenced via cubitInstance attribute"""
     def __init__(self, name, dimensions, position, euler_angles):
         self.name = name
-        self.cubitInstance, self.id = create_cubit_blob(dimensions, position, euler_angles)
+        self.cubitInstance, self.id = make_geometry((dimensions, position, euler_angles))
 
 
 # very basic implementations for component classes
@@ -53,7 +63,7 @@ class ExternalComponentAssembly(BaseCubitInstance):
         BaseCubitInstance.__init__(self, name, dimensions, position, euler_angles)
         self.manufacturer = manufacturer
 
-def create_cubit_blob(dims, pos, euler_angles):
+def __create_cubit_blob(dims, pos, euler_angles):
     '''create blob with dimensions dims. Rotate it about the y-axis, x-axis, y-axis by specified angles. Move it to position pos'''
     # create cube or cuboid
     if len(dims) == 1:
@@ -73,14 +83,16 @@ def create_cubit_blob(dims, pos, euler_angles):
     # return instance for further manipulation
     return blob, id
 
-
+def make_geometry(params):
+    return __create_cubit_blob(params[0], params[1], params[2])
+    
 
 with open(filename) as jsonFile:
     data = jsonFile.read()
     objects = json.loads(data)
-neutronTestFacility = NativeComponentAssembly()
-for object in objects:
-    neutronTestFacility.add_component(object["name"], object_reader(object))
+neutronTestFacility = []
+for json_object in objects:
+    neutronTestFacility.append(object_reader(json_object=json_object))
 
 cubit.cmd('volume all scheme auto')
 cubit.cmd('mesh volume all')

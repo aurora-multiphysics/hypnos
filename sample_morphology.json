@@ -1,0 +1,25 @@
+[
+    {
+        "name": "neutron test facility",
+        "class": "native component assembly",
+        "morphology": "overlap",
+        "components": [
+            {
+                "name" : "blanket blob",
+                "class" : "complex component",
+                "material": "SS",
+                "dimensions": [10, 8, 4],
+                "position": [20, 0, 0],
+                "euler_angles": [45, 0, 0]
+            },    
+            {
+                "name" : "source blob",
+                "class" : "external component assembly",
+                "manufacturer": "blobcorp",
+                "dimensions": [20, 3, 3],
+                "position": [0, 0, 0],
+                "euler_angles": [0, 90, 0]
+            }
+        ]
+    }
+]
