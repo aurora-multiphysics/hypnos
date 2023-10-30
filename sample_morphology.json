@@ -9,7 +9,7 @@
                 "material": "SS",
                 "geometry": {
                     "dimensions": [10, 8, 4],
-                    "position": [20, 0, 0],
+                    "position": [0, 0, 0],
                     "euler_angles": [45, 0, 0]
                 }
             },    

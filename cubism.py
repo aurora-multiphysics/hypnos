@@ -184,18 +184,49 @@ class SourceComponent(ExternalComponentAssembly):
     def __init__(self, manufacturer, name, geometry):
         super().__init__(manufacturer, name, geometry, "source")
 
-def enforce_morphology(assembly_object: NativeComponentAssembly):
+def enforce_facility_morphology(facility: NeutronTestFacility):
+    '''checks for expected overlaps between source and blanket objects
+    currently only checks for first source and blanket created
+    '''
     FACILITY_MORPHOLOGIES= ["exclusive", "inclusive", "overlap", "wall"]
-    BLANKET_MORPHOLOGIES= []
-    if assembly_object.morphology in FACILITY_MORPHOLOGIES:
-        pass
-
+    if facility.morphology in FACILITY_MORPHOLOGIES:
+        source_volume = facility.sources[0].cubitInstance.volume()
+        testing_source = cubit.copy_body(facility.sources[0].cubitInstance)
+        blanket_volume = facility.blankets[0].cubitInstance.volume()
+        testing_blanket = cubit.copy_body(facility.blankets[0].cubitInstance)
+        union_object = cubit.unite([testing_blanket, testing_source])[0]
+        union_id = cubit.get_last_id("volume")
+        union_body_id = cubit.get_last_id("body")
+        union_volume = union_object.volume()
+        if union_volume == blanket_volume:
+            if facility.morphology == "inclusive":
+                cubit.cmd(f"del vol {union_id}")
+                return True
+            else:
+                raise StructureError("Source not completely enclosed")
+        elif union_volume == blanket_volume + source_volume:
+            if facility.morphology == "exclusive":
+                cubit.cmd(f"del body {union_body_id}")
+                return True
+            else:
+                raise StructureError("Source not completely outside blanket")
+        elif union_volume < blanket_volume + source_volume:
+            if facility.morphology == "overlap":
+                cubit.cmd(f"del vol {union_id}")
+                return True
+            else:
+                raise StructureError("Source and blanket not partially overlapping")
+        else:
+            raise StructureError("Something has gone very wrong")
 with open(filename) as jsonFile:
     data = jsonFile.read()
     objects = json.loads(data)
 neutronTestFacility = []
 for json_object in objects:
     neutronTestFacility.append(object_reader(json_object=json_object))
+    if json_object["class"] == "neutron test facility":
+        print("morphology enforced? ", enforce_facility_morphology(neutronTestFacility[-1]))
+
 
 cubit.cmd('export cubit "please_work.cub5')
 # cubit.cmd('volume all scheme auto')
