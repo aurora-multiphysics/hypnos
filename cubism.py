@@ -42,15 +42,12 @@ class NativeComponentAssembly:
         for component_dict in component_list:
             self.add_component(component_dict["name"], object_reader(component_dict))
 
-
-
 # everything instanced in cubit will need a name/dims/pos/euler_angles/id
 class BaseCubitInstance:
     """Instance of component in cubit, referenced via cubitInstance attribute"""
     def __init__(self, name, dimensions, position, euler_angles):
         self.name = name
         self.cubitInstance, self.id = make_geometry((dimensions, position, euler_angles))
-
 
 # very basic implementations for component classes
 class ComplexComponent(BaseCubitInstance):
@@ -84,15 +81,20 @@ def __create_cubit_blob(dims, pos, euler_angles):
     return blob, id
 
 def make_geometry(params):
+    '''abstract function to create geometry in cubit'''
     return __create_cubit_blob(params[0], params[1], params[2])
-    
+
+def enforce_morphology(assembly_object: NativeComponentAssembly):
+    FACILITY_MORPHOLOGIES= ["exclusive", "inclusive", "overlap", "wall"]
+    if assembly_object.morphology in FACILITY_MORPHOLOGIES:
+        pass
 
 with open(filename) as jsonFile:
     data = jsonFile.read()
     objects = json.loads(data)
-neutronTestFacility = []
+neutronTestFacility = {}
 for json_object in objects:
-    neutronTestFacility.append(object_reader(json_object=json_object))
+    neutronTestFacility[json_object["name"]]= object_reader(json_object=json_object)
 
 cubit.cmd('volume all scheme auto')
 cubit.cmd('mesh volume all')
