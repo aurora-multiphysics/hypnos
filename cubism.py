@@ -29,6 +29,11 @@ def object_reader(json_object: dict):
             morphology= json_object["morphology"],
             component_list= json_object["components"]
         )
+    elif json_object["class"] == "neutron test facility":
+        return NeutronTestFacility(
+            morphology= json_object["morphology"],
+            component_list= json_object["components"]
+        )
 
 class NativeComponentAssembly:
     """collection of components, referenced by name"""
