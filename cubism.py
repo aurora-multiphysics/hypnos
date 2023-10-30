@@ -150,9 +150,14 @@ class BaseCubitInstance:
         if len(inner_dims) == 1:
             block = cubit.brick(inner_dims[0] + 2*thickness)
             subtract_vol = cubit.brick(inner_dims[0])
-            room = cubit.subtract([subtract_vol], [block])
-            room_id = cubit.get_last_id("volume")
-            return room, room_id
+        elif len(inner_dims) == 3:
+            pad = 2*thickness
+            block = cubit.brick(inner_dims[0]+ pad, inner_dims[1]+ pad, inner_dims[2]+ pad)
+        else:
+            raise StructureError("dimensions should be either a 1D or 3D vector")
+        room = cubit.subtract([subtract_vol], [block])
+        room_id = cubit.get_last_id("volume")
+        return room, room_id
     
 
 # very basic implementations for component classes
