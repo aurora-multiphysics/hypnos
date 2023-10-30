@@ -42,6 +42,38 @@ class NativeComponentAssembly:
         for component_dict in component_list:
             self.add_component(component_dict["name"], object_reader(component_dict))
 
+class StructureError(Exception):
+    pass
+
+class NeutronTestFacility(NativeComponentAssembly):
+    '''subclass to set up a neutron test facility assembly'''
+    def __init__(self, morphology: str, component_list:list):
+        self.morphology = morphology
+        self.enforced= self.enforce_structure(component_list)
+        self.rooms= []
+        self.sources= []
+        self.blankets= []
+        self.other_components= []
+        self.setup_assembly(component_list)
+    def enforce_structure(component_list: list):
+        '''make sure the neutron test facility contains a room, source, and blanket'''
+        class_list = [i["class"] for i in component_list]
+        if "room" in class_list & "source" in class_list & "blanket" in class_list:
+            return True
+        # Can change this to a warning, for now it just throws an error
+        raise StructureError("Neutron test facility must contain a room, source, and blanket")
+    def setup_facility(self, component_list: list):
+        for component_dict in component_list:
+            if component_dict["class"] == "room":
+                self.rooms.append(object_reader(component_dict))
+            elif component_dict["class"] == "source":
+                self.sources.append(object_reader(component_dict))
+            elif component_dict["class"] == "blanket":
+                self.blankets.append(object_reader(component_dict))
+            else:
+                self.other_components.append(object_reader(component_dict))
+            
+
 # everything instanced in cubit will need a name/dims/pos/euler_angles/id
 class BaseCubitInstance:
     """Instance of component in cubit, referenced via cubitInstance attribute"""
@@ -86,6 +118,7 @@ def make_geometry(params):
 
 def enforce_morphology(assembly_object: NativeComponentAssembly):
     FACILITY_MORPHOLOGIES= ["exclusive", "inclusive", "overlap", "wall"]
+    BLANKET_MORPHOLOGIES= []
     if assembly_object.morphology in FACILITY_MORPHOLOGIES:
         pass
 
