@@ -147,6 +147,7 @@ class BaseCubitInstance:
         return blob, id
 
     def __create_cubit_room(self, inner_dims, thickness):
+        '''create room with inner dimensions inner_dims and thickness'''
         if len(inner_dims) == 1:
             block = cubit.brick(inner_dims[0] + 2*thickness)
             subtract_vol = cubit.brick(inner_dims[0])
@@ -165,6 +166,7 @@ class ComplexComponent(BaseCubitInstance):
     def __init__(self, material, name, geometry, classname):
         BaseCubitInstance.__init__(self, name, geometry, classname)
         self.material = material
+        cubit.cmd(f'group "{self.material}" add volume {self.id}')
 
 class RoomComponent(ComplexComponent):
     def __init__(self, material, name, geometry):

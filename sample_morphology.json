@@ -1,7 +1,7 @@
 [
     {
         "class": "neutron test facility",
-        "morphology": "overlap",
+        "morphology": "exclusive",
         "components": [
             {
                 "name" : "blanket blob",
@@ -9,7 +9,7 @@
                 "material": "SS",
                 "geometry": {
                     "dimensions": [10, 8, 4],
-                    "position": [0, 0, 0],
+                    "position": [20, 0, 0],
                     "euler_angles": [45, 0, 0]
                 }
             },    
@@ -29,7 +29,7 @@
                 "class": "room",
                 "material": "SS",
                 "geometry": {
-                    "dimensions": [99],
+                    "dimensions": [49],
                     "thickness": 1
                 }
             }
