@@ -7,7 +7,7 @@ import json
 filename = "sample_morphology.json"   
     
 def object_reader(json_object: dict):
-    '''set up json_object instance according to the class name provided'''
+    '''set up class instance according to the class name provided'''
     if json_object["class"] == "complex component":
         return ComplexComponent(
             name= json_object["name"],
@@ -76,10 +76,12 @@ class NeutronTestFacility:
     def __init__(self, morphology: str, component_list:list):
         self.morphology = morphology
         self.enforced= self.enforce_structure(component_list)
+        # instance storage
         self.rooms= []
         self.sources= []
         self.blankets= []
         self.other_components= []
+        # store instances
         self.setup_facility(component_list)
     def enforce_structure(self, comp_list: list):
         '''make sure the neutron test facility contains a room, source, and blanket'''
@@ -100,6 +102,7 @@ class NeutronTestFacility:
                 self.other_components.append(object_reader(component_dict))
 
 class BlanketAssembly(NativeComponentAssembly):
+    # doesnt do anything yet
     pass
 
 # everything instanced in cubit will need a name/dims/pos/euler_angles/id
@@ -112,6 +115,7 @@ class BaseCubitInstance:
     
     def make_geometry(self, geometry: dict):
         '''abstract function to create geometry in cubit'''
+        # if the class is a room, make a room. otherwise make a blob.
         if self.classname in ["complex component", "blanket component", "source", "external"]:
             return self.__create_cubit_blob(
                 dims= geometry["dimensions"],
@@ -148,14 +152,25 @@ class BaseCubitInstance:
 
     def __create_cubit_room(self, inner_dims, thickness):
         '''create room with inner dimensions inner_dims and thickness'''
-        if len(inner_dims) == 1:
-            block = cubit.brick(inner_dims[0] + 2*thickness)
-            subtract_vol = cubit.brick(inner_dims[0])
+        # create a cube or cuboid.
+        if type(inner_dims) == int:
+            inner_dims = [inner_dims, inner_dims, inner_dims]
+        elif len(inner_dims) == 1:
+            inner_dims = [inner_dims[0], inner_dims[0], inner_dims[0]]
         elif len(inner_dims) == 3:
-            pad = 2*thickness
-            block = cubit.brick(inner_dims[0]+ pad, inner_dims[1]+ pad, inner_dims[2]+ pad)
+            pass
         else:
-            raise StructureError("dimensions should be either a 1D or 3D vector")
+            raise StructureError("dimensions should be either a 1D or 3D vector (or scalar)")
+        if type(thickness) == int:
+            thickness = [thickness, thickness, thickness]
+        elif len(thickness) == 1:
+            thickness = [thickness[0], thickness[0], thickness[0]]
+        elif len(thickness) == 3:
+            pass
+        else:
+            raise StructureError("thickness should be either a 1D or 3D vector (or scalar)")
+        block = cubit.brick(inner_dims[0]+2*thickness[0], inner_dims[1]+2*thickness[1], inner_dims[2]+2*thickness[2])
+        subtract_vol = cubit.brick(inner_dims[0], inner_dims[1], inner_dims[2])
         room = cubit.subtract([subtract_vol], [block])
         room_id = cubit.get_last_id("volume")
         return room, room_id
