@@ -1,11 +1,15 @@
+if __name__ == "main":
+    sys.path.append('/opt/Coreform-Cubit-2023.8/bin')
+    import cubit
+    cubit.init(['cubit', '-nojournal'])
+elif __name__ == "__coreformcubit":
+    cubit.cmd("reset")
+
 import sys
-sys.path.append('/opt/Coreform-Cubit-2023.8/bin')
-import cubit
-cubit.init(['cubit', '-nojournal'])
 import json
 
-filename = "sample_morphology.json"   
-    
+filename = "sample_morphology.json"
+
 def object_reader(json_object: dict):
     '''set up class instance according to the class name provided'''
     if json_object["class"] == "complex component":
