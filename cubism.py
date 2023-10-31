@@ -2,7 +2,7 @@ if __name__ == "main":
     sys.path.append('/opt/Coreform-Cubit-2023.8/bin')
     import cubit
     cubit.init(['cubit', '-nojournal'])
-elif __name__ == "__coreformcubit":
+elif __name__ == "__coreformcubit__":
     cubit.cmd("reset")
 
 import sys
@@ -81,9 +81,9 @@ class NeutronTestFacility:
         self.morphology = morphology
         self.enforced = self.enforce_structure(component_list)
         # instance storage
-        self.room_vols = []
-        self.source_vols = []
-        self.blanket_vols = []
+        self.room_components = []
+        self.source_components = []
+        self.blanket_components = []
         self.other_components = []
         # store instances
         self.setup_facility(component_list)
@@ -98,18 +98,31 @@ class NeutronTestFacility:
         for component_dict in component_list:
         # every day i miss switch statements
             if component_dict["class"] == "room":
-                self.room_vols.append(object_reader(component_dict))
+                self.room_components.append(object_reader(component_dict))
             elif component_dict["class"] == "source":
-                self.source_vols.append(object_reader(component_dict))
+                self.source_components.append(object_reader(component_dict))
             elif component_dict["class"] == "blanket component": # CHANGE THIS LATER
-                self.blanket_vols.append(object_reader(component_dict))
+                self.blanket_components.append(object_reader(component_dict))
             else:
                 self.other_components.append(object_reader(component_dict))
 
 class BlanketAssembly:
-    def __init__(self) -> None:
-        self.breeder_vols = []
-        self.structure_vols = []
+    def __init__(self, morphology: str, component_list: list) -> None:
+        self.morphology = morphology
+        #instance storage
+        self.breeder_components = []
+        self.structure_components = []
+        self.other_components = []
+        self.setup_blanket(component_list)
+        #store instances
+    def setup_blanket(self, component_list: list):
+        for component_dict in component_list:
+            if component_dict["class"] == "breeder":
+                self.breeder_components.append(object_reader(component_dict))
+            elif component_dict["class"] == "structure":
+                self.structure_components.append(object_reader(component_dict))
+            else:
+                self.other_components.append(object_reader(component_dict))
 
 # everything instanced in cubit will need a name/dims/pos/euler_angles/id
 class BaseCubitInstance:
@@ -214,8 +227,8 @@ def enforce_facility_morphology(facility: NeutronTestFacility):
     if facility.morphology in FACILITY_MORPHOLOGIES:
 
         # set up copies so we do not disturb the actual geometry
-        testing_source = cubit.copy_body(facility.sources[0].cubitInstance)
-        testing_blanket = cubit.copy_body(facility.blankets[0].cubitInstance)
+        testing_source = cubit.copy_body(facility.source_components[0].cubitInstance)
+        testing_blanket = cubit.copy_body(facility.blanket_components[0].cubitInstance)
         union_object = cubit.unite([testing_blanket, testing_source])[0]
 
         # ids needed for cleanup
@@ -223,8 +236,8 @@ def enforce_facility_morphology(facility: NeutronTestFacility):
         union_body_id = cubit.get_last_id("body")
 
         # this works by checking source+blanket volumes against the volume of their union
-        source_volume = facility.sources[0].cubitInstance.volume()
-        blanket_volume = facility.blankets[0].cubitInstance.volume()
+        source_volume = facility.source_components[0].cubitInstance.volume()
+        blanket_volume = facility.blanket_components[0].cubitInstance.volume()
         union_volume = union_object.volume()
 
         # different enforcing depending on the morphology specified
