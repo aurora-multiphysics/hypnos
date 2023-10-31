@@ -61,8 +61,19 @@ def object_reader(json_object: dict):
         )
 
 class NativeComponentAssembly:
-    '''Generic assembly''' # FINISH THIS
+    '''
+    Generic assembly
+    This takes a list of required and additional component names to set up an assembly
+    - required components: instantiating will fail without at least one component of the given classnames
+    - additional components: defines attributes to store components with this classname
+    The specific assembly subclassed from this will
+    - have attributes corresponding to subclass components (specified on construction of the subclass)
+    - enforce every instance to have the required components
+    - store components of the specified subclass components in the corresponding attributes, otherwise other_components
+    - be able to fetch instances from these attributes (get_cubit_instances)
+    '''
     def __init__(self, morphology: str, component_list:list, required_components: list, additional_components: list):
+        # this defines what morphology will be enforced later
         self.morphology = morphology
         # this defines what components to require in every instance
         self.required_classnames = required_components
@@ -71,7 +82,7 @@ class NativeComponentAssembly:
         self.other_components = []
         self.component_mapping = {"other": self.other_components}
 
-        # set up attributes for specified components
+        # set up attributes and component_mapping for specified components
         for classname in required_components + additional_components:
             component_name = classname + "_components"
             self.__setattr__(component_name, [])
