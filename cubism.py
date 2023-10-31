@@ -85,26 +85,44 @@ class NeutronTestFacility:
         self.source_components = []
         self.blanket_components = []
         self.other_components = []
+        self.component_mapping = {
+            "room": self.room_components,
+            "source": self.source_components,
+            "blanket component": self.blanket_components,
+            "other": self.other_components
+        }
         # store instances
         self.setup_facility(component_list)
     def enforce_structure(self, comp_list: list):
         '''make sure the neutron test facility contains a room, source, and blanket'''
+        FACILITY_REQUIREMENTS = ["room", "blanket component", "source"]
         class_list = [i["class"] for i in comp_list]
-        if ("room" in class_list) & ("source" in class_list) & ("blanket component" in class_list): # CHANGE BLANKET COMPONENT -> BLANKET
-            return True
-        # Can change this to a warning, for now it just throws an error
-        raise StructureError("Neutron test facility must contain a room, source, and blanket")
+        for classes_required in FACILITY_REQUIREMENTS:
+            if classes_required not in class_list:
+                # Can change this to a warning, for now it just throws an error
+                raise StructureError("Neutron test facility must contain a room, source, and blanket")
+        return True
     def setup_facility(self, component_list: list):
+        '''adds components to lists in the appropriate attributes'''
         for component_dict in component_list:
-        # every day i miss switch statements
-            if component_dict["class"] == "room":
-                self.room_components.append(object_reader(component_dict))
-            elif component_dict["class"] == "source":
-                self.source_components.append(object_reader(component_dict))
-            elif component_dict["class"] == "blanket component": # CHANGE THIS LATER
-                self.blanket_components.append(object_reader(component_dict))
+            # if you are looking for the class-attribute mapping it is the component_mapping dict in __init__
+            if component_dict["class"] in self.component_mapping.keys():
+                self.component_mapping[component_dict["class"]].append(object_reader(component_dict))
             else:
                 self.other_components.append(object_reader(component_dict))
+    def get_cubit_instances(self, classname_list: list):
+        '''returns list of cubit instances of specified classnames'''
+        instances_list = []
+        for component_classname in classname_list:
+            if component_classname in self.component_mapping.keys():
+                for component in self.component_mapping[component_classname]:
+                    if isinstance(component, BaseCubitInstance):
+                        instances_list.append(component.cubitInstance)
+                    else:
+                        raise StructureError(f"component ({component}) not recognised")
+            else:
+                raise StructureError(f"Classname not recognised: {component_classname}")
+        return instances_list
 
 class BlanketAssembly:
     def __init__(self, morphology: str, component_list: list) -> None:
@@ -222,8 +240,13 @@ class SourceComponent(ExternalComponentAssembly):
         super().__init__(manufacturer, name, geometry, "source")
 
 def enforce_facility_morphology(facility: NeutronTestFacility):
-    '''checks for expected overlaps between source and blanket objects
+    '''
+    checks for expected overlaps between source and blanket objects
+    these expectations are set by the morphology specified
     currently only checks for first source and blanket created
+
+    :param NeutronTestFacility() facility: The facility to check
+    :return: True or raise exception
     '''
     FACILITY_MORPHOLOGIES= ["exclusive", "inclusive", "overlap", "wall"]
     if facility.morphology in FACILITY_MORPHOLOGIES:
@@ -243,6 +266,7 @@ def enforce_facility_morphology(facility: NeutronTestFacility):
         union_volume = union_object.volume()
 
         # different enforcing depending on the morphology specified
+        # also cleanup because cubit.union makes a Body instead of a Volume for exclusive volumes
         if union_volume == blanket_volume:
             if facility.morphology == "inclusive":
                 cubit.cmd(f"del vol {union_id}")
@@ -275,7 +299,8 @@ for json_object in objects:
         print("morphology enforced? ", enforce_facility_morphology(neutronTestFacility[-1]))
 
 if __name__ == "__main__":
-    cubit.cmd('export cubit "please_work.cub5')
+    #cubit.cmd('export cubit "please_work.cub5')
+    pass
 #       cubit.cmd('volume all scheme auto')
 #       cubit.cmd('mesh volume all')
 #       cubit.cmd('export genesis "testblob.g"')
