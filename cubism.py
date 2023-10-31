@@ -1,12 +1,12 @@
-if __name__ == "main":
+import sys
+import json
+
+if __name__ == "__main__":
     sys.path.append('/opt/Coreform-Cubit-2023.8/bin')
     import cubit
     cubit.init(['cubit', '-nojournal'])
 elif __name__ == "__coreformcubit__":
     cubit.cmd("reset")
-
-import sys
-import json
 
 filename = "sample_morphology.json"
 
@@ -123,6 +123,8 @@ class BlanketAssembly:
                 self.structure_components.append(object_reader(component_dict))
             else:
                 self.other_components.append(object_reader(component_dict))
+    def get_instances(self):
+        components_to_check = [self.breeder_components, self.structure_components, self.other_components]
 
 # everything instanced in cubit will need a name/dims/pos/euler_angles/id
 class BaseCubitInstance:
@@ -272,7 +274,7 @@ for json_object in objects:
     if json_object["class"] == "neutron test facility":
         print("morphology enforced? ", enforce_facility_morphology(neutronTestFacility[-1]))
 
-if __name__ == "main":
+if __name__ == "__main__":
     cubit.cmd('export cubit "please_work.cub5')
 #       cubit.cmd('volume all scheme auto')
 #       cubit.cmd('mesh volume all')
