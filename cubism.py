@@ -42,18 +42,18 @@ def object_reader(json_object: dict):
             manufacturer= json_object["manufacturer"],
             geometry= json_object["geometry"]
         )
-    elif json_object["class"] == "blanket":
-        return BlanketAssembly(
-            morphology= json_object["morphology"],
-            component_list= json_object["components"]
-        )
+    # elif json_object["class"] == "blanket":
+    #     return BlanketAssembly(
+    #         morphology= json_object["morphology"],
+    #         component_list= json_object["components"]
+    #     )
     elif json_object["class"] == "room":
         return RoomComponent(
             material= json_object["material"],
             name= json_object["name"],
             geometry= json_object["geometry"]
         )
-    elif json_object["class"] == "blanket component":
+    elif json_object["class"] == "blanket":
         return BlanketComponent(
             name= json_object["name"],
             material= json_object["material"],
@@ -61,47 +61,37 @@ def object_reader(json_object: dict):
         )
 
 class NativeComponentAssembly:
-    """collection of components, referenced by name"""
-    def __init__(self, morphology, component_list):
-        self.components = {}
+    '''Generic assembly''' # FINISH THIS
+    def __init__(self, morphology: str, component_list:list, required_components: list, additional_components: list):
         self.morphology = morphology
-        self.setup_assembly(component_list)
-    def add_component(self, name: str, component):
-        self.components[name] = component
-    def setup_assembly(self, component_list: list):
-        for component_dict in component_list:
-            self.add_component(component_dict["name"], object_reader(component_dict))
+        # this defines what components to require in every instance
+        self.required_classnames = required_components
 
-class StructureError(Exception):
-    pass
-
-class NeutronTestFacility:
-    '''Neutron test facility assembly requiring at least one of each: room, blanket, and source'''
-    def __init__(self, morphology: str, component_list:list):
-        self.morphology = morphology
-        self.enforced = self.enforce_structure(component_list)
-        # instance storage
-        self.room_components = []
-        self.source_components = []
-        self.blanket_components = []
+        # component_mapping defines what classes get stored in what attributes (other_components is default)
         self.other_components = []
-        self.component_mapping = {
-            "room": self.room_components,
-            "source": self.source_components,
-            "blanket component": self.blanket_components,
-            "other": self.other_components
-        }
+        self.component_mapping = {"other": self.other_components}
+
+        # set up attributes for specified components
+        for classname in required_components + additional_components:
+            component_name = classname + "_components"
+            self.__setattr__(component_name, [])
+            self.component_mapping[classname] = self.__getattribute__(component_name)
+        
+        # enforce given component_list based on required_components
+        self.enforced = self.enforce_structure(component_list)
         # store instances
         self.setup_facility(component_list)
+        print("hello")
+
     def enforce_structure(self, comp_list: list):
-        '''make sure the neutron test facility contains a room, source, and blanket'''
-        FACILITY_REQUIREMENTS = ["room", "blanket component", "source"]
+        '''make sure the instance contains the required components'''
         class_list = [i["class"] for i in comp_list]
-        for classes_required in FACILITY_REQUIREMENTS:
+        for classes_required in self.required_classnames:
             if classes_required not in class_list:
                 # Can change this to a warning, for now it just throws an error
                 raise StructureError("Neutron test facility must contain a room, source, and blanket")
         return True
+    
     def setup_facility(self, component_list: list):
         '''adds components to lists in the appropriate attributes'''
         for component_dict in component_list:
@@ -110,12 +100,15 @@ class NeutronTestFacility:
                 self.component_mapping[component_dict["class"]].append(object_reader(component_dict))
             else:
                 self.other_components.append(object_reader(component_dict))
+
     def get_cubit_instances(self, classname_list: list):
         '''returns list of cubit instances of specified classnames'''
         instances_list = []
         for component_classname in classname_list:
+            # checks if valid classname
             if component_classname in self.component_mapping.keys():
                 for component in self.component_mapping[component_classname]:
+                    # fetches instances
                     if isinstance(component, BaseCubitInstance):
                         instances_list.append(component.cubitInstance)
                     else:
@@ -123,6 +116,13 @@ class NeutronTestFacility:
             else:
                 raise StructureError(f"Classname not recognised: {component_classname}")
         return instances_list
+
+class StructureError(Exception):
+    pass
+
+class NeutronTestFacility(NativeComponentAssembly):
+    def __init__(self, morphology: str, component_list: list):
+        super().__init__(morphology, component_list, required_components = ["source", "blanket", "room"], additional_components = [])
 
 class BlanketAssembly:
     def __init__(self, morphology: str, component_list: list) -> None:
@@ -133,6 +133,7 @@ class BlanketAssembly:
         self.other_components = []
         self.setup_blanket(component_list)
         #store instances
+
     def setup_blanket(self, component_list: list):
         for component_dict in component_list:
             if component_dict["class"] == "breeder":
@@ -141,7 +142,8 @@ class BlanketAssembly:
                 self.structure_components.append(object_reader(component_dict))
             else:
                 self.other_components.append(object_reader(component_dict))
-    def get_instances(self):
+
+    def get_cubit_instances(self):
         components_to_check = [self.breeder_components, self.structure_components, self.other_components]
 
 # everything instanced in cubit will need a name/dims/pos/euler_angles/id

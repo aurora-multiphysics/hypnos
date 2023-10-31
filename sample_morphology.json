@@ -5,7 +5,7 @@
         "components": [
             {
                 "name" : "blanket blob",
-                "class" : "blanket component",
+                "class" : "blanket",
                 "material": "SS",
                 "geometry": {
                     "dimensions": [10, 8, 4],
