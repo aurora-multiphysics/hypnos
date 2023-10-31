@@ -14,17 +14,17 @@ def object_reader(json_object: dict):
     '''set up class instance according to the class name provided'''
     if json_object["class"] == "complex component":
         return ComplexComponent(
-            name= json_object["name"],
-            material= json_object["material"],
-            geometry= json_object["geometry"],
-            classname= "complex"
+            name = json_object["name"],
+            material = json_object["material"],
+            geometry = json_object["geometry"],
+            classname = "complex"
         )
     elif json_object["class"] == "external component assembly":
         return ExternalComponentAssembly(
-            name= json_object["name"],
-            manufacturer= json_object["manufacturer"],
-            geometry= json_object["geometry"],
-            classname= "external"
+            name = json_object["name"],
+            manufacturer = json_object["manufacturer"],
+            geometry = json_object["geometry"],
+            classname = "external"
         )
     elif json_object["class"] == "native component assembly":
         return NativeComponentAssembly(
@@ -79,12 +79,12 @@ class NeutronTestFacility:
     '''Neutron test facility assembly requiring at least one of each: room, blanket, and source'''
     def __init__(self, morphology: str, component_list:list):
         self.morphology = morphology
-        self.enforced= self.enforce_structure(component_list)
+        self.enforced = self.enforce_structure(component_list)
         # instance storage
-        self.rooms= []
-        self.sources= []
-        self.blankets= []
-        self.other_components= []
+        self.room_vols = []
+        self.source_vols = []
+        self.blanket_vols = []
+        self.other_components = []
         # store instances
         self.setup_facility(component_list)
     def enforce_structure(self, comp_list: list):
@@ -96,18 +96,20 @@ class NeutronTestFacility:
         raise StructureError("Neutron test facility must contain a room, source, and blanket")
     def setup_facility(self, component_list: list):
         for component_dict in component_list:
+        # every day i miss switch statements
             if component_dict["class"] == "room":
-                self.rooms.append(object_reader(component_dict))
+                self.room_vols.append(object_reader(component_dict))
             elif component_dict["class"] == "source":
-                self.sources.append(object_reader(component_dict))
+                self.source_vols.append(object_reader(component_dict))
             elif component_dict["class"] == "blanket component": # CHANGE THIS LATER
-                self.blankets.append(object_reader(component_dict))
+                self.blanket_vols.append(object_reader(component_dict))
             else:
                 self.other_components.append(object_reader(component_dict))
 
-class BlanketAssembly(NativeComponentAssembly):
-    # doesnt do anything yet
-    pass
+class BlanketAssembly:
+    def __init__(self) -> None:
+        self.breeder_vols = []
+        self.structure_vols = []
 
 # everything instanced in cubit will need a name/dims/pos/euler_angles/id
 class BaseCubitInstance:
@@ -155,7 +157,7 @@ class BaseCubitInstance:
         return blob, id
 
     def __create_cubit_room(self, inner_dims, thickness):
-        '''create room with inner dimensions inner_dims and thickness'''
+        '''create 3d room with inner dimensions inner_dims (int or list) and thickness (int or list)'''
         # create a cube or cuboid.
         if type(inner_dims) == int:
             inner_dims = [inner_dims, inner_dims, inner_dims]
@@ -191,7 +193,6 @@ class RoomComponent(ComplexComponent):
     def __init__(self, material, name, geometry):
         super().__init__(material, name, geometry, "room")
 
-
 class BlanketComponent(ComplexComponent):
     def __init__(self, material, name, geometry):
         super().__init__(material, name, geometry, "blanket component")
@@ -211,14 +212,22 @@ def enforce_facility_morphology(facility: NeutronTestFacility):
     '''
     FACILITY_MORPHOLOGIES= ["exclusive", "inclusive", "overlap", "wall"]
     if facility.morphology in FACILITY_MORPHOLOGIES:
-        source_volume = facility.sources[0].cubitInstance.volume()
+
+        # set up copies so we do not disturb the actual geometry
         testing_source = cubit.copy_body(facility.sources[0].cubitInstance)
-        blanket_volume = facility.blankets[0].cubitInstance.volume()
         testing_blanket = cubit.copy_body(facility.blankets[0].cubitInstance)
         union_object = cubit.unite([testing_blanket, testing_source])[0]
+
+        # ids needed for cleanup
         union_id = cubit.get_last_id("volume")
         union_body_id = cubit.get_last_id("body")
+
+        # this works by checking source+blanket volumes against the volume of their union
+        source_volume = facility.sources[0].cubitInstance.volume()
+        blanket_volume = facility.blankets[0].cubitInstance.volume()
         union_volume = union_object.volume()
+
+        # different enforcing depending on the morphology specified
         if union_volume == blanket_volume:
             if facility.morphology == "inclusive":
                 cubit.cmd(f"del vol {union_id}")
@@ -239,6 +248,8 @@ def enforce_facility_morphology(facility: NeutronTestFacility):
                 raise StructureError("Source and blanket not partially overlapping")
         else:
             raise StructureError("Something has gone very wrong")
+
+# maybe i should add this to main()
 with open(filename) as jsonFile:
     data = jsonFile.read()
     objects = json.loads(data)
@@ -248,8 +259,8 @@ for json_object in objects:
     if json_object["class"] == "neutron test facility":
         print("morphology enforced? ", enforce_facility_morphology(neutronTestFacility[-1]))
 
-
-cubit.cmd('export cubit "please_work.cub5')
-# cubit.cmd('volume all scheme auto')
-# cubit.cmd('mesh volume all')
-# cubit.cmd('export genesis "testblob.g"')
+if __name__ == "main":
+    cubit.cmd('export cubit "please_work.cub5')
+#       cubit.cmd('volume all scheme auto')
+#       cubit.cmd('mesh volume all')
+#       cubit.cmd('export genesis "testblob.g"')
