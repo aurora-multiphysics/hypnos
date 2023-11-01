@@ -289,7 +289,14 @@ class SourceComponent(ExternalComponentAssembly):
     def __init__(self, manufacturer, name, geometry):
         super().__init__(manufacturer, name, geometry, "source")
 
+def delete_instances(component_list: list):
+    '''Deletes cubit instances of all BaseCubitInstance objects in list'''
+    for component in component_list:
+        if isinstance(component, BaseCubitInstance):
+            component.destroy_cubit_instance()
+
 def delete_instances_of_same_type(component_list: list):
+    '''just a worse version of delete_instances. fails if all items in list aren't cubit instances or are of different geometry types'''
     if isinstance(component_list[0], BaseCubitInstance):
         component_type = component_list[0].geometry_type
         instances_to_delete = ""
@@ -303,6 +310,16 @@ def delete_instances_of_same_type(component_list: list):
                 raise CubismError("All components aren't cubit instances")
     else:
         raise CubismError("First element is not a cubit instance!")
+    cubit.cmd(f"delete {component_type}{instances_to_delete}")
+
+def copy_instances(component_list: list):
+    '''Returns a list of copied BaseCubitInstance objects'''
+    copied_list = []
+    for component in component_list:
+        if isinstance(component, BaseCubitInstance):
+            copied_list.append(component.copy())
+        else:
+            raise CubismError("All components are not instances :(")
     
 
 
