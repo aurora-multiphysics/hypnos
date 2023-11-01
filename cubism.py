@@ -10,6 +10,8 @@ elif __name__ == "__coreformcubit__":
 
 # File to look at
 FILENAME = "sample_morphology.json"
+
+# components in assemblies to be generated
 NEUTRON_TEST_FACILITY_REQUIREMENTS = ["room", "source", "blanket"]
 NEUTRON_TEST_FACILITY_ADDITIONAL = []
 BLANKET_REQUIREMENTS = ["breeder", "structure"]
@@ -22,6 +24,9 @@ BLANKET_ALL = BLANKET_REQUIREMENTS + BLANKET_ADDITIONAL
 BLOB_CLASSES = ["source", "complex", "external", "breeder", "structure"]
 ROOM_CLASSES = ["room"]
 
+# be aware: FACILITY_MORPHOLOGIES defined in enforce_facility_morphology because morphology checking is hard-coded in
+
+# map classnames to instances - there should be a better way to do this
 def object_reader(json_object: dict):
     '''set up class instance according to the class name provided'''
     if json_object["class"] == "complex":
@@ -77,12 +82,6 @@ def object_reader(json_object: dict):
             name= json_object["name"],
             geometry= json_object["geometry"]
         )
-    # elif json_object["class"] == "blanket":
-    #     return BlanketComponent(
-    #         name= json_object["name"],
-    #         material= json_object["material"],
-    #         geometry= json_object["geometry"]
-    #     )
 
 class NativeComponentAssembly:
     '''
@@ -123,7 +122,7 @@ class NativeComponentAssembly:
         for classes_required in self.required_classnames:
             if classes_required not in class_list:
                 # Can change this to a warning, for now it just throws an error
-                raise StructureError("Neutron test facility must contain a room, source, and blanket")
+                raise CubismError("Neutron test facility must contain a room, source, and blanket")
         return True
     
     def setup_facility(self, component_list: list):
@@ -151,6 +150,7 @@ class NativeComponentAssembly:
         return instances_list
     
     def get_all_cubit_instances(self) -> list:
+        '''get every cubit instance stored in this instance recursively'''
         instances_list = []
         for component_attribute in self.component_mapping.values():
             for component in component_attribute:
@@ -159,7 +159,7 @@ class NativeComponentAssembly:
                 elif isinstance(component, NativeComponentAssembly):
                     instances_list += component.get_all_cubit_instances()
 
-class StructureError(Exception):
+class CubismError(Exception):
     pass
 
 class NeutronTestFacility(NativeComponentAssembly):
@@ -190,7 +190,7 @@ class BaseCubitInstance:
         elif self.classname in ROOM_CLASSES:
             return self.__create_cubit_room(geometry)
         else:
-            raise StructureError("Wrong class name somewhere?: " + self.classname)
+            raise CubismError("Wrong class name somewhere?: " + self.classname)
     
     def make_cubit_instance(self):
             self.cubitInstance, self.id, self.geometry_type= self.make_geometry(self.geometry)
@@ -198,7 +198,7 @@ class BaseCubitInstance:
     def destroy_cubit_instance(self):
         cubit.cmd(f"delete {self.geometry_type} {self.id}")
     
-    def copy_cubit_instance(self):
+    def copy(self):
         return BaseCubitInstance(self.name + "_copy", self.geometry, self.classname)
 
     def __create_cubit_blob(self, geometry: dict):
@@ -217,7 +217,7 @@ class BaseCubitInstance:
         elif len(dims) == 3:
             pass
         else:
-            raise StructureError("dimensions should be either a 1D or 3D vector (or scalar)")
+            raise CubismError("dimensions should be either a 1D or 3D vector (or scalar)")
         blob = cubit.brick(dims[0], dims[1], dims[2])
         id = cubit.get_last_id("volume")
         # orientate according to euler angles
@@ -242,7 +242,7 @@ class BaseCubitInstance:
         elif len(inner_dims) == 3:
             pass
         else:
-            raise StructureError("dimensions should be either a 1D or 3D vector (or scalar)")
+            raise CubismError("dimensions should be either a 1D or 3D vector (or scalar)")
         if type(thickness) == int:
             thickness = [thickness, thickness, thickness]
         elif len(thickness) == 1:
@@ -250,7 +250,7 @@ class BaseCubitInstance:
         elif len(thickness) == 3:
             pass
         else:
-            raise StructureError("thickness should be either a 1D or 3D vector (or scalar)")
+            raise CubismError("thickness should be either a 1D or 3D vector (or scalar)")
         block = cubit.brick(inner_dims[0]+2*thickness[0], inner_dims[1]+2*thickness[1], inner_dims[2]+2*thickness[2])
         subtract_vol = cubit.brick(inner_dims[0], inner_dims[1], inner_dims[2])
         room = cubit.subtract([subtract_vol], [block])
@@ -271,10 +271,6 @@ class RoomComponent(ComplexComponent):
     def __init__(self, material, name, geometry):
         super().__init__(material, name, geometry, "room")
 
-# class BlanketComponent(ComplexComponent):
-#     def __init__(self, material, name, geometry):
-#         super().__init__(material, name, geometry, "blanket component")
-
 class BreederComponent(ComplexComponent):
     def __init__(self, material, name, geometry):
         super().__init__(material, name, geometry, "breeder")
@@ -292,6 +288,23 @@ class ExternalComponentAssembly(BaseCubitInstance):
 class SourceComponent(ExternalComponentAssembly):
     def __init__(self, manufacturer, name, geometry):
         super().__init__(manufacturer, name, geometry, "source")
+
+def delete_instances_of_same_type(component_list: list):
+    if isinstance(component_list[0], BaseCubitInstance):
+        component_type = component_list[0].geometry_type
+        instances_to_delete = ""
+        for component in component_list:
+            if (isinstance(component, BaseCubitInstance)):
+                if component.geometry_type == component_type:
+                    instances_to_delete += " " + str(component.id)
+                else:
+                    raise CubismError("All components aren't of the same type")
+            else:
+                raise CubismError("All components aren't cubit instances")
+    else:
+        raise CubismError("First element is not a cubit instance!")
+    
+
 
 def enforce_facility_morphology(facility: NeutronTestFacility):
     '''
@@ -329,21 +342,21 @@ def enforce_facility_morphology(facility: NeutronTestFacility):
                 cubit.cmd(f"del vol {union_id}")
                 return True
             else:
-                raise StructureError("Source not completely enclosed")
+                raise CubismError("Source not completely enclosed")
         elif union_volume == blanket_volume + source_volume:
             if facility.morphology == "exclusive":
                 cubit.cmd(f"del body {union_body_id}")
                 return True
             else:
-                raise StructureError("Source not completely outside blanket")
+                raise CubismError("Source not completely outside blanket")
         elif union_volume < blanket_volume + source_volume:
             if facility.morphology == "overlap":
                 cubit.cmd(f"del vol {union_id}")
                 return True
             else:
-                raise StructureError("Source and blanket not partially overlapping")
+                raise CubismError("Source and blanket not partially overlapping")
         else:
-            raise StructureError("Something has gone very wrong")
+            raise CubismError("Something has gone very wrong")
 
 # maybe i should add this to main()
 with open(FILENAME) as jsonFile:

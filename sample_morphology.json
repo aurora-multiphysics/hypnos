@@ -11,7 +11,7 @@
                     {
                         "name": "breeder blob",
                         "class": "breeder",
-                        "material": "Lithium Lead",
+                        "material": "Lithium_Lead",
                         "geometry":{
                             "dimensions": 5,
                             "position": [0, 10, 0]
