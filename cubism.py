@@ -63,32 +63,32 @@ def object_reader(json_object: dict):
 class NativeComponentAssembly:
     '''
     Generic assembly
-    This takes a list of required and additional component names to set up an assembly
-    - required components: instantiating will fail without at least one component of the given classnames
-    - additional components: defines attributes to store components with this classname
-    The specific assembly subclassed from this will
-    - have attributes corresponding to subclass components (specified on construction of the subclass)
-    - enforce every instance to have the required components
-    - store components of the specified subclass components in the corresponding attributes, otherwise other_components
-    - be able to fetch instances from these attributes (get_cubit_instances)
+    This takes a list of required and additional classnames to set up a specific assembly
+    - required classnames: instantiating will fail without at least one component of the given classnames
+    - additional classnames: defines attributes to store components with this classname
+    An assembly class specified from this will:
+    - have attributes corresponding to the supplied classnames
+    - require every instance have at least one component from the required classnames
+    - store components of the specified classnames in corresponding attributes, otherwise other_components
+    - be able to fetch cubit instances of components stores in these attributes (get_cubit_instances)
     '''
-    def __init__(self, morphology: str, component_list:list, required_components: list, additional_components: list):
+    def __init__(self, morphology: str, component_list:list, required_classnames: list, additional_classnames: list):
         # this defines what morphology will be enforced later
         self.morphology = morphology
         # this defines what components to require in every instance
-        self.required_classnames = required_components
+        self.required_classnames = required_classnames
 
         # component_mapping defines what classes get stored in what attributes (other_components is default)
         self.other_components = []
         self.component_mapping = {"other": self.other_components}
 
         # set up attributes and component_mapping for specified components
-        for classname in required_components + additional_components:
+        for classname in required_classnames + additional_classnames:
             component_name = classname + "_components"
             self.__setattr__(component_name, [])
             self.component_mapping[classname] = self.__getattribute__(component_name)
         
-        # enforce given component_list based on required_components
+        # enforce given component_list based on required_classnames
         self.enforced = self.enforce_structure(component_list)
         # store instances
         self.setup_facility(component_list)
@@ -133,7 +133,7 @@ class StructureError(Exception):
 
 class NeutronTestFacility(NativeComponentAssembly):
     def __init__(self, morphology: str, component_list: list):
-        super().__init__(morphology, component_list, required_components = ["source", "blanket", "room"], additional_components = [])
+        super().__init__(morphology, component_list, required_classnames = ["source", "blanket", "room"], additional_classnames = [])
 
 class BlanketAssembly:
     def __init__(self, morphology: str, component_list: list) -> None:
