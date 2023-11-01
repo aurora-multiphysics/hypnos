@@ -9,17 +9,28 @@ elif __name__ == "__coreformcubit__":
     cubit.cmd("reset")
 
 filename = "sample_morphology.json"
+NEUTRON_TEST_FACILITY_REQUIREMENTS = ["room", "source", "blanket"]
+NEUTRON_TEST_FACILITY_ADDITIONAL = []
+BLANKET_REQUIREMENTS = ["breeder", "structure"]
+BLANKET_ADDITIONAL = ["coolant"]
+
+NEUTRON_TEST_FACLITY_ALL = NEUTRON_TEST_FACILITY_REQUIREMENTS + NEUTRON_TEST_FACILITY_ADDITIONAL
+BLANKET_ALL = BLANKET_REQUIREMENTS + BLANKET_ADDITIONAL
+
+# classes according to what make_geometry subfunction(?) needs to be called
+BLOB_CLASSES = ["source", "complex", "external", "breeder", "structure"]
+ROOM_CLASSES = ["room"]
 
 def object_reader(json_object: dict):
     '''set up class instance according to the class name provided'''
-    if json_object["class"] == "complex component":
+    if json_object["class"] == "complex":
         return ComplexComponent(
             name = json_object["name"],
             material = json_object["material"],
             geometry = json_object["geometry"],
             classname = "complex"
         )
-    elif json_object["class"] == "external component assembly":
+    elif json_object["class"] == "external":
         return ExternalComponentAssembly(
             name = json_object["name"],
             manufacturer = json_object["manufacturer"],
@@ -42,30 +53,42 @@ def object_reader(json_object: dict):
             manufacturer= json_object["manufacturer"],
             geometry= json_object["geometry"]
         )
-    # elif json_object["class"] == "blanket":
-    #     return BlanketAssembly(
-    #         morphology= json_object["morphology"],
-    #         component_list= json_object["components"]
-    #     )
+    elif json_object["class"] == "blanket":
+        return BlanketAssembly(
+            morphology= json_object["morphology"],
+            component_list= json_object["components"]
+        )
     elif json_object["class"] == "room":
         return RoomComponent(
             material= json_object["material"],
             name= json_object["name"],
             geometry= json_object["geometry"]
         )
-    elif json_object["class"] == "blanket":
-        return BlanketComponent(
-            name= json_object["name"],
+    elif json_object["class"] == "breeder":
+        return BreederComponent(
             material= json_object["material"],
+            name= json_object["name"],
             geometry= json_object["geometry"]
         )
+    elif json_object["class"] == "structure":
+        return StructureComponent(
+            material= json_object["material"],
+            name= json_object["name"],
+            geometry= json_object["geometry"]
+        )
+    # elif json_object["class"] == "blanket":
+    #     return BlanketComponent(
+    #         name= json_object["name"],
+    #         material= json_object["material"],
+    #         geometry= json_object["geometry"]
+    #     )
 
 class NativeComponentAssembly:
     '''
-    Generic assembly
-    This takes a list of required and additional classnames to set up a specific assembly
+    Generic assembly that takes a list of required and additional classnames to set up a specific assembly
     - required classnames: instantiating will fail without at least one component of the given classnames
     - additional classnames: defines attributes to store components with this classname
+
     An assembly class specified from this will:
     - have attributes corresponding to the supplied classnames
     - require every instance have at least one component from the required classnames
@@ -92,7 +115,6 @@ class NativeComponentAssembly:
         self.enforced = self.enforce_structure(component_list)
         # store instances
         self.setup_facility(component_list)
-        print("hello")
 
     def enforce_structure(self, comp_list: list):
         '''make sure the instance contains the required components'''
@@ -112,7 +134,7 @@ class NativeComponentAssembly:
             else:
                 self.other_components.append(object_reader(component_dict))
 
-    def get_cubit_instances(self, classname_list: list):
+    def get_cubit_instances_from_classname(self, classname_list: list):
         '''returns list of cubit instances of specified classnames'''
         instances_list = []
         for component_classname in classname_list:
@@ -122,40 +144,32 @@ class NativeComponentAssembly:
                     # fetches instances
                     if isinstance(component, BaseCubitInstance):
                         instances_list.append(component.cubitInstance)
-                    else:
-                        raise StructureError(f"component ({component}) not recognised")
-            else:
-                raise StructureError(f"Classname not recognised: {component_classname}")
+                    elif isinstance(component, NativeComponentAssembly):
+                        # This feels very scuffed
+                        instances_list += component.get_cubit_instances_from_classname(classname_list)
         return instances_list
+    
+    def get_all_cubit_instances(self) -> list:
+        instances_list = []
+        for component_attribute in self.component_mapping.values():
+            for component in component_attribute:
+                if isinstance(component, BaseCubitInstance):
+                    instances_list.append(component.cubitInstance)
+                elif isinstance(component, NativeComponentAssembly):
+                    instances_list += component.get_all_cubit_instances()
 
 class StructureError(Exception):
     pass
 
 class NeutronTestFacility(NativeComponentAssembly):
+    '''Assmebly class that requires at least one source, blanket, and room'''
     def __init__(self, morphology: str, component_list: list):
-        super().__init__(morphology, component_list, required_classnames = ["source", "blanket", "room"], additional_classnames = [])
+        super().__init__(morphology, component_list, required_classnames = NEUTRON_TEST_FACILITY_REQUIREMENTS, additional_classnames = NEUTRON_TEST_FACILITY_ADDITIONAL)
 
-class BlanketAssembly:
-    def __init__(self, morphology: str, component_list: list) -> None:
-        self.morphology = morphology
-        #instance storage
-        self.breeder_components = []
-        self.structure_components = []
-        self.other_components = []
-        self.setup_blanket(component_list)
-        #store instances
-
-    def setup_blanket(self, component_list: list):
-        for component_dict in component_list:
-            if component_dict["class"] == "breeder":
-                self.breeder_components.append(object_reader(component_dict))
-            elif component_dict["class"] == "structure":
-                self.structure_components.append(object_reader(component_dict))
-            else:
-                self.other_components.append(object_reader(component_dict))
-
-    def get_cubit_instances(self):
-        components_to_check = [self.breeder_components, self.structure_components, self.other_components]
+class BlanketAssembly(NativeComponentAssembly):
+    '''Assembly class that requires at least one breeder and structure. Additionally stores coolants separately'''
+    def __init__(self, morphology: str, component_list: list, required_classnames = BLANKET_REQUIREMENTS, additional_classnames = BLANKET_ADDITIONAL):
+        super().__init__(morphology, component_list, required_classnames, additional_classnames)
 
 # everything instanced in cubit will need a name/dims/pos/euler_angles/id
 class BaseCubitInstance:
@@ -163,18 +177,18 @@ class BaseCubitInstance:
     def __init__(self, name, geometry, classname):
         self.name = name
         self.classname= classname
-        self.cubitInstance, self.id = self.make_geometry(geometry)
+        self.cubitInstance, self.id, self.type= self.make_geometry(geometry)
     
     def make_geometry(self, geometry: dict):
         '''abstract function to create geometry in cubit'''
         # if the class is a room, make a room. otherwise make a blob.
-        if self.classname in ["complex component", "blanket component", "source", "external"]:
+        if self.classname in BLOB_CLASSES:
             return self.__create_cubit_blob(
                 dims= geometry["dimensions"],
                 pos= geometry["position"],
                 euler_angles= geometry["euler_angles"]
             )
-        elif self.classname in ["room"]:
+        elif self.classname in ROOM_CLASSES:
             return self.__create_cubit_room(
                 inner_dims= geometry["dimensions"],
                 thickness= geometry["thickness"]
@@ -184,13 +198,16 @@ class BaseCubitInstance:
     
     def __create_cubit_blob(self, dims, pos, euler_angles):
         '''create blob with dimensions dims. Rotate it about the y-axis, x-axis, y-axis by specified angles. Move it to position pos'''
-        # create cube or cuboid
-        if len(dims) == 1:
-            blob = cubit.brick(dims[0])
+        # create a cube or cuboid.
+        if type(dims) == int:
+            dims = [dims for i in range(3)]
+        elif len(dims) == 1:
+            dims = [dims[0] for i in range(3)]
         elif len(dims) == 3:
-            blob = cubit.brick(dims[0], dims[1], dims[2])
-        else:
             pass
+        else:
+            raise StructureError("dimensions should be either a 1D or 3D vector (or scalar)")
+        blob = cubit.brick(dims[0], dims[1], dims[2])
         id = cubit.get_last_id("volume")
         # orientate according to euler angles
         axis_list = ['y', 'x', 'y']
@@ -200,7 +217,7 @@ class BaseCubitInstance:
         # move to specified position
         cubit.move(blob, pos)
         # return instance for further manipulation
-        return blob, id
+        return blob, id, "volume"
 
     def __create_cubit_room(self, inner_dims, thickness):
         '''create 3d room with inner dimensions inner_dims (int or list) and thickness (int or list)'''
@@ -225,10 +242,12 @@ class BaseCubitInstance:
         subtract_vol = cubit.brick(inner_dims[0], inner_dims[1], inner_dims[2])
         room = cubit.subtract([subtract_vol], [block])
         room_id = cubit.get_last_id("volume")
-        return room, room_id
+        return room, room_id, "volume"
     
 
 # very basic implementations for component classes
+
+# complex component and subclasses
 class ComplexComponent(BaseCubitInstance):
     def __init__(self, material, name, geometry, classname):
         BaseCubitInstance.__init__(self, name, geometry, classname)
@@ -239,10 +258,19 @@ class RoomComponent(ComplexComponent):
     def __init__(self, material, name, geometry):
         super().__init__(material, name, geometry, "room")
 
-class BlanketComponent(ComplexComponent):
-    def __init__(self, material, name, geometry):
-        super().__init__(material, name, geometry, "blanket component")
+# class BlanketComponent(ComplexComponent):
+#     def __init__(self, material, name, geometry):
+#         super().__init__(material, name, geometry, "blanket component")
 
+class BreederComponent(ComplexComponent):
+    def __init__(self, material, name, geometry):
+        super().__init__(material, name, geometry, "breeder")
+
+class StructureComponent(ComplexComponent):
+    def __init__(self, material, name, geometry):
+        super().__init__(material, name, geometry, "structure")
+
+# external component and subclasses
 class ExternalComponentAssembly(BaseCubitInstance):
     def __init__(self, manufacturer, name, geometry, classname):
         BaseCubitInstance.__init__(self, name, geometry, classname)
@@ -264,9 +292,12 @@ def enforce_facility_morphology(facility: NeutronTestFacility):
     FACILITY_MORPHOLOGIES= ["exclusive", "inclusive", "overlap", "wall"]
     if facility.morphology in FACILITY_MORPHOLOGIES:
 
-        # set up copies so we do not disturb the actual geometry
-        testing_source = cubit.copy_body(facility.source_components[0].cubitInstance)
-        testing_blanket = cubit.copy_body(facility.blanket_components[0].cubitInstance)
+        # set up copies so we do not disturb the actual geometry - BROKEN
+        testing_source = facility.get_cubit_instances_from_classname("source")[0]
+        testing_blanket = facility.get_cubit_instances_from_classname("blanket", BLANKET_ALL)
+
+
+        cubit.copy_body(facility.blanket_components[0].cubitInstance)
         union_object = cubit.unite([testing_blanket, testing_source])[0]
 
         # ids needed for cleanup
@@ -309,10 +340,10 @@ neutronTestFacility = []
 for json_object in objects:
     neutronTestFacility.append(object_reader(json_object=json_object))
     if json_object["class"] == "neutron test facility":
-        print("morphology enforced? ", enforce_facility_morphology(neutronTestFacility[-1]))
-
+        #print("morphology enforced? ", enforce_facility_morphology(neutronTestFacility[-1]))
+        pass
 if __name__ == "__main__":
-    #cubit.cmd('export cubit "please_work.cub5')
+    cubit.cmd('export cubit "please_work.cub5')
     pass
 #       cubit.cmd('volume all scheme auto')
 #       cubit.cmd('mesh volume all')

@@ -6,12 +6,29 @@
             {
                 "name" : "blanket blob",
                 "class" : "blanket",
-                "material": "SS",
-                "geometry": {
-                    "dimensions": [10, 8, 4],
-                    "position": [20, 0, 0],
-                    "euler_angles": [45, 0, 0]
-                }
+                "morphology": "sleepy time",
+                "components": [
+                    {
+                        "name": "breeder blob",
+                        "class": "breeder",
+                        "material": "Lithium Lead",
+                        "geometry":{
+                            "dimensions": 5,
+                            "position": [0, 10, 0],
+                            "euler_angles": [0, 0, 0]
+                        }
+                    },
+                    {
+                        "name": "bob",
+                        "class": "structure",
+                        "material": "SS",
+                        "geometry": {
+                            "dimensions": [2],
+                            "position": [0, 15, 0],
+                            "euler_angles": [45, 0, 0]
+                        }
+                    }
+                ]
             },    
             {
                 "name" : "source blob",
