@@ -8,7 +8,8 @@ if __name__ == "__main__":
 elif __name__ == "__coreformcubit__":
     cubit.cmd("reset")
 
-filename = "sample_morphology.json"
+# File to look at
+FILENAME = "sample_morphology.json"
 NEUTRON_TEST_FACILITY_REQUIREMENTS = ["room", "source", "blanket"]
 NEUTRON_TEST_FACILITY_ADDITIONAL = []
 BLANKET_REQUIREMENTS = ["breeder", "structure"]
@@ -177,27 +178,37 @@ class BaseCubitInstance:
     def __init__(self, name, geometry, classname):
         self.name = name
         self.classname= classname
-        self.cubitInstance, self.id, self.type= self.make_geometry(geometry)
+        self.geometry = geometry
+        self.cubitInstance, self.id, self.geometry_type= 0, 0, "volume"
+        self.make_cubit_instance()
     
     def make_geometry(self, geometry: dict):
         '''abstract function to create geometry in cubit'''
-        # if the class is a room, make a room. otherwise make a blob.
+        # if the class is a blob, make a blob. if the class is a room, make a room. otherwise break.
         if self.classname in BLOB_CLASSES:
-            return self.__create_cubit_blob(
-                dims= geometry["dimensions"],
-                pos= geometry["position"],
-                euler_angles= geometry["euler_angles"]
-            )
+            return self.__create_cubit_blob(geometry)
         elif self.classname in ROOM_CLASSES:
-            return self.__create_cubit_room(
-                inner_dims= geometry["dimensions"],
-                thickness= geometry["thickness"]
-            )
+            return self.__create_cubit_room(geometry)
         else:
             raise StructureError("Wrong class name somewhere?: " + self.classname)
     
-    def __create_cubit_blob(self, dims, pos, euler_angles):
-        '''create blob with dimensions dims. Rotate it about the y-axis, x-axis, y-axis by specified angles. Move it to position pos'''
+    def make_cubit_instance(self):
+            self.cubitInstance, self.id, self.geometry_type= self.make_geometry(self.geometry)
+
+    def destroy_cubit_instance(self):
+        cubit.cmd(f"delete {self.geometry_type} {self.id}")
+    
+    def copy_cubit_instance(self):
+        return BaseCubitInstance(self.name + "_copy", self.geometry, self.classname)
+
+    def __create_cubit_blob(self, geometry: dict):
+        '''create cube (if scalar/1D) or cuboid (if 3D) with dimensions. 
+        Rotate it about the y-axis, x-axis, y-axis if euler_angles are specified. 
+        Move it to position if specified'''
+        # setup variables
+        dims= geometry["dimensions"]
+        pos= geometry["position"] if "position" in geometry.keys() else [0, 0, 0]
+        euler_angles= geometry["euler_angles"] if "euler_angles" in geometry.keys() else [0, 0, 0]
         # create a cube or cuboid.
         if type(dims) == int:
             dims = [dims for i in range(3)]
@@ -219,8 +230,10 @@ class BaseCubitInstance:
         # return instance for further manipulation
         return blob, id, "volume"
 
-    def __create_cubit_room(self, inner_dims, thickness):
-        '''create 3d room with inner dimensions inner_dims (int or list) and thickness (int or list)'''
+    def __create_cubit_room(self, geometry: dict):
+        '''create 3d room with inner dimensions dimensions (int or list) and thickness (int or list)'''
+        inner_dims= geometry["dimensions"]
+        thickness= geometry["thickness"]
         # create a cube or cuboid.
         if type(inner_dims) == int:
             inner_dims = [inner_dims, inner_dims, inner_dims]
@@ -252,7 +265,7 @@ class ComplexComponent(BaseCubitInstance):
     def __init__(self, material, name, geometry, classname):
         BaseCubitInstance.__init__(self, name, geometry, classname)
         self.material = material
-        cubit.cmd(f'group "{self.material}" add volume {self.id}')
+        cubit.cmd(f'group "{self.material}" add {self.geometry_type} {self.id}')
 
 class RoomComponent(ComplexComponent):
     def __init__(self, material, name, geometry):
@@ -333,7 +346,7 @@ def enforce_facility_morphology(facility: NeutronTestFacility):
             raise StructureError("Something has gone very wrong")
 
 # maybe i should add this to main()
-with open(filename) as jsonFile:
+with open(FILENAME) as jsonFile:
     data = jsonFile.read()
     objects = json.loads(data)
 neutronTestFacility = []
@@ -343,7 +356,7 @@ for json_object in objects:
         #print("morphology enforced? ", enforce_facility_morphology(neutronTestFacility[-1]))
         pass
 if __name__ == "__main__":
-    cubit.cmd('export cubit "please_work.cub5')
+    #cubit.cmd('export cubit "please_work.cub5')
     pass
 #       cubit.cmd('volume all scheme auto')
 #       cubit.cmd('mesh volume all')
