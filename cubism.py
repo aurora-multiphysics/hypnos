@@ -8,8 +8,13 @@ if __name__ == "__main__":
 elif __name__ == "__coreformcubit__":
     cubit.cmd("reset")
 
-# File to look at
-FILENAME = "sample_morphology.json"
+# Files to look at
+JSON_FILENAME = "sample_morphology.json"
+SOURCE_FILENAME = "dummy_source.stp"
+
+# just need os to generate filepath
+import os
+SOURCE_FILEPATH = os.path.join(os.getcwd(), SOURCE_FILENAME)
 
 # components in assemblies to be generated
 NEUTRON_TEST_FACILITY_REQUIREMENTS = ["room", "source", "blanket"]
@@ -82,6 +87,29 @@ def object_reader(json_object: dict):
             name= json_object["name"],
             geometry= json_object["geometry"]
         )
+
+def get_cubit_geometry(geometry_id, geometry_type):
+    if geometry_type == "body":
+        return cubit.body(geometry_id)
+    elif geometry_type == "volume":
+        return cubit.volume(geometry_id)
+    elif geometry_type == "surface":
+        return cubit.surface(geometry_id)
+    elif geometry_type == "curve":
+        return cubit.curve(geometry_id)
+    elif geometry_type == "vertex":
+        return cubit.vertex(geometry_id)
+    else:
+        raise CubismError(f"geometry type not recognised: {geometry_type}")
+
+def setup_source():
+    cubit.cmd(f"import {SOURCE_FILEPATH} heal")
+    cubit.cmd("group 'source_volumes' add volume all")
+    source_volume_ids = cubit.get_entities("volume")
+    source_volumes = [cubit.volume(volume_id) for volume_id in source_volume_ids]
+
+
+    
 
 class NativeComponentAssembly:
     '''
@@ -392,7 +420,7 @@ def enforce_facility_morphology(facility: NeutronTestFacility):
             raise CubismError("Something has gone very wrong")
 
 # maybe i should add this to main()
-with open(FILENAME) as jsonFile:
+with open(JSON_FILENAME) as jsonFile:
     data = jsonFile.read()
     objects = json.loads(data)
 neutronTestFacility = []
