@@ -142,7 +142,7 @@ class NativeComponentAssembly:
             if component_classname in self.component_mapping.keys():
                 for component in self.component_mapping[component_classname]:
                     # fetches instances
-                    if isinstance(component, BaseCubitInstance):
+                    if isinstance(component, CreatedCubitInstance):
                         instances_list.append(component.cubitInstance)
                     elif isinstance(component, NativeComponentAssembly):
                         # This feels very scuffed
@@ -154,7 +154,7 @@ class NativeComponentAssembly:
         instances_list = []
         for component_attribute in self.component_mapping.values():
             for component in component_attribute:
-                if isinstance(component, BaseCubitInstance):
+                if isinstance(component, CreatedCubitInstance):
                     instances_list.append(component.cubitInstance)
                 elif isinstance(component, NativeComponentAssembly):
                     instances_list += component.get_all_cubit_instances()
@@ -172,19 +172,34 @@ class BlanketAssembly(NativeComponentAssembly):
     def __init__(self, morphology: str, component_list: list, required_classnames = BLANKET_REQUIREMENTS, additional_classnames = BLANKET_ADDITIONAL):
         super().__init__(morphology, component_list, required_classnames, additional_classnames)
 
-# everything instanced in cubit will need a name/dims/pos/euler_angles/id
-class BaseCubitInstance:
-    """Instance of component in cubit, referenced via cubitInstance attribute"""
-    def __init__(self, name, geometry, classname):
+# everything in cubit will need to be referenced by a geometry type and id
+class GenericCubitInstance:
+    '''Wrapper for generic cubit geometry'''
+    def __init__(self, cid: int, geometry_type: str) -> None:
+        self.cid = cid
+        self.geometry_type = geometry_type
+    
+    def destroy_cubit_instance(self):
+        cubit.cmd(f"delete {self.geometry_type} {self.cid}")
+    
+    def copy_cubit_instance(self):
+        cubit.cmd(f"{self.geometry_type} {self.cid} copy")
+        copied_id = cubit.get_last_id(self.geometry_type)
+        return GenericCubitInstance(copied_id, self.geometry_type)
+
+# every blob/room instanced in cubit will need a name/classname/geometry specification/handle
+class CreatedCubitInstance(GenericCubitInstance):
+    """Instance of component created in cubit, cubitside referenced via cubitInstance attribute"""
+    def __init__(self, name, geometry, classname) -> None:
+        super().__init__(0, "")       
         self.name = name
         self.classname= classname
         self.geometry = geometry
-        self.cubitInstance, self.id, self.geometry_type= 0, 0, "volume"
+        self.cubitInstance= 0
         self.make_cubit_instance()
     
     def make_geometry(self, geometry: dict):
-        '''abstract function to create geometry in cubit'''
-        # if the class is a blob, make a blob. if the class is a room, make a room. otherwise break.
+        '''create geometry in cubit. if the class is a blob, make a blob. if the class is a room, make a room. otherwise break.'''
         if self.classname in BLOB_CLASSES:
             return self.__create_cubit_blob(geometry)
         elif self.classname in ROOM_CLASSES:
@@ -193,13 +208,10 @@ class BaseCubitInstance:
             raise CubismError("Wrong class name somewhere?: " + self.classname)
     
     def make_cubit_instance(self):
-            self.cubitInstance, self.id, self.geometry_type= self.make_geometry(self.geometry)
-
-    def destroy_cubit_instance(self):
-        cubit.cmd(f"delete {self.geometry_type} {self.id}")
+            self.cubitInstance, self.cid, self.geometry_type= self.make_geometry(self.geometry)
     
     def copy(self):
-        return BaseCubitInstance(self.name + "_copy", self.geometry, self.classname)
+        return CreatedCubitInstance(self.name + "_copy", self.geometry, self.classname)
 
     def __create_cubit_blob(self, geometry: dict):
         '''create cube (if scalar/1D) or cuboid (if 3D) with dimensions. 
@@ -219,16 +231,16 @@ class BaseCubitInstance:
         else:
             raise CubismError("dimensions should be either a 1D or 3D vector (or scalar)")
         blob = cubit.brick(dims[0], dims[1], dims[2])
-        id = cubit.get_last_id("volume")
+        cid = cubit.get_last_id("volume")
         # orientate according to euler angles
         axis_list = ['y', 'x', 'y']
         for i in range(3): # hard-coding in 3D?
             if not euler_angles[i] == 0:
-                cubit.cmd(f'rotate volume {id} angle {euler_angles[i]} about {axis_list[i]}')
+                cubit.cmd(f'rotate volume {cid} angle {euler_angles[i]} about {axis_list[i]}')
         # move to specified position
         cubit.move(blob, pos)
         # return instance for further manipulation
-        return blob, id, "volume"
+        return blob, cid, "volume"
 
     def __create_cubit_room(self, geometry: dict):
         '''create 3d room with inner dimensions dimensions (int or list) and thickness (int or list)'''
@@ -256,16 +268,16 @@ class BaseCubitInstance:
         room = cubit.subtract([subtract_vol], [block])
         room_id = cubit.get_last_id("volume")
         return room, room_id, "volume"
-    
+
 
 # very basic implementations for component classes
 
 # complex component and subclasses
-class ComplexComponent(BaseCubitInstance):
+class ComplexComponent(CreatedCubitInstance):
     def __init__(self, material, name, geometry, classname):
-        BaseCubitInstance.__init__(self, name, geometry, classname)
+        CreatedCubitInstance.__init__(self, name, geometry, classname)
         self.material = material
-        cubit.cmd(f'group "{self.material}" add {self.geometry_type} {self.id}')
+        cubit.cmd(f'group "{self.material}" add {self.geometry_type} {self.cid}')
 
 class RoomComponent(ComplexComponent):
     def __init__(self, material, name, geometry):
@@ -280,30 +292,31 @@ class StructureComponent(ComplexComponent):
         super().__init__(material, name, geometry, "structure")
 
 # external component and subclasses
-class ExternalComponentAssembly(BaseCubitInstance):
+class ExternalComponentAssembly(CreatedCubitInstance):
     def __init__(self, manufacturer, name, geometry, classname):
-        BaseCubitInstance.__init__(self, name, geometry, classname)
+        CreatedCubitInstance.__init__(self, name, geometry, classname)
         self.manufacturer = manufacturer
 
 class SourceComponent(ExternalComponentAssembly):
     def __init__(self, manufacturer, name, geometry):
         super().__init__(manufacturer, name, geometry, "source")
 
+# functions to delete and copy lists of instances
 def delete_instances(component_list: list):
-    '''Deletes cubit instances of all BaseCubitInstance objects in list'''
+    '''Deletes cubit instances of all CreatedCubitInstance objects in list'''
     for component in component_list:
-        if isinstance(component, BaseCubitInstance):
+        if isinstance(component, CreatedCubitInstance):
             component.destroy_cubit_instance()
 
 def delete_instances_of_same_type(component_list: list):
-    '''just a worse version of delete_instances. fails if all items in list aren't cubit instances or are of different geometry types'''
-    if isinstance(component_list[0], BaseCubitInstance):
+    '''similar to delete_instances. fails if all items in list aren't cubit instances or are of different geometry types'''
+    if isinstance(component_list[0], CreatedCubitInstance):
         component_type = component_list[0].geometry_type
         instances_to_delete = ""
         for component in component_list:
-            if (isinstance(component, BaseCubitInstance)):
+            if (isinstance(component, CreatedCubitInstance)):
                 if component.geometry_type == component_type:
-                    instances_to_delete += " " + str(component.id)
+                    instances_to_delete += " " + str(component.cid)
                 else:
                     raise CubismError("All components aren't of the same type")
             else:
@@ -313,14 +326,18 @@ def delete_instances_of_same_type(component_list: list):
     cubit.cmd(f"delete {component_type}{instances_to_delete}")
 
 def copy_instances(component_list: list):
-    '''Returns a list of copied BaseCubitInstance objects'''
+    '''Returns a list of copied CreatedCubitInstance objects'''
     copied_list = []
     for component in component_list:
-        if isinstance(component, BaseCubitInstance):
+        if isinstance(component, CreatedCubitInstance):
             copied_list.append(component.copy())
         else:
             raise CubismError("All components are not instances :(")
-    
+
+def unionise(component_list: list):
+    for component in component_list:
+        if isinstance(component, CreatedCubitInstance):
+            pass
 
 
 def enforce_facility_morphology(facility: NeutronTestFacility):
@@ -335,12 +352,11 @@ def enforce_facility_morphology(facility: NeutronTestFacility):
     FACILITY_MORPHOLOGIES= ["exclusive", "inclusive", "overlap", "wall"]
     if facility.morphology in FACILITY_MORPHOLOGIES:
 
-        # set up copies so we do not disturb the actual geometry - BROKEN
-        testing_source = facility.get_cubit_instances_from_classname("source")[0]
-        testing_blanket = facility.get_cubit_instances_from_classname("blanket", BLANKET_ALL)
+        # set up copies so we do not disturb the actual geometry
+        testing_source = copy_instances(facility.get_cubit_instances_from_classname("source"))
+        testing_blanket = copy_instances(facility.get_cubit_instances_from_classname("blanket", BLANKET_ALL))
 
-
-        cubit.copy_body(facility.blanket_components[0].cubitInstance)
+        # EVERYTHING FROM HERE SHOULD CURRENTLY BE BROKEN
         union_object = cubit.unite([testing_blanket, testing_source])[0]
 
         # ids needed for cleanup
