@@ -29,7 +29,7 @@ BLANKET_ALL = BLANKET_REQUIREMENTS + BLANKET_ADDITIONAL
 BLOB_CLASSES = ["source", "complex", "external", "breeder", "structure"]
 ROOM_CLASSES = ["room"]
 
-# be aware: FACILITY_MORPHOLOGIES defined in enforce_facility_morphology because morphology checking is hard-coded in
+# be aware: FACILITY_MORPHOLOGIES defined in enforce_facility_morphology because morphology checking is hard-coded
 
 # map classnames to instances - there should be a better way to do this
 def object_reader(json_object: dict):
@@ -49,7 +49,7 @@ def object_reader(json_object: dict):
             classname = "external"
         )
     elif json_object["class"] == "native component assembly":
-        return NativeComponentAssembly(
+        return CreatedComponentAssembly(
             morphology= json_object["morphology"],
             component_list= json_object["components"]
         )
@@ -109,58 +109,28 @@ def setup_source():
     source_volumes = [cubit.volume(volume_id) for volume_id in source_volume_ids]
 
 
-    
-
-class NativeComponentAssembly:
+class GenericComponentAssembly:
     '''
-    Generic assembly that takes a list of required and additional classnames to set up a specific assembly
-    - required classnames: instantiating will fail without at least one component of the given classnames
-    - additional classnames: defines attributes to store components with this classname
+    Generic assembly that takes a list of classnames to set up a subclass
 
     An assembly class specified from this will:
     - have attributes corresponding to the supplied classnames
-    - require every instance have at least one component from the required classnames
     - store components of the specified classnames in corresponding attributes, otherwise other_components
     - be able to fetch cubit instances of components stores in these attributes (get_cubit_instances)
     '''
-    def __init__(self, morphology: str, component_list:list, required_classnames: list, additional_classnames: list):
-        # this defines what morphology will be enforced later
-        self.morphology = morphology
-        # this defines what components to require in every instance
-        self.required_classnames = required_classnames
+    def __init__(self, setup_classnames: list):
+        # this defines what attributes are set up
+        self.setup_classnames = setup_classnames
 
         # component_mapping defines what classes get stored in what attributes (other_components is default)
         self.other_components = []
         self.component_mapping = {"other": self.other_components}
 
         # set up attributes and component_mapping for specified components
-        for classname in required_classnames + additional_classnames:
+        for classname in setup_classnames:
             component_name = classname + "_components"
             self.__setattr__(component_name, [])
             self.component_mapping[classname] = self.__getattribute__(component_name)
-        
-        # enforce given component_list based on required_classnames
-        self.enforced = self.enforce_structure(component_list)
-        # store instances
-        self.setup_facility(component_list)
-
-    def enforce_structure(self, comp_list: list):
-        '''make sure the instance contains the required components'''
-        class_list = [i["class"] for i in comp_list]
-        for classes_required in self.required_classnames:
-            if classes_required not in class_list:
-                # Can change this to a warning, for now it just throws an error
-                raise CubismError("Neutron test facility must contain a room, source, and blanket")
-        return True
-    
-    def setup_facility(self, component_list: list):
-        '''adds components to lists in the appropriate attributes'''
-        for component_dict in component_list:
-            # if you are looking for the class-attribute mapping it is the component_mapping dict in __init__
-            if component_dict["class"] in self.component_mapping.keys():
-                self.component_mapping[component_dict["class"]].append(object_reader(component_dict))
-            else:
-                self.other_components.append(object_reader(component_dict))
 
     def get_cubit_instances_from_classname(self, classname_list: list):
         '''returns list of cubit instances of specified classnames'''
@@ -170,9 +140,9 @@ class NativeComponentAssembly:
             if component_classname in self.component_mapping.keys():
                 for component in self.component_mapping[component_classname]:
                     # fetches instances
-                    if isinstance(component, CreatedCubitInstance):
+                    if isinstance(component, GenericCubitInstance):
                         instances_list.append(component.cubitInstance)
-                    elif isinstance(component, NativeComponentAssembly):
+                    elif isinstance(component, GenericComponentAssembly):
                         # This feels very scuffed
                         instances_list += component.get_cubit_instances_from_classname(classname_list)
         return instances_list
@@ -184,18 +154,69 @@ class NativeComponentAssembly:
             for component in component_attribute:
                 if isinstance(component, CreatedCubitInstance):
                     instances_list.append(component.cubitInstance)
-                elif isinstance(component, NativeComponentAssembly):
+                elif isinstance(component, CreatedComponentAssembly):
                     instances_list += component.get_all_cubit_instances()
+
+class CreatedComponentAssembly(GenericComponentAssembly):
+    '''
+    Assembly to handle components created natively. Takes a list of required and additional classnames to set up a specific assembly
+    - required classnames: instantiating will fail without at least one component of the given classnames
+    - additional classnames: defines attributes to store components with this classname
+
+    An assembly class specified from this will:
+    - have attributes corresponding to the supplied classnames
+    - require every instance have at least one component from the required classnames
+    - store components of the specified classnames in corresponding attributes, otherwise other_components
+    - be able to fetch cubit instances of components stores in these attributes (get_cubit_instances)
+    '''
+    def __init__(self, morphology: str, component_list: list, required_classnames: list, additional_classnames: list):
+        # this defines what morphology will be enforced later
+        self.morphology = morphology
+        # this defines what components to require in every instance
+        self.required_classnames = required_classnames
+
+        # component_mapping defines what classes get stored in what attributes (other_components is default)
+        self.other_components = []
+        self.component_mapping = {"other": self.other_components}
+
+        # set up attributes and component_mapping for required components
+        for classname in required_classnames + additional_classnames:
+            component_name = classname + "_components"
+            self.__setattr__(component_name, [])
+            self.component_mapping[classname] = self.__getattribute__(component_name)
+
+        # enforce given component_list based on required_classnames
+        self.enforced = self.enforce_structure(component_list)
+        # store instances
+        self.setup_facility(component_list)
+
+    def enforce_structure(self, comp_list: list):
+        '''make sure the instance contains the required components'''
+        class_list = [i["class"] for i in comp_list]
+        for classes_required in self.required_classnames:
+            if classes_required not in class_list:
+                # Can change this to a warning, for now it just throws an error
+                raise CubismError(f"This assembly must contain: {self.required_classnames}. Currently contains: {class_list}")
+        return True
+    
+    def setup_facility(self, component_list: list):
+        '''adds components to lists in the appropriate attributes'''
+        for component_dict in component_list:
+            # if you are looking for the class-attribute mapping it is the component_mapping dict in __init__
+            if component_dict["class"] in self.component_mapping.keys():
+                self.component_mapping[component_dict["class"]].append(object_reader(component_dict))
+            else:
+                self.other_components.append(object_reader(component_dict))
 
 class CubismError(Exception):
     pass
 
-class NeutronTestFacility(NativeComponentAssembly):
+class NeutronTestFacility(CreatedComponentAssembly):
     '''Assmebly class that requires at least one source, blanket, and room'''
     def __init__(self, morphology: str, component_list: list):
         super().__init__(morphology, component_list, required_classnames = NEUTRON_TEST_FACILITY_REQUIREMENTS, additional_classnames = NEUTRON_TEST_FACILITY_ADDITIONAL)
 
-class BlanketAssembly(NativeComponentAssembly):
+class BlanketAssembly(CreatedComponentAssembly):
     '''Assembly class that requires at least one breeder and structure. Additionally stores coolants separately'''
     def __init__(self, morphology: str, component_list: list, required_classnames = BLANKET_REQUIREMENTS, additional_classnames = BLANKET_ADDITIONAL):
         super().__init__(morphology, component_list, required_classnames, additional_classnames)
@@ -206,6 +227,7 @@ class GenericCubitInstance:
     def __init__(self, cid: int, geometry_type: str) -> None:
         self.cid = cid
         self.geometry_type = geometry_type
+        self.cubitInstance = get_cubit_geometry(self.cid, self.geometry_type)
     
     def destroy_cubit_instance(self):
         cubit.cmd(f"delete {self.geometry_type} {self.cid}")
@@ -218,12 +240,10 @@ class GenericCubitInstance:
 # every blob/room instanced in cubit will need a name/classname/geometry specification/handle
 class CreatedCubitInstance(GenericCubitInstance):
     """Instance of component created in cubit, cubitside referenced via cubitInstance attribute"""
-    def __init__(self, name, geometry, classname) -> None:
-        super().__init__(0, "")       
+    def __init__(self, name, geometry, classname) -> None:       
         self.name = name
         self.classname= classname
         self.geometry = geometry
-        self.cubitInstance= 0
         self.make_cubit_instance()
     
     def make_geometry(self, geometry: dict):
