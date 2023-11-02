@@ -21,7 +21,7 @@ NEUTRON_TEST_FACLITY_ALL = NEUTRON_TEST_FACILITY_REQUIREMENTS + NEUTRON_TEST_FAC
 BLANKET_ALL = BLANKET_REQUIREMENTS + BLANKET_ADDITIONAL
 
 # classes according to what make_geometry subfunction(?) needs to be called
-BLOB_CLASSES = ["source", "complex", "external", "breeder", "structure"]
+BLOB_CLASSES = ["complex", "breeder", "structure"]
 ROOM_CLASSES = ["room"]
 
 # be aware: FACILITY_MORPHOLOGIES defined in enforce_facility_morphology because morphology checking is hard-coded
@@ -30,7 +30,7 @@ ROOM_CLASSES = ["room"]
 class CubismError(Exception):
     pass
 
-# map classnames to instances - there should be a better way to do this
+# map classnames to instances - there should be a better way to do this?
 def json_object_reader(json_object: dict):
     '''set up class instance according to the class name provided'''
     if json_object["class"] == "complex":
@@ -77,8 +77,9 @@ def json_object_reader(json_object: dict):
             material= json_object["material"]
         )
 
-# make finding IDs less annoying
+# make finding instances less annoying
 def get_cubit_geometry(geometry_id, geometry_type):
+    '''returns cubit instance given id and geometry type'''
     if geometry_type == "body":
         return cubit.body(geometry_id)
     elif geometry_type == "volume":
@@ -222,7 +223,7 @@ class GenericCubitInstance:
         copied_id = cubit.get_last_id(self.geometry_type)
         return GenericCubitInstance(copied_id, self.geometry_type)
 
-# every blob/room instanced in cubit will need a name/classname/geometry specification/handle
+# every blob/room instanced in cubit will need a name/ classname/ geometry specification/ handle
 class CreatedCubitInstance(GenericCubitInstance):
     """Instance of component created in cubit, cubitside referenced via cubitInstance attribute"""
     def __init__(self, geometry, classname) -> None:       
@@ -302,9 +303,7 @@ class CreatedCubitInstance(GenericCubitInstance):
         return room, room_id, "volume"
 
 
-# very basic implementations for component classes
-
-# complex component and subclasses
+# very basic implementations for component classes created natively
 class ComplexComponent(CreatedCubitInstance):
     def __init__(self, geometry, classname, material):
         CreatedCubitInstance.__init__(self= self, geometry= geometry, classname= classname)
@@ -323,13 +322,19 @@ class StructureComponent(ComplexComponent):
     def __init__(self, geometry, material):
         super().__init__(geometry, "structure", material)
 
-# external component and subclasses
+# external component assembly and subclass(es)
 class ExternalComponent(GenericCubitInstance):
-    def __init__(self, cid: int, geometry_type: str, manufacturer: str) -> None:
+    def __init__(self, cid: int, geometry_type: str) -> None:
         super().__init__(cid, geometry_type)
-        self.manufacturer = manufacturer
 
 class ExternalComponentAssembly(GenericComponentAssembly):
+    '''
+    Assembly to store and manage volumes imported from an external file
+    requires:
+    - external_filepath: path to external file relative to this python file
+    - external_groupname: name of group to add external components to
+    - manufacturer
+    '''
     def __init__(self, external_filepath: str, external_groupname: str, manufacturer: str):
         super().__init__(setup_classnames= ["external"])
         self.group = external_groupname
@@ -340,39 +345,43 @@ class ExternalComponentAssembly(GenericComponentAssembly):
         self.add_volumes()
 
     def import_file(self):
+        '''Import file at specified filepath and add to specified group name'''
         print(f'import "{self.filepath}" heal group "{self.group}"')
         cubit.cmd(f'import "{self.filepath}" heal group "{self.group}"')
 
     def get_group_id(self):
+        '''get ID of group (group needs to exist first)'''
         for (group_name, group_id) in cubit.group_names_ids():
             if group_name == self.group:
                 return group_id
         raise CubismError("Can't find group ID?????")
     
     def add_volumes(self):
+        '''Add volumes in group to this assembly as ExternalComponent objects'''
         source_volume_ids = cubit.get_group_volumes(self.group_id)
         for volume_id in source_volume_ids:
-            self.external_components.append(ExternalComponent(volume_id, "volume", self.manufacturer))
+            self.external_components.append(ExternalComponent(volume_id, "volume"))
 
 class SourceAssembly(ExternalComponentAssembly):
+    '''Assembly of external components, created when a json object has class= source'''
     def __init__(self, external_filepath: str, external_groupname: str, manufacturer: str):
         super().__init__(external_filepath, external_groupname, manufacturer)
 
 
 # functions to delete and copy lists of instances
 def delete_instances(component_list: list):
-    '''Deletes cubit instances of all CreatedCubitInstance objects in list'''
+    '''Deletes cubit instances of all GenericCubitInstance objects in list'''
     for component in component_list:
-        if isinstance(component, CreatedCubitInstance):
+        if isinstance(component, GenericCubitInstance):
             component.destroy_cubit_instance()
 
 def delete_instances_of_same_type(component_list: list):
     '''similar to delete_instances. fails if all items in list aren't cubit instances or are of different geometry types'''
-    if isinstance(component_list[0], CreatedCubitInstance):
+    if isinstance(component_list[0], GenericCubitInstance):
         component_type = component_list[0].geometry_type
         instances_to_delete = ""
         for component in component_list:
-            if (isinstance(component, CreatedCubitInstance)):
+            if (isinstance(component, GenericCubitInstance)):
                 if component.geometry_type == component_type:
                     instances_to_delete += " " + str(component.cid)
                 else:
@@ -394,7 +403,9 @@ def copy_instances(component_list: list):
 
 def unionise(component_list: list):
     for component in component_list:
-        if isinstance(component, CreatedCubitInstance):
+        if isinstance(component, GenericCubitInstance):
+            pass
+        elif isinstance(component, GenericComponentAssembly):
             pass
 
 
@@ -460,7 +471,7 @@ for json_object in objects:
         #print("morphology enforced? ", enforce_facility_morphology(neutronTestFacility[-1]))
         pass
 if __name__ == "__main__":
-    cubit.cmd('export cubit "please_work.cub5')
+    #cubit.cmd('export cubit "please_work.cub5')
     pass
 #       cubit.cmd('volume all scheme auto')
 #       cubit.cmd('mesh volume all')
