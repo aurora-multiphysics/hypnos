@@ -31,8 +31,12 @@ ROOM_CLASSES = ["room"]
 
 # be aware: FACILITY_MORPHOLOGIES defined in enforce_facility_morphology because morphology checking is hard-coded
 
+# raise this when bad things happen
+class CubismError(Exception):
+    pass
+
 # map classnames to instances - there should be a better way to do this
-def object_reader(json_object: dict):
+def json_object_reader(json_object: dict):
     '''set up class instance according to the class name provided'''
     if json_object["class"] == "complex":
         return ComplexComponent(
@@ -88,6 +92,7 @@ def object_reader(json_object: dict):
             geometry= json_object["geometry"]
         )
 
+# make finding IDs less annoying
 def get_cubit_geometry(geometry_id, geometry_type):
     if geometry_type == "body":
         return cubit.body(geometry_id)
@@ -105,8 +110,7 @@ def get_cubit_geometry(geometry_id, geometry_type):
 def setup_source():
     cubit.cmd(f"import {SOURCE_FILEPATH} heal")
     cubit.cmd("group 'source_volumes' add volume all")
-    source_volume_ids = cubit.get_entities("volume")
-    source_volumes = [cubit.volume(volume_id) for volume_id in source_volume_ids]
+
 
 
 class GenericComponentAssembly:
@@ -204,12 +208,9 @@ class CreatedComponentAssembly(GenericComponentAssembly):
         for component_dict in component_list:
             # if you are looking for the class-attribute mapping it is the component_mapping dict in __init__
             if component_dict["class"] in self.component_mapping.keys():
-                self.component_mapping[component_dict["class"]].append(object_reader(component_dict))
+                self.component_mapping[component_dict["class"]].append(json_object_reader(component_dict))
             else:
-                self.other_components.append(object_reader(component_dict))
-
-class CubismError(Exception):
-    pass
+                self.other_components.append(json_object_reader(component_dict))
 
 class NeutronTestFacility(CreatedComponentAssembly):
     '''Assmebly class that requires at least one source, blanket, and room'''
@@ -322,32 +323,45 @@ class CreatedCubitInstance(GenericCubitInstance):
 
 # complex component and subclasses
 class ComplexComponent(CreatedCubitInstance):
-    def __init__(self, material, name, geometry, classname):
-        CreatedCubitInstance.__init__(self, name, geometry, classname)
+    def __init__(self, name, geometry, classname, material):
+        CreatedCubitInstance.__init__(self= self, name= name, geometry= geometry, classname= classname)
         self.material = material
         cubit.cmd(f'group "{self.material}" add {self.geometry_type} {self.cid}')
 
 class RoomComponent(ComplexComponent):
-    def __init__(self, material, name, geometry):
-        super().__init__(material, name, geometry, "room")
+    def __init__(self, name, geometry, material):
+        super().__init__(name, geometry, "room", material)
 
 class BreederComponent(ComplexComponent):
-    def __init__(self, material, name, geometry):
-        super().__init__(material, name, geometry, "breeder")
+    def __init__(self, name, geometry, material):
+        super().__init__(name, geometry, "breeder", material)
 
 class StructureComponent(ComplexComponent):
-    def __init__(self, material, name, geometry):
-        super().__init__(material, name, geometry, "structure")
+    def __init__(self, name, geometry, material):
+        super().__init__(name, geometry, "structure", material)
 
 # external component and subclasses
-class ExternalComponentAssembly(CreatedCubitInstance):
-    def __init__(self, manufacturer, name, geometry, classname):
-        CreatedCubitInstance.__init__(self, name, geometry, classname)
+class ExternalComponent(GenericCubitInstance):
+    def __init__(self, cid: int, geometry_type: str, classname: str, manufacturer: str) -> None:
+        super().__init__(cid, geometry_type)
+        self.classname = classname
         self.manufacturer = manufacturer
 
-class SourceComponent(ExternalComponentAssembly):
-    def __init__(self, manufacturer, name, geometry):
-        super().__init__(manufacturer, name, geometry, "source")
+class SourceComponent(ExternalComponent):
+    def __init__(self, cid: int, geometry_type: str, manufacturer: str) -> None:
+        super().__init__(cid, geometry_type, "source", manufacturer)
+
+class ExternalComponentAssembly(GenericComponentAssembly):
+    def __init__(self, external_filepath: str, external_groupname: str, manufacturer: str):
+        super().__init__(setup_classnames= ["source"])
+        cubit.cmd(f"import {external_filepath} heal group {external_groupname}")
+        for (group_name, group_id) in cubit.group_names_ids():
+            if group_name == external_groupname:
+                self.group_id = group_id
+        source_volume_ids = cubit.get_group_volumes(self.group_id)
+        for volume_id in source_volume_ids:
+            self.source_components.append(SourceComponent(volume_id, "volume", manufacturer))
+
 
 # functions to delete and copy lists of instances
 def delete_instances(component_list: list):
@@ -445,7 +459,7 @@ with open(JSON_FILENAME) as jsonFile:
     objects = json.loads(data)
 neutronTestFacility = []
 for json_object in objects:
-    neutronTestFacility.append(object_reader(json_object=json_object))
+    neutronTestFacility.append(json_object_reader(json_object=json_object))
     if json_object["class"] == "neutron test facility":
         #print("morphology enforced? ", enforce_facility_morphology(neutronTestFacility[-1]))
         pass
