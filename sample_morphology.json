@@ -4,21 +4,18 @@
         "morphology": "exclusive",
         "components": [
             {
-                "name" : "blanket blob",
                 "class" : "blanket",
                 "morphology": "sleepy time",
                 "components": [
                     {
-                        "name": "breeder blob",
                         "class": "breeder",
-                        "material": "Lithium_Lead",
+                        "material": "lithium_lead",
                         "geometry":{
                             "dimensions": 5,
                             "position": [0, 10, 0]
                         }
                     },
                     {
-                        "name": "bob",
                         "class": "structure",
                         "material": "SS",
                         "geometry": {
@@ -30,8 +27,9 @@
                 ]
             },    
             {
-                "name" : "source blob",
                 "class" : "source",
+                "filepath": "./dummy_source.stp",
+                "group": "source",
                 "manufacturer": "blobcorp",
                 "geometry": {
                     "dimensions": [20, 3, 3],
@@ -39,7 +37,6 @@
                 }
             },
             {
-                "name" : "ROOM TIME",
                 "class": "room",
                 "material": "SS",
                 "geometry": {
