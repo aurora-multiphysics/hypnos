@@ -24,7 +24,8 @@ BLANKET_ALL = BLANKET_REQUIREMENTS + BLANKET_ADDITIONAL
 BLOB_CLASSES = ["complex", "breeder", "structure"]
 ROOM_CLASSES = ["room"]
 
-# be aware: FACILITY_MORPHOLOGIES defined in enforce_facility_morphology because morphology checking is hard-coded
+# 
+FACILITY_MORPHOLOGIES= ["exclusive", "inclusive", "overlap", "wall"]
 
 # raise this when bad things happen
 class CubismError(Exception):
@@ -136,10 +137,11 @@ class GenericComponentAssembly:
         instances_list = []
         for component_attribute in self.component_mapping.values():
             for component in component_attribute:
-                if isinstance(component, CreatedCubitInstance):
+                if isinstance(component, GenericCubitInstance):
                     instances_list.append(component.cubitInstance)
-                elif isinstance(component, CreatedComponentAssembly):
+                elif isinstance(component, GenericComponentAssembly):
                     instances_list += component.get_all_cubit_instances()
+        return instances_list
 
 class CreatedComponentAssembly(GenericComponentAssembly):
     '''
@@ -201,6 +203,28 @@ class NeutronTestFacility(CreatedComponentAssembly):
     '''Assmebly class that requires at least one source, blanket, and room'''
     def __init__(self, morphology: str, component_list: list):
         super().__init__(morphology, component_list, required_classnames = NEUTRON_TEST_FACILITY_REQUIREMENTS, additional_classnames = NEUTRON_TEST_FACILITY_ADDITIONAL)
+        self.enforce_facility_morphology()
+
+    def enforce_facility_morphology(self):
+        if self.morphology not in FACILITY_MORPHOLOGIES:
+            raise CubismError(f"Morphology not supported by this facility: {self.morphology}")
+        source_object= unionise(self.source_components)
+        blanket_object= unionise(self.blanket_components)
+        union_object= unionise([source_object, blanket_object])
+
+        source_volume= source_object.cubitInstance.volume()
+        blanket_volume= blanket_object.cubitInstance.volume()
+        union_volume= union_object.cubitInstance.volume()
+
+        # different enforcing depending on the morphology specified
+        if (self.morphology == "inclusive") & (not (union_volume == blanket_volume)):
+            raise CubismError("Source not completely enclosed")
+        elif (self.morphology == "exclusive") & (not (union_volume == blanket_volume + source_volume)):
+            raise CubismError("Source not completely outside blanket")
+        elif (self.morphology == "overlap") & (not (union_volume < blanket_volume + source_volume)):
+            raise CubismError("Source and blanket not partially overlapping")
+        else:
+            print(f"{self.morphology} morphology enforced")
 
 class BlanketAssembly(CreatedComponentAssembly):
     '''Assembly class that requires at least one breeder and structure. Additionally stores coolants separately'''
@@ -302,7 +326,6 @@ class CreatedCubitInstance(GenericCubitInstance):
         room_id = cubit.get_last_id("volume")
         return room, room_id, "volume"
 
-
 # very basic implementations for component classes created natively
 class ComplexComponent(CreatedCubitInstance):
     def __init__(self, geometry, classname, material):
@@ -396,18 +419,39 @@ def copy_instances(component_list: list):
     '''Returns a list of copied CreatedCubitInstance objects'''
     copied_list = []
     for component in component_list:
-        if isinstance(component, CreatedCubitInstance):
+        if isinstance(component, GenericCubitInstance):
             copied_list.append(component.copy())
         else:
             raise CubismError("All components are not instances :(")
 
 def unionise(component_list: list):
+    '''
+    creates a union of all instances in given components.
+    accepts list of components.
+    returns GenericCubitInstance of created union.
+    '''
+    if len(component_list) == 0:
+        raise CubismError("This is an empty list you have given me")
+
+    instances_to_union = []
     for component in component_list:
         if isinstance(component, GenericCubitInstance):
-            pass
+            instances_to_union.append(component.cubitInstance)
         elif isinstance(component, GenericComponentAssembly):
-            pass
-
+            instances_to_union += component.get_all_cubit_instances()
+    if len(instances_to_union) == 0:
+        raise CubismError("Could not find any instances")
+    elif len(instances_to_union) == 1:
+        return instances_to_union[0].copy()
+    old_volumes = cubit.get_entities("volume")
+    old_bodies = cubit.get_entities("body")
+    cubit.unite(instances_to_union, keep_old_in=True)
+    if cubit.get_entities("volume") == old_volumes:
+        return GenericCubitInstance(cubit.get_last_id("volume"), "volume")
+    elif cubit.get_entities("body") == old_bodies:
+        return GenericCubitInstance(cubit.get_last_id("body"), "body")
+    else:
+        raise CubismError("Something unknowable was created in this union. Or worse, a surface.")
 
 def enforce_facility_morphology(facility: NeutronTestFacility):
     '''
