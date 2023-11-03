@@ -224,8 +224,7 @@ class NeutronTestFacility(CreatedComponentAssembly):
         if (self.morphology == "inclusive") & (not (union_volume == blanket_volume)):
             raise CubismError("Source not completely enclosed")
         elif (self.morphology == "exclusive") & (not (union_volume == blanket_volume + source_volume)):
-            #raise CubismError("Source not completely outside blanket")
-            pass
+            raise CubismError("Source not completely outside blanket")
         elif (self.morphology == "overlap") & (not (union_volume < blanket_volume + source_volume)):
             raise CubismError("Source and blanket not partially overlapping")
         else:

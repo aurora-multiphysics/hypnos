@@ -1,7 +1,7 @@
 [
     {
         "class": "neutron test facility",
-        "morphology": "exclusive",
+        "morphology": "overlap",
         "components": [
             {
                 "class" : "blanket",
