@@ -96,6 +96,42 @@ def get_cubit_geometry(geometry_id, geometry_type):
     else:
         raise CubismError(f"geometry type not recognised: {geometry_type}")
 
+class Material:
+    def __init__(self, name, group_id) -> None:
+        self.name = name
+        self.components = []
+        self.state_of_matter = ""
+        self.group_id = group_id
+    
+    def add_component(self, component):
+        if isinstance(component, GenericCubitInstance):
+            self.components.append(component)
+        else:
+            raise CubismError("Not a GenericCubitInstance???")
+    
+    def change_state(self, state: str):
+        self.state_of_matter = state
+    
+    def create_group(self):
+        pass
+
+class MaterialsTracker:
+    materials = []
+
+    def make_material(self, material_name: str, group_id: int):
+        '''robust against material name already existing'''
+        if material_name not in [i.name for i in self.materials]:
+            self.materials.append(Material(material_name, group_id))
+    
+    def add_component_to_material(self, component, material_name: str):
+        '''works if material already exists'''
+        for material in self.materials:
+            if material.name == material_name:
+                material.add_component(component)
+                return True
+        
+
+
 class GenericComponentAssembly:
     '''
     Generic assembly that takes a list of classnames to set up a subclass
@@ -214,7 +250,7 @@ class NeutronTestFacility(CreatedComponentAssembly):
         super().__init__(morphology, component_list, required_classnames = NEUTRON_TEST_FACILITY_REQUIREMENTS, additional_classnames = NEUTRON_TEST_FACILITY_ADDITIONAL)
         self.enforce_facility_morphology()
         self.apply_facility_morphology()
-        self.imprint_and_merge()
+        #self.imprint_and_merge()
 
     def enforce_facility_morphology(self):
         '''Make sure the specified morphology is followed. This works by comparing the volumes of the source and blanket to the volume of their union'''
@@ -260,9 +296,12 @@ class NeutronTestFacility(CreatedComponentAssembly):
                             cubit.cmd(f"remove overlap volume {source_volume.cid} {blanket_volume.cid} modify volume {blanket_volume.cid}")
             print(f"{self.morphology} morphology applied")
 
-    def imprint_and_merge():
+    def imprint_and_merge(self):
         cubit.cmd("imprint volume all")
         cubit.cmd("merge volume all")
+    
+    def track_material_boundaries(self):
+        cubit.cmd('group "merged_surfaces" add surface with is_merged')
 
 class BlanketAssembly(CreatedComponentAssembly):
     '''Assembly class that requires at least one breeder and structure. Additionally stores coolants separately'''
@@ -371,15 +410,13 @@ class CreatedCubitInstance(GenericCubitInstance):
 # very basic implementations for component classes created natively
 class ComplexComponent(CreatedCubitInstance):
     # stores information about what materials exist. geometries can then be found from groups with the same name
-    all_materials = []
+    complexComponentMaterials = MaterialsTracker()
     def __init__(self, geometry, classname, material):
         CreatedCubitInstance.__init__(self= self, geometry= geometry, classname= classname)
         self.material = material
-        # add geometry to material tracker
-        if self.material not in self.all_materials:
-            self.all_materials.append(self.material)
         # add geometry to group
         cubit.cmd(f'group "{self.material}" add {self.geometry_type} {self.cid}')
+    
 
 class RoomComponent(ComplexComponent):
     def __init__(self, geometry, material):
@@ -397,6 +434,7 @@ class StructureComponent(ComplexComponent):
 class ExternalComponent(GenericCubitInstance):
     def __init__(self, cid: int, geometry_type: str) -> None:
         super().__init__(cid, geometry_type)
+        cubit.cmd(f'group "external" add {self.geometry_type} {self.cid}')
 
 class ExternalComponentAssembly(GenericComponentAssembly):
     '''
@@ -543,6 +581,17 @@ def from_ashes_to_body(component: GenericCubitInstance):
         else:
             return GenericCubitInstance(cubit.get_owning_body(component.geometry_type, component.cid), "body")
     raise CubismError("Did not recieve a GenericCubicInstance")
+
+def remove_overlaps_between_component_lists(from_list: list, tool_list: list):
+    '''Remove overlaps between cubit instances of two lists of components'''
+    from_volumes = from_bodies_to_ashes(from_list)
+    tool_volumes = from_bodies_to_ashes(tool_list)
+    for from_volume in from_volumes:
+        for tool_volume in tool_volumes:
+            if isinstance(from_volume, GenericCubitInstance) & isinstance(tool_volume, GenericCubitInstance):
+                if not (cubit.get_overlapping_volumes([from_volume.cid, tool_volume.cid]) == ()):
+                    # i have given up on my python api dreams. we all return to cubit ccl in the end.
+                    cubit.cmd(f"remove overlap volume {tool_volume.cid} {from_volume.cid} modify volume {from_volume.cid}")
 
 # maybe i should add this to main()
 with open(JSON_FILENAME) as jsonFile:
