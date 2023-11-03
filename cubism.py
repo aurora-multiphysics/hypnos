@@ -214,6 +214,7 @@ class NeutronTestFacility(CreatedComponentAssembly):
         super().__init__(morphology, component_list, required_classnames = NEUTRON_TEST_FACILITY_REQUIREMENTS, additional_classnames = NEUTRON_TEST_FACILITY_ADDITIONAL)
         self.enforce_facility_morphology()
         self.apply_facility_morphology()
+        self.imprint_and_merge()
 
     def enforce_facility_morphology(self):
         '''Make sure the specified morphology is followed. This works by comparing the volumes of the source and blanket to the volume of their union'''
@@ -258,6 +259,10 @@ class NeutronTestFacility(CreatedComponentAssembly):
                             # i have given up on my python api dreams. we all return to cubit ccl in the end.
                             cubit.cmd(f"remove overlap volume {source_volume.cid} {blanket_volume.cid} modify volume {blanket_volume.cid}")
             print(f"{self.morphology} morphology applied")
+
+    def imprint_and_merge():
+        cubit.cmd("imprint volume all")
+        cubit.cmd("merge volume all")
 
 class BlanketAssembly(CreatedComponentAssembly):
     '''Assembly class that requires at least one breeder and structure. Additionally stores coolants separately'''
