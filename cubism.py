@@ -1,14 +1,16 @@
 import sys
 import json
 
+# if this is run as a python file, import cubit
 if __name__ == "__main__":
     sys.path.append('/opt/Coreform-Cubit-2023.8/bin')
     import cubit
     cubit.init(['cubit', '-nojournal'])
+# if this is cubit, reset
 elif __name__ == "__coreformcubit__":
     cubit.cmd("reset")
 
-# Files to look at
+# File to look at
 JSON_FILENAME = "sample_morphology.json"
 
 # components in assemblies to be generated
@@ -24,7 +26,7 @@ BLANKET_ALL = BLANKET_REQUIREMENTS + BLANKET_ADDITIONAL
 BLOB_CLASSES = ["complex", "breeder", "structure"]
 ROOM_CLASSES = ["room"]
 
-# 
+# currently only supports exclusive, inclusive, and overlap
 FACILITY_MORPHOLOGIES= ["exclusive", "inclusive", "overlap", "wall"]
 
 # raise this when bad things happen
@@ -104,9 +106,6 @@ class GenericComponentAssembly:
     - be able to fetch cubit instances of components stores in these attributes (get_cubit_instances)
     '''
     def __init__(self, setup_classnames: list):
-        # this defines what attributes are set up
-        self.setup_classnames = setup_classnames
-
         # component_mapping defines what classes get stored in what attributes (other_components is default)
         self.other_components = []
         self.component_mapping = {"other": self.other_components}
@@ -133,7 +132,7 @@ class GenericComponentAssembly:
         return instances_list
     
     def get_all_cubit_instances(self) -> list:
-        '''get every cubit instance stored in this instance recursively'''
+        '''get every cubit instance stored in this assembly instance recursively'''
         instances_list = []
         for component_attribute in self.component_mapping.values():
             for component in component_attribute:
@@ -177,13 +176,8 @@ class CreatedComponentAssembly(GenericComponentAssembly):
         self.setup_facility(component_list)
 
     def enforce_structure(self, comp_list: list):
-        '''make sure the instance contains the required components'''
-        class_list = []
-        for json_object in comp_list:
-            if json_object["class"] == "external":
-                class_list.append(json_object["group"])
-            else:
-                class_list.append(json_object["class"])
+        '''Make sure the instance contains the required components. This looks at the classes specified in the json file'''
+        class_list = [i["class"] for i in comp_list]
         for classes_required in self.required_classnames:
             if classes_required not in class_list:
                 # Can change this to a warning, for now it just throws an error
@@ -191,7 +185,7 @@ class CreatedComponentAssembly(GenericComponentAssembly):
         return True
     
     def setup_facility(self, component_list: list):
-        '''adds components to lists in the appropriate attributes'''
+        '''Add components to attributes according to their class'''
         for component_dict in component_list:
             # if you are looking for the class-attribute mapping it is the component_mapping dict in __init__
             if (component_dict["class"] in self.component_mapping.keys()):
@@ -200,22 +194,32 @@ class CreatedComponentAssembly(GenericComponentAssembly):
                 self.other_components.append(json_object_reader(component_dict))
 
 class NeutronTestFacility(CreatedComponentAssembly):
-    '''Assmebly class that requires at least one source, blanket, and room'''
+    '''
+    Assmebly class that requires at least one source, blanket, and room.
+    Fails if specified morphology is not followed.
+    Currently supports inclusive, exclusive, and overlap morphologies
+    '''
     def __init__(self, morphology: str, component_list: list):
         super().__init__(morphology, component_list, required_classnames = NEUTRON_TEST_FACILITY_REQUIREMENTS, additional_classnames = NEUTRON_TEST_FACILITY_ADDITIONAL)
         self.enforce_facility_morphology()
 
     def enforce_facility_morphology(self):
+        '''Make sure the specified morphology is followed. This works by comparing the volumes of the source and blanket to the volume of their union'''
+
         if self.morphology not in FACILITY_MORPHOLOGIES:
             raise CubismError(f"Morphology not supported by this facility: {self.morphology}")
+        
+        # Get the net source, blanket, and the union of both
         source_object= unionise(self.source_components)
         blanket_object= unionise(self.blanket_components)
         union_object= unionise([source_object, blanket_object])
 
+        # get their volumes
         source_volume= source_object.cubitInstance.volume()
         blanket_volume= blanket_object.cubitInstance.volume()
         union_volume= union_object.cubitInstance.volume()
 
+        # cleanup
         source_object.destroy_cubit_instance()
         blanket_object.destroy_cubit_instance()
         union_object.destroy_cubit_instance()
@@ -237,7 +241,11 @@ class BlanketAssembly(CreatedComponentAssembly):
 
 # everything in cubit will need to be referenced by a geometry type and id
 class GenericCubitInstance:
-    '''Wrapper for generic cubit geometry'''
+    '''
+    Wrapper for cubit geometry entity.
+    Can access cubit ID (cid), geometry type, and cubit handle (cubitInstance).
+    Can destroy cubit instance. Can copy itself (and thus also the cubit instance it refers to)
+    '''
     def __init__(self, cid: int, geometry_type: str) -> None:
         self.cid = cid
         self.geometry_type = geometry_type
@@ -253,7 +261,7 @@ class GenericCubitInstance:
 
 # every blob/room instanced in cubit will need a name/ classname/ geometry specification/ handle
 class CreatedCubitInstance(GenericCubitInstance):
-    """Instance of component created in cubit, cubitside referenced via cubitInstance attribute"""
+    """Instance of component created in cubit"""
     def __init__(self, geometry, classname) -> None:       
         self.classname= classname
         self.geometry = geometry
@@ -356,7 +364,7 @@ class ExternalComponent(GenericCubitInstance):
 
 class ExternalComponentAssembly(GenericComponentAssembly):
     '''
-    Assembly to store and manage volumes imported from an external file
+    Assembly to store and manage bodies imported from an external file
     requires:
     - external_filepath: path to external file relative to this python file
     - external_groupname: name of group to add external components to
@@ -369,7 +377,7 @@ class ExternalComponentAssembly(GenericComponentAssembly):
         self.manufacturer = manufacturer
         self.import_file()
         self.group_id = self.get_group_id()
-        self.add_volumes()
+        self.add_volumes_and_bodies()
 
     def import_file(self):
         '''Import file at specified filepath and add to specified group name'''
@@ -383,19 +391,23 @@ class ExternalComponentAssembly(GenericComponentAssembly):
                 return group_id
         raise CubismError("Can't find group ID?????")
     
-    def add_volumes(self):
-        '''Add volumes in group to this assembly as ExternalComponent objects'''
+    def add_volumes_and_bodies(self):
+        '''Add volumes and bodies in group to this assembly as ExternalComponent objects'''
+        source_volume_ids = cubit.get_group_volumes(self.group_id)
+        for volume_id in source_volume_ids:
+            self.external_components.append(ExternalComponent(volume_id, "volume"))
         source_body_ids = cubit.get_group_bodies(self.group_id)
         for body_id in source_body_ids:
             self.external_components.append(ExternalComponent(body_id, "body"))
 
+# in case we need to do source-specific actions at some point
 class SourceAssembly(ExternalComponentAssembly):
     '''Assembly of external components, created when a json object has class= source'''
     def __init__(self, external_filepath: str, external_groupname: str, manufacturer: str):
         super().__init__(external_filepath, external_groupname, manufacturer)
 
 
-# functions to delete and copy lists of instances
+# functions to delete and copy lists of GenericCubitInstances
 def delete_instances(component_list: list):
     '''Deletes cubit instances of all GenericCubitInstance objects in list'''
     for component in component_list:
@@ -428,6 +440,7 @@ def copy_instances(component_list: list):
         else:
             raise CubismError("All components are not instances :(")
 
+# wrapper for cubit.union
 def unionise(component_list: list):
     '''
     creates a union of all instances in given components.
@@ -459,27 +472,14 @@ def unionise(component_list: list):
     else:
         raise CubismError("Something unknowable was created in this union. Or worse, a surface.")
 
-def enforce_facility_morphology(facility: NeutronTestFacility):
-    '''
-    checks for expected overlaps between source and blanket objects
-    these expectations are set by the morphology specified
-    currently only checks for first source and blanket created
-
-    :param NeutronTestFacility() facility: The facility to check
-    :return: True or raise exception
-    '''
-    FACILITY_MORPHOLOGIES= ["exclusive", "inclusive", "overlap", "wall"]
- 
-
 # maybe i should add this to main()
 with open(JSON_FILENAME) as jsonFile:
     data = jsonFile.read()
     objects = json.loads(data)
-neutronTestFacility = []
+universe = []
 for json_object in objects:
-    neutronTestFacility.append(json_object_reader(json_object=json_object))
-    if json_object["class"] == "neutron test facility":
-        pass
+    universe.append(json_object_reader(json_object=json_object))
+
 if __name__ == "__main__":
     #cubit.cmd('export cubit "please_work.cub5')
     pass
