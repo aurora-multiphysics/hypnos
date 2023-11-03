@@ -142,6 +142,17 @@ class GenericComponentAssembly:
                     instances_list += component.get_all_cubit_instances()
         return instances_list
 
+    def get_GenericCubitInstances_from_classname(self, classname_list: list) -> list:
+        component_list = []
+        for classname in classname_list:
+            if classname in self.component_mapping.keys():
+                for component in self.component_mapping[classname]:
+                    if isinstance(component, GenericCubitInstance):
+                        component_list.append(component)
+                    elif isinstance(component, GenericComponentAssembly):
+                        component_list += component.get_GenericCubitInstances_from_classname(classname_list)
+        return component_list
+
 class CreatedComponentAssembly(GenericComponentAssembly):
     '''
     Assembly to handle components created natively. Takes a list of required and additional classnames to set up a specific assembly
@@ -202,6 +213,7 @@ class NeutronTestFacility(CreatedComponentAssembly):
     def __init__(self, morphology: str, component_list: list):
         super().__init__(morphology, component_list, required_classnames = NEUTRON_TEST_FACILITY_REQUIREMENTS, additional_classnames = NEUTRON_TEST_FACILITY_ADDITIONAL)
         self.enforce_facility_morphology()
+        self.apply_facility_morphology()
 
     def enforce_facility_morphology(self):
         '''Make sure the specified morphology is followed. This works by comparing the volumes of the source and blanket to the volume of their union'''
@@ -233,6 +245,18 @@ class NeutronTestFacility(CreatedComponentAssembly):
             raise CubismError("Source and blanket not partially overlapping")
         else:
             print(f"{self.morphology} morphology enforced")
+
+    def apply_facility_morphology(self):
+        '''If the morphology is inclusive/overlap, apply it'''
+        if self.morphology in ["inclusive", "overlap"]:
+            source_volumes = from_bodies_to_ashes(self.get_GenericCubitInstances_from_classname(["source", "external"]))
+            blanket_volumes = from_bodies_to_ashes(self.get_GenericCubitInstances_from_classname(["blanket", "breeder", "structure", "coolant"]))
+            for source_volume in source_volumes:
+                for blanket_volume in blanket_volumes:
+                    if isinstance(source_volume, GenericCubitInstance) & isinstance(blanket_volume, GenericCubitInstance):
+                        if not (cubit.get_overlapping_volumes([source_volume.cid, blanket_volume.cid]) == ()):
+                            # i have given up on my python api dreams. we all return to cubit ccl in the end.
+                            cubit.cmd(f"remove overlap volume {source_volume.cid} {blanket_volume.cid} modify volume {blanket_volume.cid}")
 
 class BlanketAssembly(CreatedComponentAssembly):
     '''Assembly class that requires at least one breeder and structure. Additionally stores coolants separately'''
@@ -406,7 +430,6 @@ class SourceAssembly(ExternalComponentAssembly):
     def __init__(self, external_filepath: str, external_groupname: str, manufacturer: str):
         super().__init__(external_filepath, external_groupname, manufacturer)
 
-
 # functions to delete and copy lists of GenericCubitInstances
 def delete_instances(component_list: list):
     '''Deletes cubit instances of all GenericCubitInstance objects in list'''
@@ -450,27 +473,64 @@ def unionise(component_list: list):
     if len(component_list) == 0:
         raise CubismError("This is an empty list you have given me")
 
+    # get all cubit instances from components
     instances_to_union = []
     for component in component_list:
         if isinstance(component, GenericCubitInstance):
             instances_to_union.append(component.cubitInstance)
         elif isinstance(component, GenericComponentAssembly):
             instances_to_union += component.get_all_cubit_instances()
+
+    # check whether a union is possible
     if len(instances_to_union) == 0:
         raise CubismError("Could not find any instances")
     elif len(instances_to_union) == 1:
         return instances_to_union[0].copy()
+    
+    # need old and new volumes to check what the union creates
     old_volumes = cubit.get_entities("volume")
     old_bodies = cubit.get_entities("body")
     cubit.unite(instances_to_union, keep_old_in=True)
     new_volumes = cubit.get_entities("volume")
     new_bodies = cubit.get_entities("body")
-    if new_volumes == old_volumes:
-        return GenericCubitInstance(cubit.get_last_id("volume"), "volume")
-    elif len(new_bodies) == len(old_bodies) + 1:
+    if len(new_bodies) == len(old_bodies) + 1:
         return GenericCubitInstance(cubit.get_last_id("body"), "body")
+    elif len(new_volumes) == len(old_volumes) + 1:
+        return GenericCubitInstance(cubit.get_last_id("volume"), "volume")
     else:
         raise CubismError("Something unknowable was created in this union. Or worse, a surface.")
+
+# THIS IS VERY SILLY WHY DO I HAVE TO DO THIS
+def from_bodies_to_ashes(component_list: list):
+    '''
+    Turns references to bodies into references to their children volumes.
+    Accepts list of GenericCubitInstances.
+    Returns list of GenericCubitInstances.
+    '''
+    all_volumes_that_exist= cubit.get_entities("volume")
+    return_list= []
+    for component in component_list:
+        if isinstance(component, GenericCubitInstance):
+            if component.geometry_type == "body":
+                for volume_id in all_volumes_that_exist:
+                    if cubit.get_owning_body("volume", volume_id) == component.cid:
+                        return_list.append(GenericCubitInstance(volume_id, "volume"))
+            else:
+                return_list.append(component)
+        else:
+            return_list.append(component)
+    return return_list
+
+def from_ashes_to_body(component: GenericCubitInstance):
+    '''
+    
+    '''
+    if isinstance(component, GenericCubitInstance):
+        if component.cid == "body":
+            return component
+        else:
+            return GenericCubitInstance(cubit.get_owning_body(component.geometry_type, component.cid), "body")
+    raise CubismError("Did not recieve a GenericCubicInstance")
 
 # maybe i should add this to main()
 with open(JSON_FILENAME) as jsonFile:
