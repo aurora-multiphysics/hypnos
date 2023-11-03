@@ -257,6 +257,7 @@ class NeutronTestFacility(CreatedComponentAssembly):
                         if not (cubit.get_overlapping_volumes([source_volume.cid, blanket_volume.cid]) == ()):
                             # i have given up on my python api dreams. we all return to cubit ccl in the end.
                             cubit.cmd(f"remove overlap volume {source_volume.cid} {blanket_volume.cid} modify volume {blanket_volume.cid}")
+            print(f"{self.morphology} morphology applied")
 
 class BlanketAssembly(CreatedComponentAssembly):
     '''Assembly class that requires at least one breeder and structure. Additionally stores coolants separately'''
@@ -364,9 +365,15 @@ class CreatedCubitInstance(GenericCubitInstance):
 
 # very basic implementations for component classes created natively
 class ComplexComponent(CreatedCubitInstance):
+    # stores information about what materials exist. geometries can then be found from groups with the same name
+    all_materials = []
     def __init__(self, geometry, classname, material):
         CreatedCubitInstance.__init__(self= self, geometry= geometry, classname= classname)
         self.material = material
+        # add geometry to material tracker
+        if self.material not in self.all_materials:
+            self.all_materials.append(self.material)
+        # add geometry to group
         cubit.cmd(f'group "{self.material}" add {self.geometry_type} {self.cid}')
 
 class RoomComponent(ComplexComponent):
@@ -523,7 +530,7 @@ def from_bodies_to_ashes(component_list: list):
 
 def from_ashes_to_body(component: GenericCubitInstance):
     '''
-    
+    accepts GenericCubitInstance and returns GenericCubitInstance of owning body
     '''
     if isinstance(component, GenericCubitInstance):
         if component.cid == "body":
