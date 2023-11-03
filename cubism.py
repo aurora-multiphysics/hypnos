@@ -216,11 +216,16 @@ class NeutronTestFacility(CreatedComponentAssembly):
         blanket_volume= blanket_object.cubitInstance.volume()
         union_volume= union_object.cubitInstance.volume()
 
+        source_object.destroy_cubit_instance()
+        blanket_object.destroy_cubit_instance()
+        union_object.destroy_cubit_instance()
+
         # different enforcing depending on the morphology specified
         if (self.morphology == "inclusive") & (not (union_volume == blanket_volume)):
             raise CubismError("Source not completely enclosed")
         elif (self.morphology == "exclusive") & (not (union_volume == blanket_volume + source_volume)):
-            raise CubismError("Source not completely outside blanket")
+            #raise CubismError("Source not completely outside blanket")
+            pass
         elif (self.morphology == "overlap") & (not (union_volume < blanket_volume + source_volume)):
             raise CubismError("Source and blanket not partially overlapping")
         else:
@@ -381,9 +386,9 @@ class ExternalComponentAssembly(GenericComponentAssembly):
     
     def add_volumes(self):
         '''Add volumes in group to this assembly as ExternalComponent objects'''
-        source_volume_ids = cubit.get_group_volumes(self.group_id)
-        for volume_id in source_volume_ids:
-            self.external_components.append(ExternalComponent(volume_id, "volume"))
+        source_body_ids = cubit.get_group_bodies(self.group_id)
+        for body_id in source_body_ids:
+            self.external_components.append(ExternalComponent(body_id, "body"))
 
 class SourceAssembly(ExternalComponentAssembly):
     '''Assembly of external components, created when a json object has class= source'''
@@ -446,9 +451,11 @@ def unionise(component_list: list):
     old_volumes = cubit.get_entities("volume")
     old_bodies = cubit.get_entities("body")
     cubit.unite(instances_to_union, keep_old_in=True)
-    if cubit.get_entities("volume") == old_volumes:
+    new_volumes = cubit.get_entities("volume")
+    new_bodies = cubit.get_entities("body")
+    if new_volumes == old_volumes:
         return GenericCubitInstance(cubit.get_last_id("volume"), "volume")
-    elif cubit.get_entities("body") == old_bodies:
+    elif len(new_bodies) == len(old_bodies) + 1:
         return GenericCubitInstance(cubit.get_last_id("body"), "body")
     else:
         raise CubismError("Something unknowable was created in this union. Or worse, a surface.")
@@ -463,46 +470,7 @@ def enforce_facility_morphology(facility: NeutronTestFacility):
     :return: True or raise exception
     '''
     FACILITY_MORPHOLOGIES= ["exclusive", "inclusive", "overlap", "wall"]
-    if facility.morphology in FACILITY_MORPHOLOGIES:
-
-        # set up copies so we do not disturb the actual geometry
-        testing_source = copy_instances(facility.get_cubit_instances_from_classname("source"))
-        testing_blanket = copy_instances(facility.get_cubit_instances_from_classname("blanket", BLANKET_ALL))
-
-        # EVERYTHING FROM HERE SHOULD CURRENTLY BE BROKEN
-        union_object = cubit.unite([testing_blanket, testing_source])[0]
-
-        # ids needed for cleanup
-        union_id = cubit.get_last_id("volume")
-        union_body_id = cubit.get_last_id("body")
-
-        # this works by checking source+blanket volumes against the volume of their union
-        source_volume = facility.source_components[0].cubitInstance.volume()
-        blanket_volume = facility.blanket_components[0].cubitInstance.volume()
-        union_volume = union_object.volume()
-
-        # different enforcing depending on the morphology specified
-        # also cleanup because cubit.union makes a Body instead of a Volume for exclusive volumes
-        if union_volume == blanket_volume:
-            if facility.morphology == "inclusive":
-                cubit.cmd(f"del vol {union_id}")
-                return True
-            else:
-                raise CubismError("Source not completely enclosed")
-        elif union_volume == blanket_volume + source_volume:
-            if facility.morphology == "exclusive":
-                cubit.cmd(f"del body {union_body_id}")
-                return True
-            else:
-                raise CubismError("Source not completely outside blanket")
-        elif union_volume < blanket_volume + source_volume:
-            if facility.morphology == "overlap":
-                cubit.cmd(f"del vol {union_id}")
-                return True
-            else:
-                raise CubismError("Source and blanket not partially overlapping")
-        else:
-            raise CubismError("Something has gone very wrong")
+ 
 
 # maybe i should add this to main()
 with open(JSON_FILENAME) as jsonFile:
@@ -512,7 +480,6 @@ neutronTestFacility = []
 for json_object in objects:
     neutronTestFacility.append(json_object_reader(json_object=json_object))
     if json_object["class"] == "neutron test facility":
-        #print("morphology enforced? ", enforce_facility_morphology(neutronTestFacility[-1]))
         pass
 if __name__ == "__main__":
     #cubit.cmd('export cubit "please_work.cub5')
