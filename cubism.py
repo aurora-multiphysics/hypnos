@@ -217,7 +217,6 @@ class NeutronTestFacility(CreatedComponentAssembly):
         self.imprint()
         self.track_material_boundaries_and_merge()
 
-
     def enforce_facility_morphology(self):
         '''Make sure the specified morphology is followed. This works by comparing the volumes of the source and blanket to the volume of their union'''
 
@@ -252,8 +251,10 @@ class NeutronTestFacility(CreatedComponentAssembly):
     def apply_facility_morphology(self):
         '''If the morphology is inclusive/overlap, apply it'''
         if self.morphology in ["inclusive", "overlap"]:
+            # convert everything to volumes in case of stray bodies
             source_volumes = from_bodies_to_ashes(self.get_GenericCubitInstances_from_classname(["source", "external"]))
             blanket_volumes = from_bodies_to_ashes(self.get_GenericCubitInstances_from_classname(["blanket", "breeder", "structure", "coolant"]))
+            # if there is an overlap, remove it
             for source_volume in source_volumes:
                 for blanket_volume in blanket_volumes:
                     if isinstance(source_volume, GenericCubitInstance) & isinstance(blanket_volume, GenericCubitInstance):
@@ -263,6 +264,7 @@ class NeutronTestFacility(CreatedComponentAssembly):
             print(f"{self.morphology} morphology applied")
 
     def imprint(self):
+        '''imprint volume all :)'''
         cubit.cmd("imprint volume all")
     
     def track_material_boundaries_and_merge(self):
@@ -393,6 +395,9 @@ class Material:
     
     def change_state(self, state: str):
         self.state_of_matter = state
+    
+    def get_surface_ids(self):
+        return [i.cid for i in from_bodies_and_ashes_to_smithereens(self.components)]
 
 class MaterialsTracker:
     #i think i want materials to be tracked globally
@@ -400,26 +405,31 @@ class MaterialsTracker:
     boundaries = []
 
     def make_material(self, material_name: str, group_id: int):
-        '''Add material to internal list. Robust against material name already existing'''
+        '''Add material to internal list. Will not add if material name already exists'''
         if material_name not in [i.name for i in self.materials]:
             self.materials.append(Material(material_name, group_id))
     
     def add_component_to_material(self, component: GenericCubitInstance, material_name: str):
         '''Add cubit instance to group= material name and track internally'''
         cubit.cmd(f'group "{material_name}" add {component.geometry_type} {component.cid}')
-        group_id = cubit.get_last_id("group")
+        group_id = cubit.get_id_from_name(material_name)
         self.make_material(material_name, group_id)
+
+        # Add component to appropriate material. If it can't something has gone wrong
         for material in self.materials:
             if material.name == material_name:
                 material.add_component(component)
                 return True
         return CubismError("Could not add component")
 
-    def is_material(self, material_name):
+    def contains_material(self, material_name):
+        '''Checks for existence of a material with the given name'''
         return True if material_name in [i.name for i in self.materials] else False
     
     def sort_materials_into_pairs(self):
+        '''Returns a list with all combinations of pairs of materials, including with themselves (not all permutations)'''
         pair_list = []
+        # this is my scuffed way of doing this
         min_counter = -1
         for i in range(len(self.materials)):
             for j in range(len(self.materials)):
@@ -428,19 +438,47 @@ class MaterialsTracker:
             min_counter+=1
         return pair_list
     
+    def get_boundary_ids(self, boundary_name: str):
+        for boundary in self.boundaries:
+            if boundary.name == boundary_name:
+                return [component.cid for component in boundary.components]
+        raise CubismError("Could not find boundary")
+    
     def merge_and_track_boundaries(self):
+        '''tries to merge every possible pair of materials, and tracks the resultant material boundaries (if any).'''
         pair_list = self.sort_materials_into_pairs()
+        # to check if merging has actually happened 
         last_tracked_group = cubit.get_last_id("group")
+
+        #try to merge volumes in every pair of materials
         for (Material1, Material2) in pair_list:
             group_id_1 = Material1.group_id
             group_id_2 = Material2.group_id
             group_name = str(Material1.name) + "_" + str(Material2.name)
             cubit.cmd(f"merge group {group_id_1} with group {group_id_2} group_results")
             group_id = cubit.get_last_id("group")
+
+            # if a new group is created, track the material boundary it corresponds to
             if not (group_id == last_tracked_group):
                 cubit.cmd(f'group {group_id} rename "{group_name}"')
                 self.boundaries.append(Material(group_name, group_id))
                 last_tracked_group = group_id
+        
+        cubit.cmd('group "unmerged_surfaces" add surface with is_merged=0')
+        unmerged_group_id = cubit.get_id_from_name("unmerged_surfaces")
+        all_unmerged_surfaces = cubit.get_group_surfaces(unmerged_group_id)
+        for material in self.materials:
+            boundary_name = material.name + "_air"
+            cubit.cmd(f'group "{boundary_name}"')
+            boundary_id = cubit.get_last_id("group")
+            self.boundaries.append(Material(boundary_name, boundary_id))
+            material_surface_ids = material.get_surface_ids
+            for material_surface_id in material_surface_ids:
+                if material_surface_id in all_unmerged_surfaces:
+                    cubit.cmd(f'group "{boundary_name}" add surface {material_surface_id}')
+
+
+
     
     def print_info(self):
         pass
@@ -452,7 +490,7 @@ class ComplexComponent(CreatedCubitInstance):
     def __init__(self, geometry, classname, material):
         CreatedCubitInstance.__init__(self= self, geometry= geometry, classname= classname)
         self.material = material
-        # add geometry to group
+        # add geometry to material tracker
         self.complexComponentMaterials.add_component_to_material(GenericCubitInstance(self.cid, self.geometry_type), self.material)
 
 class RoomComponent(ComplexComponent):
@@ -493,8 +531,24 @@ class ExternalComponentAssembly(GenericComponentAssembly):
 
     def import_file(self):
         '''Import file at specified filepath and add to specified group name'''
-        print(f'import "{self.filepath}" heal group "{self.group}"')
-        cubit.cmd(f'import "{self.filepath}" heal group "{self.group}"')
+        # cubit imports bodies instead of volumes. why. please.
+
+        # this imports the bodies in a temporary group
+        temp_group_name = str(self.group) + "_temp"
+        print(f'import "{self.filepath}" heal group "{temp_group_name}"')
+        cubit.cmd(f'import "{self.filepath}" heal group "{temp_group_name}"')
+        temp_group_id = cubit.get_id_from_name(temp_group_name)
+
+        # convert everything to volumes
+        volumes_list = from_bodies_to_ashes(get_bodies_and_volumes_from_group(temp_group_id))
+
+        # add volumes to actual group
+        for volume in volumes_list:
+            cubit.cmd(f'group "{self.group}" add {volume.geometry_type} {volume.cid}')
+        print(f"volumes imported in group {self.group}")
+
+        # this is what you deserve
+        cubit.cmd(f"delete group {temp_group_id}")
 
     def get_group_id(self):
         '''get ID of group (group needs to exist first)'''
@@ -603,6 +657,27 @@ def from_bodies_to_ashes(component_list: list):
                 for volume_id in all_volumes_that_exist:
                     if cubit.get_owning_body("volume", volume_id) == component.cid:
                         return_list.append(GenericCubitInstance(volume_id, "volume"))
+            else:
+                return_list.append(component)
+        else:
+            return_list.append(component)
+    return return_list
+
+def from_bodies_and_ashes_to_smithereens(component_list: list):
+    '''
+    Turns references to bodies and volumes into references to their children surfaces.
+    Accepts list of GenericCubitInstances.
+    Returns list of GenericCubitInstances.
+    '''
+    all_surfaces_that_exist = cubit.get_entities("surface")
+    volumes_list= from_bodies_to_ashes(component_list)
+    return_list = []
+    for component in volumes_list:
+        if isinstance(component, GenericCubitInstance):
+            if component.geometry_type == "volume":
+                for surface_id in all_surfaces_that_exist:
+                    if cubit.get_owning_volume("surface", surface_id) == component.cid:
+                        return_list.append(GenericCubitInstance(surface_id, "surface"))
             else:
                 return_list.append(component)
         else:
