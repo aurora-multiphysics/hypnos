@@ -214,7 +214,9 @@ class NeutronTestFacility(CreatedComponentAssembly):
         super().__init__(morphology, component_list, required_classnames = NEUTRON_TEST_FACILITY_REQUIREMENTS, additional_classnames = NEUTRON_TEST_FACILITY_ADDITIONAL)
         self.enforce_facility_morphology()
         self.apply_facility_morphology()
-        #self.imprint_and_merge()
+        self.imprint()
+        self.track_material_boundaries_and_merge()
+
 
     def enforce_facility_morphology(self):
         '''Make sure the specified morphology is followed. This works by comparing the volumes of the source and blanket to the volume of their union'''
@@ -260,8 +262,12 @@ class NeutronTestFacility(CreatedComponentAssembly):
                             cubit.cmd(f"remove overlap volume {source_volume.cid} {blanket_volume.cid} modify volume {blanket_volume.cid}")
             print(f"{self.morphology} morphology applied")
 
-    def imprint_and_merge(self):
+    def imprint(self):
         cubit.cmd("imprint volume all")
+    
+    def track_material_boundaries_and_merge(self):
+        materials = MaterialsTracker()
+        materials.merge_and_track_boundaries()
         cubit.cmd("merge volume all")
     
     def track_material_boundaries(self):
@@ -391,6 +397,7 @@ class Material:
 class MaterialsTracker:
     #i think i want materials to be tracked globally
     materials = []
+    boundaries = []
 
     def make_material(self, material_name: str, group_id: int):
         '''Add material to internal list. Robust against material name already existing'''
@@ -410,6 +417,33 @@ class MaterialsTracker:
 
     def is_material(self, material_name):
         return True if material_name in [i.name for i in self.materials] else False
+    
+    def sort_materials_into_pairs(self):
+        pair_list = []
+        min_counter = -1
+        for i in range(len(self.materials)):
+            for j in range(len(self.materials)):
+                if j > min_counter:
+                    pair_list.append((self.materials[i], self.materials[j]))
+            min_counter+=1
+        return pair_list
+    
+    def merge_and_track_boundaries(self):
+        pair_list = self.sort_materials_into_pairs()
+        last_tracked_group = cubit.get_last_id("group")
+        for (Material1, Material2) in pair_list:
+            group_id_1 = Material1.group_id
+            group_id_2 = Material2.group_id
+            group_name = str(Material1.name) + "_" + str(Material2.name)
+            cubit.cmd(f"merge group {group_id_1} with group {group_id_2} group_results")
+            group_id = cubit.get_last_id("group")
+            if not (group_id == last_tracked_group):
+                cubit.cmd(f'group {group_id} rename "{group_name}"')
+                self.boundaries.append(Material(group_name, group_id))
+                last_tracked_group = group_id
+    
+    def print_info(self):
+        pass
 
 # very basic implementations for component classes created natively
 class ComplexComponent(CreatedCubitInstance):
@@ -437,6 +471,7 @@ class StructureComponent(ComplexComponent):
 class ExternalComponent(GenericCubitInstance):
     def __init__(self, cid: int, geometry_type: str) -> None:
         super().__init__(cid, geometry_type)
+        # track external components
         cubit.cmd(f'group "external" add {self.geometry_type} {self.cid}')
 
 class ExternalComponentAssembly(GenericComponentAssembly):
@@ -584,6 +619,16 @@ def from_ashes_to_body(component: GenericCubitInstance):
         else:
             return GenericCubitInstance(cubit.get_owning_body(component.geometry_type, component.cid), "body")
     raise CubismError("Did not recieve a GenericCubicInstance")
+
+def get_bodies_and_volumes_from_group(group_id: int):
+    instance_list = []
+    body_ids= cubit.get_group_bodies(group_id)
+    for body_id in body_ids:
+        instance_list.append(GenericCubitInstance(body_id, "body"))
+    volume_ids= cubit.get_group_volumes(group_id)
+    for volume_id in volume_ids:
+        instance_list.append(GenericCubitInstance(volume_id, "volume"))
+    return instance_list
 
 def remove_overlaps_between_component_lists(from_list: list, tool_list: list):
     '''Remove overlaps between cubit instances of two lists of components'''
