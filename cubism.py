@@ -96,42 +96,6 @@ def get_cubit_geometry(geometry_id, geometry_type):
     else:
         raise CubismError(f"geometry type not recognised: {geometry_type}")
 
-class Material:
-    def __init__(self, name, group_id) -> None:
-        self.name = name
-        self.components = []
-        self.state_of_matter = ""
-        self.group_id = group_id
-    
-    def add_component(self, component):
-        if isinstance(component, GenericCubitInstance):
-            self.components.append(component)
-        else:
-            raise CubismError("Not a GenericCubitInstance???")
-    
-    def change_state(self, state: str):
-        self.state_of_matter = state
-    
-    def create_group(self):
-        pass
-
-class MaterialsTracker:
-    materials = []
-
-    def make_material(self, material_name: str, group_id: int):
-        '''robust against material name already existing'''
-        if material_name not in [i.name for i in self.materials]:
-            self.materials.append(Material(material_name, group_id))
-    
-    def add_component_to_material(self, component, material_name: str):
-        '''works if material already exists'''
-        for material in self.materials:
-            if material.name == material_name:
-                material.add_component(component)
-                return True
-        
-
-
 class GenericComponentAssembly:
     '''
     Generic assembly that takes a list of classnames to set up a subclass
@@ -407,6 +371,46 @@ class CreatedCubitInstance(GenericCubitInstance):
         room_id = cubit.get_last_id("volume")
         return room, room_id, "volume"
 
+# Classes to track materials and components made of those materials
+class Material:
+    def __init__(self, name, group_id) -> None:
+        self.name = name
+        self.components = []
+        self.state_of_matter = ""
+        self.group_id = group_id
+    
+    def add_component(self, component):
+        if isinstance(component, GenericCubitInstance):
+            self.components.append(component)
+        else:
+            raise CubismError("Not a GenericCubitInstance???")
+    
+    def change_state(self, state: str):
+        self.state_of_matter = state
+
+class MaterialsTracker:
+    #i think i want materials to be tracked globally
+    materials = []
+
+    def make_material(self, material_name: str, group_id: int):
+        '''Add material to internal list. Robust against material name already existing'''
+        if material_name not in [i.name for i in self.materials]:
+            self.materials.append(Material(material_name, group_id))
+    
+    def add_component_to_material(self, component: GenericCubitInstance, material_name: str):
+        '''Add cubit instance to group= material name and track internally'''
+        cubit.cmd(f'group "{material_name}" add {component.geometry_type} {component.cid}')
+        group_id = cubit.get_last_id("group")
+        self.make_material(material_name, group_id)
+        for material in self.materials:
+            if material.name == material_name:
+                material.add_component(component)
+                return True
+        return CubismError("Could not add component")
+
+    def is_material(self, material_name):
+        return True if material_name in [i.name for i in self.materials] else False
+
 # very basic implementations for component classes created natively
 class ComplexComponent(CreatedCubitInstance):
     # stores information about what materials exist. geometries can then be found from groups with the same name
@@ -415,8 +419,7 @@ class ComplexComponent(CreatedCubitInstance):
         CreatedCubitInstance.__init__(self= self, geometry= geometry, classname= classname)
         self.material = material
         # add geometry to group
-        cubit.cmd(f'group "{self.material}" add {self.geometry_type} {self.cid}')
-    
+        self.complexComponentMaterials.add_component_to_material(GenericCubitInstance(self.cid, self.geometry_type), self.material)
 
 class RoomComponent(ComplexComponent):
     def __init__(self, geometry, material):
@@ -602,6 +605,7 @@ for json_object in objects:
     universe.append(json_object_reader(json_object=json_object))
 
 if __name__ == "__main__":
+    print([i.name for i in MaterialsTracker().materials])
     #cubit.cmd('export cubit "please_work.cub5')
     pass
 #       cubit.cmd('volume all scheme auto')
