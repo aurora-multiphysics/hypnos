@@ -116,6 +116,7 @@ class GenericComponentAssembly:
             self.__setattr__(component_name, [])
             self.component_mapping[classname] = self.__getattribute__(component_name)
 
+    # These refer to cubit handles
     def get_cubit_instances_from_classname(self, classname_list: list):
         '''returns list of cubit instances of specified classnames'''
         instances_list = []
@@ -142,6 +143,7 @@ class GenericComponentAssembly:
                     instances_list += component.get_all_cubit_instances()
         return instances_list
 
+    # These refer to GenericCubitInstance objects
     def get_generic_cubit_instances_from_classname(self, classname_list: list) -> list:
         component_list = []
         for classname in classname_list:
@@ -226,8 +228,9 @@ class NeutronTestFacility(CreatedComponentAssembly):
         super().__init__(morphology, component_list, required_classnames = NEUTRON_TEST_FACILITY_REQUIREMENTS, additional_classnames = NEUTRON_TEST_FACILITY_ADDITIONAL)
         self.enforce_facility_morphology()
         self.apply_facility_morphology()
-        self.imprint()
+        self.imprint_all()
         self.track_material_boundaries_and_merge()
+        self.merge_all()
 
     def enforce_facility_morphology(self):
         '''Make sure the specified morphology is followed. This works by comparing the volumes of the source and blanket to the volume of their union'''
@@ -275,13 +278,16 @@ class NeutronTestFacility(CreatedComponentAssembly):
                             cubit.cmd(f"remove overlap volume {source_volume.cid} {blanket_volume.cid} modify volume {blanket_volume.cid}")
             print(f"{self.morphology} morphology applied")
 
-    def imprint(self):
+    def imprint_all(self):
         '''imprint volume all :)'''
         cubit.cmd("imprint volume all")
     
     def track_material_boundaries_and_merge(self):
         materials = MaterialsTracker()
         materials.merge_and_track_boundaries()
+    
+    def merge_all(self):
+        '''merge volume all :)'''
         cubit.cmd("merge volume all")
     
     def track_material_boundaries(self):
@@ -391,17 +397,19 @@ class CreatedCubitInstance(GenericCubitInstance):
         room_id = cubit.get_last_id("volume")
         return room, room_id, "volume"
 
-# Classes to track materials and components made of those materials
+# Classes to track materials and geometries made of those materials
 class Material:
     def __init__(self, name, group_id) -> None:
         self.name = name
-        self.components = []
-        self.state_of_matter = ""
         self.group_id = group_id
+        # onlt stores GenericCubitInstances
+        self.geometries = []
+        # currently does nothing
+        self.state_of_matter = ""
     
-    def add_component(self, component):
-        if isinstance(component, GenericCubitInstance):
-            self.components.append(component)
+    def add_geometry(self, geometry):
+        if isinstance(geometry, GenericCubitInstance):
+            self.geometries.append(geometry)
         else:
             raise CubismError("Not a GenericCubitInstance???")
     
@@ -409,7 +417,7 @@ class Material:
         self.state_of_matter = state
     
     def get_surface_ids(self):
-        return [i.cid for i in from_bodies_and_volumes_to_surfaces(self.components)]
+        return [i.cid for i in from_bodies_and_volumes_to_surfaces(self.geometries)]
 
 class MaterialsTracker:
     #i think i want materials to be tracked globally
@@ -430,7 +438,7 @@ class MaterialsTracker:
         # Add component to appropriate material. If it can't something has gone wrong
         for material in self.materials:
             if material.name == material_name:
-                material.add_component(component)
+                material.add_geometry(component)
                 return True
         return CubismError("Could not add component")
 
@@ -451,20 +459,22 @@ class MaterialsTracker:
         return pair_list
     
     def get_boundary_ids(self, boundary_name: str):
+        '''Return list of cubit IDs of the geometries belonging to given boundary name'''
         for boundary in self.boundaries:
             if boundary.name == boundary_name:
-                return [component.cid for component in boundary.components]
+                return [component.cid for component in boundary.geometries]
         raise CubismError("Could not find boundary")
     
     def add_geometry_to_boundary(self, geometry: GenericCubitInstance, boundary_name: str):
+        '''If boundary with boundary name exists, add given GenericCubitInstance to boundary'''
         for boundary in self.boundaries:
             if boundary.name == boundary_name:
-                boundary.add_component(geometry)
+                boundary.add_geometry(geometry)
                 return True
         raise CubismError("Could not find boundary")
     
     def merge_and_track_boundaries(self):
-        '''tries to merge every possible pair of materials, and tracks the resultant material boundaries (if any).'''
+        '''tries to merge every possible pair of materials, and tracks the resultant material boundaries (if any exist).'''
         pair_list = self.sort_materials_into_pairs()
         # to check if merging has actually happened 
         last_tracked_group = cubit.get_last_id("group")
@@ -480,21 +490,30 @@ class MaterialsTracker:
             # if a new group is created, track the material boundary it corresponds to
             if not (group_id == last_tracked_group):
                 cubit.cmd(f'group {group_id} rename "{group_name}"')
+                # track internally
                 self.boundaries.append(Material(group_name, group_id))
                 group_surface_ids = cubit.get_group_surfaces(group_id)
                 for group_surface_id in group_surface_ids:
                     self.add_geometry_to_boundary(GenericCubitInstance(group_surface_id, "surface"), group_name)
+                    # update last tracked group
                 last_tracked_group = group_id
         
+        # track material-air boundaries
+
+        # collect every unmerged surface because only these are in contact with air?
         cubit.cmd('group "unmerged_surfaces" add surface with is_merged=0')
         unmerged_group_id = cubit.get_id_from_name("unmerged_surfaces")
         all_unmerged_surfaces = cubit.get_group_surfaces(unmerged_group_id)
+        # look at every collected material
         for material in self.materials:
+            # setup group and tracking for interface with air
             boundary_name = material.name + "_air"
             cubit.cmd(f'group "{boundary_name}"')
             boundary_id = cubit.get_last_id("group")
             self.boundaries.append(Material(boundary_name, boundary_id))
+            # look at every surface of this material
             material_surface_ids = material.get_surface_ids()
+            # if this surface is unmerged, it is in contact with air so 
             for material_surface_id in material_surface_ids:
                 if material_surface_id in all_unmerged_surfaces:
                     cubit.cmd(f'group "{boundary_name}" add surface {material_surface_id}')
@@ -503,12 +522,13 @@ class MaterialsTracker:
         cubit.cmd(f'delete group {unmerged_group_id}')
 
     def print_info(self):
+        '''print cubit IDs of volumes in materials and surfaces in boundaries'''
         print("Materials:")
         for material in self.materials:
-            print(f"{material.name}: Volumes {[i.cid for i in from_bodies_to_volumes(material.components)]}")
+            print(f"{material.name}: Volumes {[i.cid for i in from_bodies_to_volumes(material.geometries)]}")
         print("\nBoundaries:")
         for boundary in self.boundaries:
-            print(f"{boundary.name}: Surfaces {[i.cid for i in boundary.components]}")
+            print(f"{boundary.name}: Surfaces {[i.cid for i in boundary.geometries]}")
 
 
 # very basic implementations for component classes created natively
