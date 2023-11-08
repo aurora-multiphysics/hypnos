@@ -228,7 +228,7 @@ class NeutronTestFacility(CreatedComponentAssembly):
         super().__init__(morphology, component_list, required_classnames = NEUTRON_TEST_FACILITY_REQUIREMENTS, additional_classnames = NEUTRON_TEST_FACILITY_ADDITIONAL)
         self.enforce_facility_morphology()
         self.apply_facility_morphology()
-        self.fix_air()
+        self.validate_rooms_and_fix_air()
         self.change_air_to_volumes()
         self.imprint_all()
         self.track_material_boundaries_and_merge()
@@ -292,10 +292,32 @@ class NeutronTestFacility(CreatedComponentAssembly):
         '''merge all :)'''
         cubit.cmd("merge all")
 
-    def fix_air(self):
-        '''subtract all non-air geometries from all air geometries'''
-        # there is probably a better way of doing this
+    def validate_rooms_and_fix_air(self):
+        '''subtract all non-air geometries from all air geometries. Validate that everything is inside a room'''
+        room_bounding_boxes = []
+        for room in self.room_components:
+            if isinstance(room, RoomComponent):
+                room_bounding_boxes += room.air
+        
+        # get a union defining the 'bounding boxes' for all rooms, and a union of every geometry in the facility. 
+        # as well as the union of those two unions
+        room_bounding_box = unionise(room_bounding_boxes)
         all_geometries = unionise(self.get_all_generic_cubit_instances())
+        union_object = unionise([room_bounding_box, all_geometries])
+
+        # get volumes
+        bounding_volume = room_bounding_box.cubitInstance.volume()
+        union_volume = union_object.cubitInstance.volume()
+
+        # cleanup
+        room_bounding_box.destroy_cubit_instance()
+        union_object.destroy_cubit_instance()
+
+        # if any part of the geometries are sticking out of a room, the volume of their union with the room will be greater than the volume of the room
+        if union_volume > bounding_volume:
+            raise CubismError("Everything not inside a room!")
+        
+        # there is probably a better way of doing this
         # if a room is filled with air, subtract the union of all non-air geometries from it
         for room in self.room_components:
             if isinstance(room, RoomComponent):
@@ -367,7 +389,7 @@ class CreatedCubitInstance(GenericCubitInstance):
             self.cubitInstance, self.cid, self.geometry_type= self.make_geometry(self.geometry)
     
     def copy(self):
-        return CreatedCubitInstance(self.name + "_copy", self.geometry, self.classname)
+        return CreatedCubitInstance(self.geometry, self.classname)
 
     def __create_cubit_blob(self, geometry: dict):
         '''create cube (if scalar/1D) or cuboid (if 3D) with dimensions. 
@@ -399,7 +421,7 @@ class CreatedCubitInstance(GenericCubitInstance):
         return blob, cid, "volume"
 
     def __create_cubit_room(self, geometry: dict):
-        '''create 3d room with inner dimensions dimensions (int or list) and thickness (int or list)'''
+        '''create 3d room with outer dimensions dimensions (int or list) and thickness (int or list)'''
         inner_dims= geometry["dimensions"]
         thickness= geometry["thickness"]
         # create a cube or cuboid.
@@ -419,8 +441,8 @@ class CreatedCubitInstance(GenericCubitInstance):
             pass
         else:
             raise CubismError("thickness should be either a 1D or 3D vector (or scalar)")
-        block = cubit.brick(inner_dims[0]+2*thickness[0], inner_dims[1]+2*thickness[1], inner_dims[2]+2*thickness[2])
-        subtract_vol = cubit.brick(inner_dims[0], inner_dims[1], inner_dims[2])
+        subtract_vol = cubit.brick(inner_dims[0]-2*thickness[0], inner_dims[1]-2*thickness[1], inner_dims[2]-2*thickness[2])
+        block = cubit.brick(inner_dims[0], inner_dims[1], inner_dims[2])
         room = cubit.subtract([subtract_vol], [block])
         room_id = cubit.get_last_id("volume")
         return room, room_id, "volume"
@@ -457,16 +479,16 @@ class MaterialsTracker:
         if material_name not in [i.name for i in self.materials]:
             self.materials.append(Material(material_name, group_id))
     
-    def add_component_to_material(self, component: GenericCubitInstance, material_name: str):
-        '''Add cubit instance to group= material name and track internally'''
-        cubit.cmd(f'group "{material_name}" add {component.geometry_type} {component.cid}')
+    def add_geometry_to_material(self, geometry: GenericCubitInstance, material_name: str):
+        '''Add GenericCubitInstance to group= material name and track internally'''
+        cubit.cmd(f'group "{material_name}" add {geometry.geometry_type} {geometry.cid}')
         group_id = cubit.get_id_from_name(material_name)
         self.make_material(material_name, group_id)
 
-        # Add component to appropriate material. If it can't something has gone wrong
+        # Add geometry to appropriate material. If it can't something has gone wrong
         for material in self.materials:
             if material.name == material_name:
-                material.add_geometry(component)
+                material.add_geometry(geometry)
                 return True
         return CubismError("Could not add component")
 
@@ -594,7 +616,7 @@ class ComplexComponent(CreatedCubitInstance):
         CreatedCubitInstance.__init__(self= self, geometry= geometry, classname= classname)
         self.material = material
         # add geometry to material tracker
-        self.complexComponentMaterials.add_component_to_material(GenericCubitInstance(self.cid, self.geometry_type), self.material)
+        self.complexComponentMaterials.add_geometry_to_material(GenericCubitInstance(self.cid, self.geometry_type), self.material)
     
     def update_reference_and_tracking(self, cid, geometry_type):
         '''Change what geometry this instance refers to'''
@@ -620,7 +642,7 @@ class RoomComponent(ComplexComponent):
     def is_air(self):
         '''Does this room have air in it?'''
         return False if len(self.air) == 0 else True
-    # i thought i would need these
+    
     def purge_air(self):
         '''stop tracking air in this room and empty the air attribute'''
         for air in self.air:
@@ -631,7 +653,7 @@ class RoomComponent(ComplexComponent):
     def add_air(self, air_list: list):
         '''Add air to this room and track :)'''
         for air in air_list:
-            self.complexComponentMaterials.add_component_to_material(air, self.air_material)
+            self.complexComponentMaterials.add_geometry_to_material(air, self.air_material)
         self.air += air_list
     
     def refill_air(self, air_list: list):
@@ -780,13 +802,15 @@ def unionise(component_list: list):
     
     # convert to bodies :(
     instances_to_union = from_everything_to_bodies(instances_to_union)
-    instances_to_union = [i.cubitInstance for i in instances_to_union]
 
     # check whether a union is possible
     if len(instances_to_union) == 0:
         raise CubismError("Could not find any instances")
     elif len(instances_to_union) == 1:
         return instances_to_union[0].copy()
+
+    # get cubit handles
+    instances_to_union = [i.cubitInstance for i in instances_to_union]
     
     # need old and new volumes to check what the union creates
     old_volumes = cubit.get_entities("volume")
