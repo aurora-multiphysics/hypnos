@@ -39,6 +39,7 @@
             {
                 "class": "room",
                 "material": "SS",
+                "air": "some_gas",
                 "geometry": {
                     "dimensions": [49],
                     "thickness": 1
