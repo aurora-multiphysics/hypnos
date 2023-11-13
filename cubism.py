@@ -1,17 +1,26 @@
 import sys
 import json
+import argparse
 
-# if this is run as a python file, import cubit
 if __name__ == "__main__":
+    # if this is run as a python file, import cubit
     sys.path.append('/opt/Coreform-Cubit-2023.8/bin')
     import cubit
     cubit.init(['cubit', '-nojournal'])
+
+    # accept command line arguments
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-f", "--file", type=str, help="name of json file", default="sample_morphology.json")
+    parser.add_argument("-p", "--printinfo", action="store_true")
+    args = parser.parse_args()
+
+    # File to look at
+    JSON_FILENAME = args.file
+
 # if this is cubit, reset
 elif __name__ == "__coreformcubit__":
     cubit.cmd("reset")
-
-# File to look at
-JSON_FILENAME = "sample_morphology.json"
+    JSON_FILENAME = "sample_morphology.json"
 
 # components in assemblies to be generated
 NEUTRON_TEST_FACILITY_REQUIREMENTS = ["room", "source", "blanket"]
@@ -922,8 +931,9 @@ for json_object in objects:
 
 if __name__ == "__main__":
     MaterialsTracker().organise_into_groups()
-    cubit.cmd('export cubit "please_work.cub5')
-    MaterialsTracker().print_info()
+    #cubit.cmd('export cubit "please_work.cub5')
+    if args.printinfo:
+        MaterialsTracker().print_info()
     pass
 #       cubit.cmd('volume all scheme auto')
 #       cubit.cmd('mesh volume all')
