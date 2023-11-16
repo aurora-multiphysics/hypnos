@@ -543,10 +543,10 @@ class MaterialsTracker:
         return True if material_name in [i.name for i in self.materials] else False
     
     def sort_materials_into_pairs(self):
-        '''Returns a list with all combinations of pairs of materials, including with themselves (not all permutations)'''
+        '''Returns a list with all combinations of pairs of materials (not all permutations)'''
         pair_list = []
         # this is my scuffed way of doing this
-        min_counter = -1
+        min_counter = 0
         for i in range(len(self.materials)):
             for j in range(len(self.materials)):
                 if j > min_counter:
@@ -574,6 +574,21 @@ class MaterialsTracker:
         pair_list = self.sort_materials_into_pairs()
         # to check if merging has actually happened 
         last_tracked_group = cubit.get_last_id("group")
+
+        # try to merge volumes in each group (ie intra-group merge)
+        for material in self.materials:
+            group_name = str(material.name) + "_" + str(material.name)
+            cubit.cmd(f"merge group {material.group_id} with group {material.group_id} group_results")
+            group_id = cubit.get_last_id("group")
+
+            if not (group_id == last_tracked_group):
+                cubit.cmd(f'group {group_id} rename "{group_name}"')
+                self.boundaries.append(Material(group_name, group_id))
+                group_surface_ids = cubit.get_group_surfaces(group_id)
+                for group_surface_id in group_surface_ids:
+                    self.add_geometry_to_boundary(GenericCubitInstance(group_surface_id, "surface"), group_name)
+                # update last tracked group
+                last_tracked_group = group_id
 
         #try to merge volumes in every pair of materials
         for (Material1, Material2) in pair_list:
@@ -604,12 +619,12 @@ class MaterialsTracker:
         for material in self.materials:
             # setup group and tracking for interface with air
             boundary_name = material.name + "_air"
-            cubit.cmd(f'group "{boundary_name}"')
+            cubit.cmd(f'create group "{boundary_name}"')
             boundary_id = cubit.get_last_id("group")
             self.boundaries.append(Material(boundary_name, boundary_id))
             # look at every surface of this material
             material_surface_ids = material.get_surface_ids()
-            # if this surface is unmerged, it is in contact with air so 
+            # if this surface is unmerged, it is in contact with air so add it to the boundary
             for material_surface_id in material_surface_ids:
                 if material_surface_id in all_unmerged_surfaces:
                     cubit.cmd(f'group "{boundary_name}" add surface {material_surface_id}')
@@ -618,10 +633,23 @@ class MaterialsTracker:
         cubit.cmd(f'delete group {unmerged_group_id}')
 
     def organise_into_groups(self):
+        '''create a group of material groups, boundary groups'''
+
+        # create material groups group
+        cubit.cmd('create group "materials"')
+        material_group_id = cubit.get_last_id("group") # in case i need to do something similar to boundaries later
         for material in self.materials:
             cubit.cmd(f'group "materials" add group {material.group_id}')
+
+        # create boundary group groups
+        cubit.cmd('create group "boundaries"')
+        boundaries_group_id = cubit.get_last_id("group")
         for boundary in self.boundaries:
             cubit.cmd(f'group "boundaries" add group {boundary.group_id}')
+        # delete empty boundaries
+        for group_id in cubit.get_group_groups(boundaries_group_id):
+            if cubit.get_group_surfaces(group_id) == ():
+                cubit.cmd(f"delete group {group_id}")
 
     def print_info(self):
         '''print cubit IDs of volumes in materials and surfaces in boundaries'''
@@ -676,15 +704,19 @@ class ComplexComponent(CreatedCubitInstance):
 class RoomComponent(ComplexComponent):
     def __init__(self, geometry: dict, material, air, wall):
         super().__init__(geometry, "room", material)
+
+        # fill room with air
         self.air_material = air
         self.air = []
         self.fill_air(air)
 
+        # if a wall is specified, make it
         if wall:
             wall_material = wall["material"] if "material" in wall.keys() else self.material
             for wall_key in wall.keys():
                 geometry["wall " + wall_key] = wall[wall_key]
             self.wall = WallComponent(geometry, wall_material)
+            # remove air from inside wall
             for air in self.air:
                 temp_wall = self.wall.copy()
                 cubit.cmd(f"subtract {temp_wall.geometry_type} {temp_wall.cid} from {air.geometry_type} {air.cid}")
@@ -746,7 +778,8 @@ class ExternalComponent(GenericCubitInstance):
     def __init__(self, cid: int, geometry_type: str) -> None:
         super().__init__(cid, geometry_type)
         # track external components
-        cubit.cmd(f'group "external" add {self.geometry_type} {self.cid}')
+        MaterialsTracker().add_geometry_to_material(GenericCubitInstance(self.cid, self.geometry_type), "external")
+        #cubit.cmd(f'group "external" add {self.geometry_type} {self.cid}')
 
 class ExternalComponentAssembly(GenericComponentAssembly):
     '''
