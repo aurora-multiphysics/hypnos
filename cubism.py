@@ -74,10 +74,12 @@ def json_object_reader(json_object: dict):
             component_list= json_object["components"]
         )
     elif json_object["class"] == "room":
+        wall = json_object["wall"] if "wall" in json_object.keys() else False
         return RoomComponent(
             geometry= json_object["geometry"],
             material= json_object["material"],
-            air= json_object["air"]
+            air= json_object["air"],
+            wall= wall
         )
     elif json_object["class"] == "breeder":
         return BreederComponent(
@@ -391,32 +393,38 @@ class CreatedCubitInstance(GenericCubitInstance):
             return self.__create_cubit_blob(geometry)
         elif self.classname in ROOM_CLASSES:
             return self.__create_cubit_room(geometry)
+        elif self.classname == "wall":
+            return self.__create_cubit_wall(geometry)
         else:
             raise CubismError("Wrong class name somewhere?: " + self.classname)
     
     def make_cubit_instance(self):
-            self.cubitInstance, self.cid, self.geometry_type= self.make_geometry(self.geometry)
+            self.cid, self.geometry_type= self.make_geometry(self.geometry)
+            self.cubitInstance = get_cubit_geometry(self.cid, self.geometry_type)
     
     def copy(self):
         return CreatedCubitInstance(self.geometry, self.classname)
+    
+    def __convert_to_3d_vector(self, dim):
+        if type(dim) == int:
+            return_vector = [dim for i in range(3)]
+        elif len(dim) == 1:
+            return_vector = [dim[0] for i in range(3)]
+        elif len(dim) == 3:
+            return_vector = dim
+        else:
+            raise CubismError("thickness should be either a 1D or 3D vector (or scalar)")
+        return return_vector
 
     def __create_cubit_blob(self, geometry: dict):
         '''create cube (if scalar/1D) or cuboid (if 3D) with dimensions. 
         Rotate it about the y-axis, x-axis, y-axis if euler_angles are specified. 
         Move it to position if specified'''
         # setup variables
-        dims= geometry["dimensions"]
+        dims= self.__convert_to_3d_vector(geometry["dimensions"])
         pos= geometry["position"] if "position" in geometry.keys() else [0, 0, 0]
         euler_angles= geometry["euler_angles"] if "euler_angles" in geometry.keys() else [0, 0, 0]
         # create a cube or cuboid.
-        if type(dims) == int:
-            dims = [dims for i in range(3)]
-        elif len(dims) == 1:
-            dims = [dims[0] for i in range(3)]
-        elif len(dims) == 3:
-            pass
-        else:
-            raise CubismError("dimensions should be either a 1D or 3D vector (or scalar)")
         blob = cubit.brick(dims[0], dims[1], dims[2])
         cid = cubit.get_last_id("volume")
         # orientate according to euler angles
@@ -427,34 +435,63 @@ class CreatedCubitInstance(GenericCubitInstance):
         # move to specified position
         cubit.move(blob, pos)
         # return instance for further manipulation
-        return blob, cid, "volume"
+        return cid, "volume"
 
     def __create_cubit_room(self, geometry: dict):
         '''create 3d room with outer dimensions dimensions (int or list) and thickness (int or list)'''
-        inner_dims= geometry["dimensions"]
-        thickness= geometry["thickness"]
-        # create a cube or cuboid.
-        if type(inner_dims) == int:
-            inner_dims = [inner_dims, inner_dims, inner_dims]
-        elif len(inner_dims) == 1:
-            inner_dims = [inner_dims[0], inner_dims[0], inner_dims[0]]
-        elif len(inner_dims) == 3:
-            pass
-        else:
-            raise CubismError("dimensions should be either a 1D or 3D vector (or scalar)")
-        if type(thickness) == int:
-            thickness = [thickness, thickness, thickness]
-        elif len(thickness) == 1:
-            thickness = [thickness[0], thickness[0], thickness[0]]
-        elif len(thickness) == 3:
-            pass
-        else:
-            raise CubismError("thickness should be either a 1D or 3D vector (or scalar)")
-        subtract_vol = cubit.brick(inner_dims[0]-2*thickness[0], inner_dims[1]-2*thickness[1], inner_dims[2]-2*thickness[2])
-        block = cubit.brick(inner_dims[0], inner_dims[1], inner_dims[2])
+        # get variables
+        outer_dims= self.__convert_to_3d_vector(geometry["dimensions"])
+        thickness= self.__convert_to_3d_vector(geometry["thickness"])
+        # create room
+        subtract_vol = cubit.brick(outer_dims[0]-2*thickness[0], outer_dims[1]-2*thickness[1], outer_dims[2]-2*thickness[2])
+        block = cubit.brick(outer_dims[0], outer_dims[1], outer_dims[2])
         room = cubit.subtract([subtract_vol], [block])
         room_id = cubit.get_last_id("volume")
-        return room, room_id, "volume"
+        return room_id, "volume"
+
+    def __create_cubit_wall(self, geometry: dict):
+        # get variables
+        # wall
+        thickness= geometry["wall thickness"]
+        plane= geometry["wall plane"] if "wall plane" in geometry.keys() else "x"
+        pos= geometry["wall position"] if "wall position" in geometry.keys() else 0
+        # hole
+        hole_pos= geometry["wall hole position"] if "wall hole position" in geometry.keys() else [0, 0]
+        hole_radius= geometry["wall hole radius"]
+        # wall fills room
+        room_dims= self.__convert_to_3d_vector(geometry["dimensions"])
+        room_thickness= self.__convert_to_3d_vector(geometry["thickness"])
+        wall_dims = [room_dims[i]-2*room_thickness[i] for i in range(3)]
+
+        # volume to subtract to create a hole
+        cubit.cmd(f"create cylinder height {thickness} radius {hole_radius}")
+        subtract_vol = GenericCubitInstance(cubit.get_last_id("volume"), "volume")
+
+        # depending on what plane the wall needs to be in, create wall + make hole at right place + move wall
+        if plane == "x":
+            cubit.brick(thickness, wall_dims[1], wall_dims[2])
+            wall = GenericCubitInstance(cubit.get_last_id("volume"), "volume")
+            cubit.cmd(f"rotate volume {subtract_vol.cid} angle 90 about Y")
+            cubit.cmd(f"move volume {subtract_vol.cid} y {hole_pos[1]} z {hole_pos[0]}")
+            cubit.cmd(f"subtract volume {subtract_vol.cid} from volume {wall.cid}")
+            cubit.cmd(f"move volume {wall.cid} x {pos}")
+        elif plane == "y":
+            cubit.brick( wall_dims[0], thickness, wall_dims[2])
+            wall = GenericCubitInstance(cubit.get_last_id("volume"), "volume")
+            cubit.cmd(f"rotate volume {subtract_vol.cid} angle 90 about X")
+            cubit.cmd(f"move volume {subtract_vol.cid} x {hole_pos[0]} z {hole_pos[1]}")
+            cubit.cmd(f"subtract volume {subtract_vol.cid} from volume {wall.cid}")
+            cubit.cmd(f"move volume {wall.cid} y {pos}")
+        elif plane == "z":
+            cubit.brick( wall_dims[0], wall_dims[1], thickness)
+            wall = GenericCubitInstance(cubit.get_last_id("volume"), "volume")
+            cubit.cmd(f"move volume {subtract_vol.cid} x {hole_pos[0]} y {hole_pos[1]}")
+            cubit.cmd(f"subtract volume {subtract_vol.cid} from volume {wall.cid}")
+            cubit.cmd(f"move volume {wall.cid} z {pos}")
+        else:
+            raise CubismError("unrecognised plane specified")
+        
+        return wall.cid, wall.geometry_type            
 
 # Classes to track materials and geometries made of those materials
 class Material:
@@ -637,11 +674,20 @@ class ComplexComponent(CreatedCubitInstance):
         self.complexComponentMaterials.stop_tracking_in_material(self.cid, self.geometry_type, self.material)
 
 class RoomComponent(ComplexComponent):
-    def __init__(self, geometry, material, air):
+    def __init__(self, geometry: dict, material, air, wall):
         super().__init__(geometry, "room", material)
         self.air_material = air
         self.air = []
         self.fill_air(air)
+
+        if wall:
+            wall_material = wall["material"] if "material" in wall.keys() else self.material
+            for wall_key in wall.keys():
+                geometry["wall " + wall_key] = wall[wall_key]
+            self.wall = WallComponent(geometry, wall_material)
+            for air in self.air:
+                temp_wall = self.wall.copy()
+                cubit.cmd(f"subtract {temp_wall.geometry_type} {temp_wall.cid} from {air.geometry_type} {air.cid}")
 
     def fill_air(self, air):
         '''fill room with air'''
@@ -690,6 +736,10 @@ class BreederComponent(ComplexComponent):
 class StructureComponent(ComplexComponent):
     def __init__(self, geometry, material):
         super().__init__(geometry, "structure", material)
+
+class WallComponent(ComplexComponent):
+    def __init__(self, geometry, material):
+        super().__init__(geometry, "wall", material)
 
 # external component assembly and subclass(es)
 class ExternalComponent(GenericCubitInstance):
@@ -931,7 +981,7 @@ for json_object in objects:
 
 if __name__ == "__main__":
     MaterialsTracker().organise_into_groups()
-    #cubit.cmd('export cubit "please_work.cub5')
+    cubit.cmd('export cubit "please_work.cub5')
     if args.printinfo:
         MaterialsTracker().print_info()
     pass

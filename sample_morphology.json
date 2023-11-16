@@ -43,6 +43,11 @@
                 "geometry": {
                     "dimensions": [49],
                     "thickness": 1
+                },
+                "wall": {
+                    "thickness": 5,
+                    "hole radius": 10,
+                    "plane": "y"
                 }
             }
         ]
