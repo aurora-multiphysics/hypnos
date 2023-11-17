@@ -242,8 +242,9 @@ class NeutronTestFacility(CreatedComponentAssembly):
         self.validate_rooms_and_fix_air()
         self.change_air_to_volumes()
         self.imprint_all()
-        self.track_material_boundaries_and_merge()
+        MaterialsTracker().merge_and_track_boundaries()
         self.merge_all()
+        MaterialsTracker().add_boundaries_to_sidesets()
 
     def enforce_facility_morphology(self):
         '''Make sure the specified morphology is followed. This works by comparing the volumes of the source and blanket to the volume of their union'''
@@ -294,10 +295,6 @@ class NeutronTestFacility(CreatedComponentAssembly):
     def imprint_all(self):
         '''imprint all :)'''
         cubit.cmd("imprint all")
-
-    def track_material_boundaries_and_merge(self):
-        materials = MaterialsTracker()
-        materials.merge_and_track_boundaries()
     
     def merge_all(self):
         '''merge all :)'''
@@ -681,6 +678,11 @@ class MaterialsTracker:
                     if (geometry.geometry_type == geometry_type) and (geometry.cid == cid):
                         material.geometries.remove(geometry)
                         cubit.cmd(f'group {material_name} remove {geometry_type} {cid}')
+
+    def add_boundaries_to_sidesets(self):
+        for boundary in self.boundaries:
+            cubit.cmd(f"sideset {boundary.group_id} add surface {boundary.get_surface_ids()}")
+            cubit.cmd(f'sideset {boundary.group_id} name "{boundary.name}"')
 
 # very basic implementations for component classes created natively
 class ComplexComponent(CreatedCubitInstance):
