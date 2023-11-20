@@ -23,17 +23,16 @@ elif __name__ == "__coreformcubit__":
     JSON_FILENAME = "sample_morphology.json"
 
 # components in assemblies to be generated
-NEUTRON_TEST_FACILITY_REQUIREMENTS = ["room", "source", "blanket"]
+NEUTRON_TEST_FACILITY_REQUIREMENTS = ["room", "source"]
 NEUTRON_TEST_FACILITY_ADDITIONAL = []
 BLANKET_REQUIREMENTS = ["breeder", "structure"]
-BLANKET_ADDITIONAL = ["coolant"]
-
-NEUTRON_TEST_FACLITY_ALL = NEUTRON_TEST_FACILITY_REQUIREMENTS + NEUTRON_TEST_FACILITY_ADDITIONAL
-BLANKET_ALL = BLANKET_REQUIREMENTS + BLANKET_ADDITIONAL
+BLANKET_ADDITIONAL = ["coolant", "multiplier"]
+ROOM_REQUIREMENTS = ["blanket", "surrounding_walls"]
+ROOM_ADDITIONAL = ["wall"]
 
 # classes according to what make_geometry subfunction(?) needs to be called
 BLOB_CLASSES = ["complex", "breeder", "structure", "air"]
-ROOM_CLASSES = ["room"]
+ROOM_CLASSES = ["surrounding_walls"]
 WALL_CLASSES = ["wall"]
 
 # currently only supports exclusive, inclusive, and overlap
@@ -71,16 +70,17 @@ def json_object_reader(json_object: dict):
         )
     elif json_object["class"] == "blanket":
         return BlanketAssembly(
-            morphology= json_object["morphology"],
             component_list= json_object["components"]
         )
     elif json_object["class"] == "room":
-        wall = json_object["wall"] if "wall" in json_object.keys() else False
-        return RoomComponent(
+        return RoomAssembly(
+            component_list= json_object["components"]
+        )
+    elif json_object["class"] == "surrounding_walls":
+        return SurroundingWallsComponent(
             geometry= json_object["geometry"],
             material= json_object["material"],
-            air= json_object["air"],
-            wall= wall
+            air= json_object["air"]
         )
     elif json_object["class"] == "breeder":
         return BreederComponent(
@@ -140,6 +140,8 @@ class GenericComponentAssembly:
                     # fetches instances
                     if isinstance(component, GenericCubitInstance):
                         instances_list.append(component.cubitInstance)
+                    elif isinstance(component, ComplexComponent):
+                        instances_list += component.subcomponents
                     elif isinstance(component, GenericComponentAssembly):
                         # This feels very scuffed
                         instances_list += component.get_cubit_instances_from_classname(classname_list)
@@ -152,6 +154,8 @@ class GenericComponentAssembly:
             for component in component_attribute:
                 if isinstance(component, GenericCubitInstance):
                     instances_list.append(component.cubitInstance)
+                elif isinstance(component, ComplexComponent):
+                    instances_list += [subcomp.cubitInstance for subcomp in component.subcomponents]
                 elif isinstance(component, GenericComponentAssembly):
                     instances_list += component.get_all_cubit_instances()
         return instances_list
@@ -164,6 +168,8 @@ class GenericComponentAssembly:
                 for component in self.component_mapping[classname]:
                     if isinstance(component, GenericCubitInstance):
                         component_list.append(component)
+                    elif isinstance(component, ComplexComponent):
+                        component_list += component.subcomponents
                     elif isinstance(component, GenericComponentAssembly):
                         component_list += component.get_generic_cubit_instances_from_classname(classname_list)
         return component_list
@@ -175,6 +181,8 @@ class GenericComponentAssembly:
             for component in component_attribute:
                 if isinstance(component, GenericCubitInstance):
                     instances_list.append(component)
+                elif isinstance(component,ComplexComponent):
+                    instances_list += component.subcomponents 
                 elif isinstance(component, GenericComponentAssembly):
                     instances_list += component.get_all_generic_cubit_instances()
         return instances_list
@@ -195,9 +203,7 @@ class CreatedComponentAssembly(GenericComponentAssembly):
     - store components of the specified classnames in corresponding attributes, otherwise other_components
     - be able to fetch cubit instances of components stores in these attributes (get_cubit_instances)
     '''
-    def __init__(self, morphology: str, component_list: list, required_classnames: list, additional_classnames: list):
-        # this defines what morphology will be enforced later
-        self.morphology = morphology
+    def __init__(self, component_list: list, required_classnames: list, additional_classnames: list):
         # this defines what components to require in every instance
         self.required_classnames = required_classnames
 
@@ -241,7 +247,9 @@ class NeutronTestFacility(CreatedComponentAssembly):
     Currently supports inclusive, exclusive, and overlap morphologies
     '''
     def __init__(self, morphology: str, component_list: list):
-        super().__init__(morphology, component_list, required_classnames = NEUTRON_TEST_FACILITY_REQUIREMENTS, additional_classnames = NEUTRON_TEST_FACILITY_ADDITIONAL)
+        super().__init__(component_list, NEUTRON_TEST_FACILITY_REQUIREMENTS, NEUTRON_TEST_FACILITY_ADDITIONAL)
+        # this defines what morphology will be enforced later
+        self.morphology = morphology
         self.enforce_facility_morphology()
         self.apply_facility_morphology()
         self.validate_rooms_and_fix_air()
@@ -259,7 +267,10 @@ class NeutronTestFacility(CreatedComponentAssembly):
         
         # Get the net source, blanket, and the union of both
         source_object= unionise(self.source_components)
-        blanket_object= unionise(self.blanket_components)
+        blanket_components = []
+        for i in self.room_components:
+            blanket_components += i.blanket_components 
+        blanket_object= unionise(blanket_components)
         union_object= unionise([source_object, blanket_object])
 
         # get their volumes
@@ -309,8 +320,12 @@ class NeutronTestFacility(CreatedComponentAssembly):
         '''subtract all non-air geometries from all air geometries. Validate that everything is inside a room'''
         room_bounding_boxes = []
         for room in self.room_components:
-            if isinstance(room, RoomComponent):
-                room_bounding_boxes += room.air
+            for surrounding_walls in room.surrounding_walls_components:
+                if isinstance(surrounding_walls, SurroundingWallsComponent):
+                    room_bounding_boxes += surrounding_walls.air.subcomponents
+            for walls in room.wall_components:
+                if isinstance(walls, WallComponent):
+                    room_bounding_boxes += walls.subcomponents
         
         # get a union defining the 'bounding boxes' for all rooms, and a union of every geometry in the facility. 
         # as well as the union of those two unions
@@ -333,25 +348,27 @@ class NeutronTestFacility(CreatedComponentAssembly):
         # there is probably a better way of doing this
         # if a room is filled with air, subtract the union of all non-air geometries from it
         for room in self.room_components:
-            if isinstance(room, RoomComponent):
-                if room.is_air():
-                    for air in room.air:
-                        all_geometries_copy = all_geometries.copy_cubit_instance()
-                        cubit.cmd(f'subtract {all_geometries_copy.geometry_type} {all_geometries_copy.cid} from {air.geometry_type} {air.cid}')
+            for surrounding_walls in room.surrounding_walls_components:
+                if isinstance(surrounding_walls, SurroundingWallsComponent):
+                    if surrounding_walls.is_air():
+                        for air in surrounding_walls.air.subcomponents:
+                            all_geometries_copy = all_geometries.copy_cubit_instance()
+                            cubit.cmd(f'subtract {all_geometries_copy.geometry_type} {all_geometries_copy.cid} from {air.geometry_type} {air.cid}')
         # cleanup
         all_geometries.destroy_cubit_instance()
 
     # this is just ridiculous. like actually why.
     def change_air_to_volumes(self):
-        '''Groups referring to air now only contain volumes'''
+        '''Components referring to air now only contain volumes'''
         for room in self.room_components:
-            if isinstance(room, RoomComponent):
-                room.air_as_volumes()
+            for surrounding_walls in room.surrounding_walls_components:
+                if isinstance(surrounding_walls, SurroundingWallsComponent):
+                    surrounding_walls.air_as_volumes()
 
 class BlanketAssembly(CreatedComponentAssembly):
     '''Assembly class that requires at least one breeder and structure. Additionally stores coolants separately'''
-    def __init__(self, morphology: str, component_list: list, required_classnames = BLANKET_REQUIREMENTS, additional_classnames = BLANKET_ADDITIONAL):
-        super().__init__(morphology, component_list, required_classnames, additional_classnames)
+    def __init__(self, component_list: list):
+        super().__init__(component_list, BLANKET_REQUIREMENTS, BLANKET_ADDITIONAL)
 
 # everything in cubit will need to be referenced by a geometry type and id
 class GenericCubitInstance:
@@ -675,21 +692,36 @@ class MaterialsTracker:
                         cubit.cmd(f'group {material_name} remove {old_geometry_type} {old_cid}')
                         cubit.cmd(f'group {material_name} add {new_geometry_type} {new_cid}')
 
-    def stop_tracking_in_material(self, cid, geometry_type, material_name):
+    def update_tracking_list(self, old_instances: list, new_instances: list, material_name):
+        '''removes and adds references to specified GenericCubitInstances in a given material'''
+        for material in self.materials:
+            if material.name == material_name:
+                for geometry in material.geometries:
+                    for generic_cubit_instance in old_instances:
+                        if isinstance(generic_cubit_instance, GenericCubitInstance):
+                            if (geometry.geometry_type == generic_cubit_instance.geometry_type) and (geometry.cid == generic_cubit_instance.cid):
+                                material.geometries.remove(geometry)
+                                cubit.cmd(f'group {material_name} remove {generic_cubit_instance.geometry_type} {generic_cubit_instance.cid}')
+                for generic_cubit_instance in new_instances:
+                    if isinstance(generic_cubit_instance, GenericCubitInstance):
+                        material.geometries.append(generic_cubit_instance)
+                        cubit.cmd(f'group {material_name} add {generic_cubit_instance.geometry_type} {generic_cubit_instance.cid}')
+
+    def stop_tracking_in_material(self, generic_cubit_instance: GenericCubitInstance, material_name):
         '''stop tracking a currently tracked GenericCubitInstance'''
         for material in self.materials:
             if material.name == material_name:
                 for geometry in material.geometries:
-                    if (geometry.geometry_type == geometry_type) and (geometry.cid == cid):
+                    if (geometry.geometry_type == generic_cubit_instance.geometry_type) and (geometry.cid == generic_cubit_instance.cid):
                         material.geometries.remove(geometry)
-                        cubit.cmd(f'group {material_name} remove {geometry_type} {cid}')
+                        cubit.cmd(f'group {material_name} remove {generic_cubit_instance.geometry_type} {generic_cubit_instance.cid}')
 
     def add_boundaries_to_sidesets(self):
         for boundary in self.boundaries:
             cubit.cmd(f"sideset {boundary.group_id} add surface {boundary.get_surface_ids()}")
             cubit.cmd(f'sideset {boundary.group_id} name "{boundary.name}"')
 
-# very basic implementations for component classes created natively
+# very basic implementations for complex components
 class ComplexComponent:
     # stores information about what materials exist. geometries can then be found from groups with the same name
     complexComponentMaterials = MaterialsTracker()
@@ -699,7 +731,7 @@ class ComplexComponent:
         self.geometry = geometry
         self.material = material
         self.make_geometry()
-        # add geometry to material tracker
+        # add geometries to material tracker
         for subcomponent in self.subcomponents:
             self.complexComponentMaterials.add_geometry_to_material(subcomponent, self.material)
     
@@ -811,74 +843,70 @@ class ComplexComponent:
         
         return GenericCubitInstance(wall.cid, wall.geometry_type)            
     
-    def update_reference_and_tracking(self, cid, geometry_type):
-        '''Change what geometry this instance refers to'''
-        self.complexComponentMaterials.update_tracking(self.cid, self.geometry_type, cid, geometry_type, self.material)
-        self.update_reference(cid, geometry_type)
+    def update_reference_and_tracking(self, geometry_list):
+        '''Change what geometries this instance refers to'''
+        self.complexComponentMaterials.update_tracking_list(self.subcomponents, geometry_list, self.material)
+        self.subcomponents = geometry_list
     
     def stop_tracking(self):
-        '''stop tracking the material of this instance'''
-        self.complexComponentMaterials.stop_tracking_in_material(self.cid, self.geometry_type, self.material)
+        '''stop tracking the material of this component'''
+        for subcomponent in self.subcomponents:
+            self.complexComponentMaterials.stop_tracking_in_material(subcomponent, self.material)
 
-class RoomComponent(ComplexComponent):
-    def __init__(self, geometry: dict, material, air, wall):
-        super().__init__(geometry, "room", material)
+    def as_bodies(self):
+        owning_bodies = from_everything_to_bodies(self.subcomponents)
+        self.update_reference_and_tracking(owning_bodies)
+    
+    def as_volumes(self):
+        self.update_reference_and_tracking(from_bodies_to_volumes(self.subcomponents))
+
+class RoomAssembly(CreatedComponentAssembly):
+    def __init__(self, component_list: list):
+
+        json_walls = []
+        for json_component in component_list:
+            if json_component["class"] == "wall":
+                json_walls.append(json_component)
+                component_list.remove(json_component)
+
+        super().__init__(component_list, ROOM_REQUIREMENTS, ROOM_ADDITIONAL)
+
+        for surrounding_walls in self.surrounding_walls_components:
+            for json_wall in json_walls:
+                wall_geometry = surrounding_walls.geometry
+                wall_material = json_wall["material"] if "material" in json_wall.keys() else surrounding_walls.material
+                for wall_key in json_wall["geometry"].keys():
+                    wall_geometry["wall " + wall_key] = json_wall["geometry"][wall_key]
+                self.wall_components.append(WallComponent(wall_geometry, wall_material))
+
+                for air in surrounding_walls.air.subcomponents:
+                    temp_wall = WallComponent(wall_geometry, wall_material)
+                    for t_w in temp_wall.subcomponents:
+                        cubit.cmd(f"subtract {t_w.geometry_type} {t_w.cid} from {air.geometry_type} {air.cid}")
+
+class SurroundingWallsComponent(ComplexComponent):
+    def __init__(self, geometry: dict, material, air):
+        super().__init__(geometry, "surrounding_walls", material)
 
         # fill room with air
         self.air_material = air
-        self.air = []
-        self.fill_air(air)
-
-        # if a wall is specified, make it
-        if wall:
-            wall_material = wall["material"] if "material" in wall.keys() else self.material
-            for wall_key in wall.keys():
-                geometry["wall " + wall_key] = wall[wall_key]
-            self.wall = WallComponent(geometry, wall_material)
-            # remove air from inside wall
-            for air in self.air:
-                temp_wall = self.wall.copy()
-                cubit.cmd(f"subtract {temp_wall.geometry_type} {temp_wall.cid} from {air.geometry_type} {air.cid}")
-
-    def fill_air(self, air):
-        '''fill room with air'''
-        if not (air == "none"):
-            self.air.append(AirComponent(self.geometry, air))
+        self.air = AirComponent(self.geometry, air) if air != "none" else False
     
     def is_air(self):
         '''Does this room have air in it?'''
-        return False if len(self.air) == 0 else True
-    
-    def purge_air(self):
-        '''stop tracking air in this room and empty the air attribute'''
-        for air in self.air:
-            if isinstance(air, ComplexComponent):
-                air.stop_tracking()
-        self.air = []
-    
-    def add_air(self, air_list: list):
-        '''Add air to this room and track :)'''
-        for air in air_list:
-            self.complexComponentMaterials.add_geometry_to_material(air, self.air_material)
-        self.air += air_list
-    
-    def refill_air(self, air_list: list):
-        '''purge and then add air'''
-        self.purge_air()
-        self.add_air(air_list)
+        return isinstance(self.air, AirComponent)
     
     def air_as_volumes(self):
         '''reference air as volume entities instead of body entities'''
         if self.is_air():
-            self.refill_air(from_bodies_to_volumes(self.air))
+            self.air.as_volumes()
 
 class AirComponent(ComplexComponent):
     '''Air, stored as body'''
     def __init__(self, geometry, material):
         super().__init__(geometry, "air", material)
         # cubit subtract only keeps body ID invariant, so i will store air as a body
-        owning_body = to_owning_body(GenericCubitInstance(self.cid, self.geometry_type))
-        self.update_reference_and_tracking(owning_body.cid, owning_body.geometry_type)
+        self.as_bodies()
 
 class BreederComponent(ComplexComponent):
     def __init__(self, geometry, material):
@@ -1008,6 +1036,8 @@ def unionise(component_list: list):
     for component in component_list:
         if isinstance(component, GenericCubitInstance):
             instances_to_union.append(component)
+        elif isinstance(component, ComplexComponent):
+            instances_to_union += component.subcomponents
         elif isinstance(component, GenericComponentAssembly):
             instances_to_union += component.get_all_generic_cubit_instances()
     
@@ -1018,7 +1048,7 @@ def unionise(component_list: list):
     if len(instances_to_union) == 0:
         raise CubismError("Could not find any instances")
     elif len(instances_to_union) == 1:
-        return instances_to_union[0].copy()
+        return instances_to_union[0].copy_cubit_instance()
 
     # get cubit handles
     instances_to_union = [i.cubitInstance for i in instances_to_union]

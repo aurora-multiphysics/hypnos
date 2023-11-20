@@ -4,29 +4,6 @@
         "morphology": "overlap",
         "components": [
             {
-                "class" : "blanket",
-                "morphology": "sleepy time",
-                "components": [
-                    {
-                        "class": "breeder",
-                        "material": "lithium_lead",
-                        "geometry":{
-                            "dimensions": 5,
-                            "position": [0, 10, 0]
-                        }
-                    },
-                    {
-                        "class": "structure",
-                        "material": "SS",
-                        "geometry": {
-                            "dimensions": [2],
-                            "position": [0, 13.5, 0],
-                            "euler_angles": [45, 0, 0]
-                        }
-                    }
-                ]
-            },    
-            {
                 "class" : "source",
                 "filepath": "./dummy_source.stp",
                 "group": "source",
@@ -35,20 +12,53 @@
                     "dimensions": [20, 3, 3],
                     "euler_angles": [0, 90, 0]
                 }
-            },
+            },    
+
             {
                 "class": "room",
-                "material": "SS",
-                "air": "some_gas",
-                "geometry": {
-                    "dimensions": [49],
-                    "thickness": 1
-                },
-                "wall": {
-                    "thickness": 5,
-                    "hole radius": 10,
-                    "plane": "y"
-                }
+                "components": [
+                    {
+                        "class": "surrounding_walls",
+                        "material": "SS",
+                        "air": "some_gas",
+                        "geometry": {
+                            "dimensions": [49],
+                            "thickness": 1
+                        }
+
+                    },
+                    {
+                        "class": "wall",
+                        "material": "SS",
+                        "geometry": {
+                            "thickness": 5,
+                            "hole radius": 10,
+                            "plane": "y"
+                        }
+                    },
+                    {
+                        "class" : "blanket",
+                        "components": [
+                            {
+                                "class": "breeder",
+                                "material": "lithium_lead",
+                                "geometry":{
+                                    "dimensions": 5,
+                                    "position": [0, 10, 0]
+                                }
+                            },
+                            {
+                                "class": "structure",
+                                "material": "SS",
+                                "geometry": {
+                                    "dimensions": [2],
+                                    "position": [0, 13.5, 0],
+                                    "euler_angles": [45, 0, 0]
+                                }
+                            }
+                        ]
+                    }
+                ]
             }
         ]
     }
