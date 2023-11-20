@@ -374,6 +374,38 @@ class BlanketAssembly(CreatedComponentAssembly):
     def __init__(self, component_list: list):
         super().__init__(component_list, BLANKET_REQUIREMENTS, BLANKET_ADDITIONAL)
 
+class RoomAssembly(CreatedComponentAssembly):
+    '''Assembly class that required surrounding walls and a blanket. Fills with air. Can add walls.'''
+    def __init__(self, component_list: list):
+
+        # Take out any walls from component list
+        json_walls = []
+        for json_component in component_list:
+            if json_component["class"] == "wall":
+                json_walls.append(json_component)
+                component_list.remove(json_component)
+
+        # set up rest of components
+        super().__init__(component_list, ROOM_REQUIREMENTS, ROOM_ADDITIONAL)
+
+        self.setup_walls(json_walls)
+
+    def setup_walls(self, json_walls):
+        '''Set up walls in surrounding walls. Remove air from walls'''
+        for surrounding_walls in self.surrounding_walls_components:
+            for json_wall in json_walls:
+                # make wall
+                wall_geometry = surrounding_walls.geometry
+                wall_material = json_wall["material"] if "material" in json_wall.keys() else surrounding_walls.material
+                for wall_key in json_wall["geometry"].keys():
+                    wall_geometry["wall " + wall_key] = json_wall["geometry"][wall_key]
+                self.wall_components.append(WallComponent(wall_geometry, wall_material))
+                # remove air
+                for air in surrounding_walls.air.subcomponents:
+                    temp_wall = WallComponent(wall_geometry, wall_material)
+                    for t_w in temp_wall.subcomponents:
+                        cubit.cmd(f"subtract {t_w.geometry_type} {t_w.cid} from {air.geometry_type} {air.cid}")
+
 # everything in cubit will need to be referenced by a geometry type and id
 class GenericCubitInstance:
     '''
@@ -751,38 +783,6 @@ class ComplexComponent:
     def as_volumes(self):
         '''convert any references to bodies in the subcomponents to references to their composing volumes'''
         self.update_reference_and_tracking(from_bodies_to_volumes(self.subcomponents))
-
-class RoomAssembly(CreatedComponentAssembly):
-    '''Assembly class that required surrounding walls and a blanket. Fills with air. Can add walls.'''
-    def __init__(self, component_list: list):
-
-        # Take out any walls from component list
-        json_walls = []
-        for json_component in component_list:
-            if json_component["class"] == "wall":
-                json_walls.append(json_component)
-                component_list.remove(json_component)
-
-        # set up rest of components
-        super().__init__(component_list, ROOM_REQUIREMENTS, ROOM_ADDITIONAL)
-
-        self.setup_walls(json_walls)
-
-    def setup_walls(self, json_walls):
-        '''Set up walls in surrounding walls. Remove air from walls'''
-        for surrounding_walls in self.surrounding_walls_components:
-            for json_wall in json_walls:
-                # make wall
-                wall_geometry = surrounding_walls.geometry
-                wall_material = json_wall["material"] if "material" in json_wall.keys() else surrounding_walls.material
-                for wall_key in json_wall["geometry"].keys():
-                    wall_geometry["wall " + wall_key] = json_wall["geometry"][wall_key]
-                self.wall_components.append(WallComponent(wall_geometry, wall_material))
-                # remove air
-                for air in surrounding_walls.air.subcomponents:
-                    temp_wall = WallComponent(wall_geometry, wall_material)
-                    for t_w in temp_wall.subcomponents:
-                        cubit.cmd(f"subtract {t_w.geometry_type} {t_w.cid} from {air.geometry_type} {air.cid}")
 
 class SurroundingWallsComponent(ComplexComponent):
     '''Surrounding walls, filled with air'''
