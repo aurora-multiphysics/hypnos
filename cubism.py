@@ -43,7 +43,13 @@ class CubismError(Exception):
 
 # map classnames to instances - there should be a better way to do this?
 def json_object_reader(json_object: dict):
-    '''set up class instance according to the class name provided'''
+    '''parse json representation of a component and set up class instance
+
+    :param json_object: json representation of a component. 
+    :type json_object: dict
+    :return: Instance of a native class, chosen according to the 'class' value provided
+    :rtype: various native classes
+    '''
     if json_object["class"] == "complex":
         return ComplexComponent(
             geometry = json_object["geometry"],
@@ -93,8 +99,16 @@ def json_object_reader(json_object: dict):
         )
 
 # make finding instances less annoying
-def get_cubit_geometry(geometry_id, geometry_type):
-    '''returns cubit instance given id and geometry type'''
+def get_cubit_geometry(geometry_id: int, geometry_type: str):
+    '''returns cubit instance given id and geometry type
+
+    :param geometry_id: Cubit ID of geometry
+    :type geometry_id: int
+    :param geometry_type: Cubit geometry type (body/volume/surface/curve/vertex)
+    :type geometry_type: str
+    :raises CubismError: If geometry type provided is not recognised
+    :return: Cubit handle of geometry
+    '''
     if geometry_type == "body":
         return cubit.body(geometry_id)
     elif geometry_type == "volume":
@@ -110,12 +124,13 @@ def get_cubit_geometry(geometry_id, geometry_type):
 
 class GenericComponentAssembly:
     '''
-    Generic assembly that takes a list of classnames to set up a subclass
+    Generic assembly that takes a list of classnames to set up a subclass.
 
     An assembly class specified from this will:
-    - have attributes corresponding to the supplied classnames
-    - store components of the specified classnames in corresponding attributes, otherwise other_components
-    - be able to fetch cubit instances of components stores in these attributes (get_cubit_instances)
+
+    * have attributes corresponding to the supplied classnames
+    * store components of the specified classnames in corresponding attributes, otherwise other_components
+    * be able to fetch cubit instances of components stores in these attributes (get_cubit_instances)
     '''
     def __init__(self, setup_classnames: list):
         # component_mapping defines what classes get stored in what attributes (other_components is default)
@@ -130,7 +145,13 @@ class GenericComponentAssembly:
 
     # These refer to cubit handles
     def get_cubit_instances_from_classname(self, classname_list: list):
-        '''returns list of cubit instances of specified classnames'''
+        '''Get list of cubit instances of specified classnames
+
+        :param classname_list: list of classnames to search in
+        :type classname_list: list
+        :return: list of cubit handles
+        :rtype: list
+        '''
         instances_list = []
         for component_classname in classname_list:
             # checks if valid classname
@@ -147,7 +168,11 @@ class GenericComponentAssembly:
         return instances_list
     
     def get_all_cubit_instances(self) -> list:
-        '''get every cubit instance stored in this assembly instance recursively'''
+        '''get every cubit instance stored in this assembly instance recursively
+
+        :return: list of cubit handles
+        :rtype: list
+        '''
         instances_list = []
         for component_attribute in self.component_mapping.values():
             for component in component_attribute:
@@ -161,6 +186,13 @@ class GenericComponentAssembly:
 
     # These refer to GenericCubitInstance objects
     def get_generic_cubit_instances_from_classname(self, classname_list: list) -> list:
+        '''Get list of geometries under given classnames
+
+        :param classname_list: list of classnames to search under
+        :type classname_list: list
+        :return: list of GenericCubitInstances
+        :rtype: list
+        '''
         component_list = []
         for classname in classname_list:
             if classname in self.component_mapping.keys():
@@ -174,7 +206,11 @@ class GenericComponentAssembly:
         return component_list
     
     def get_all_generic_cubit_instances(self) -> list:
-        '''get every cubit instance stored in this assembly instance recursively'''
+        '''get every geometry stored in this assembly instance recursively
+
+        :return: list of GenericCubitInstances
+        :rtype: list
+        '''
         instances_list = []
         for component_attribute in self.component_mapping.values():
             for component in component_attribute:
@@ -192,15 +228,17 @@ class GenericComponentAssembly:
 
 class CreatedComponentAssembly(GenericComponentAssembly):
     '''
-    Assembly to handle components created natively. Takes a list of required and additional classnames to set up a specific assembly
-    - required classnames: instantiating will fail without at least one component of the given classnames
-    - additional classnames: defines attributes to store components with this classname
+    Assembly to handle components created natively. Takes a list of required and additional classnames to set up a specific assembly:
+
+    * *required classnames*: instantiating will fail without at least one component of the given classnames
+    * *additional classnames*: defines attributes to store components with this classname
 
     An assembly class specified from this will:
-    - have attributes corresponding to the supplied classnames
-    - require every instance have at least one component from the required classnames
-    - store components of the specified classnames in corresponding attributes, otherwise other_components
-    - be able to fetch cubit instances of components stores in these attributes (get_cubit_instances)
+
+    * have attributes corresponding to the supplied classnames
+    * require every instance have at least one component from the required classnames
+    * store components of the specified classnames in corresponding attributes, otherwise other_components
+    * be able to fetch cubit instances of components stores in these attributes (get_cubit_instances)
     '''
     def __init__(self, component_list: list, required_classnames: list, additional_classnames: list):
         # this defines what components to require in every instance
@@ -243,7 +281,15 @@ class NeutronTestFacility(CreatedComponentAssembly):
     '''
     Assmebly class that requires at least one source, blanket, and room.
     Fails if specified morphology is not followed.
-    Currently supports inclusive, exclusive, and overlap morphologies
+    Currently supports inclusive, exclusive, and overlap morphologies.
+
+    On instantiating this performs the following tasks:
+
+    * Ensure the specified morphology is followed
+    * Fills room components with air
+    * Imprints and merges geometry
+    * Tracks specified materials and material interfaces
+    * Adds material interfaces to sidesets
     '''
     def __init__(self, morphology: str, component_list: list):
         super().__init__(component_list, NEUTRON_TEST_FACILITY_REQUIREMENTS, NEUTRON_TEST_FACILITY_ADDITIONAL)
@@ -374,7 +420,7 @@ class BlanketAssembly(CreatedComponentAssembly):
         super().__init__(component_list, BLANKET_REQUIREMENTS, BLANKET_ADDITIONAL)
 
 class RoomAssembly(CreatedComponentAssembly):
-    '''Assembly class that required surrounding walls and a blanket. Fills with air. Can add walls.'''
+    '''Assembly class that requires surrounding walls and a blanket. Fills with air. Can add walls.'''
     def __init__(self, component_list: list):
 
         # Take out any walls from component list
@@ -410,7 +456,7 @@ class GenericCubitInstance:
     '''
     Wrapper for cubit geometry entity.
     Can access cubit ID (cid), geometry type, and cubit handle (cubitInstance).
-    Can destroy cubit instance. Can copy itself (and thus also the cubit instance it refers to)
+    Can destroy cubit instance. Can copy itself (and thus also the cubit instance it refers to). Can update this to refer to a different cubit instance.
     '''
     def __init__(self, cid: int, geometry_type: str) -> None:
         self.cid = cid
@@ -435,10 +481,12 @@ class GenericCubitInstance:
 
 # Classes to track materials and geometries made of those materials
 class Material:
-    def __init__(self, name, group_id) -> None:
+    '''Tracks cubit instances made of this material.
+    '''
+    def __init__(self, name: str, group_id: int) -> None:
         self.name = name
         self.group_id = group_id
-        # onlt stores GenericCubitInstances
+        # only stores GenericCubitInstances, i would make this a private member if i could :(
         self.geometries = []
         # currently does nothing
         self.state_of_matter = ""
@@ -456,17 +504,32 @@ class Material:
         return [i.cid for i in from_bodies_and_volumes_to_surfaces(self.geometries)]
 
 class MaterialsTracker:
+    '''Tracks materials and boundaries between those materials (including nullspace)
+    '''
     #i think i want materials to be tracked globally
     materials = []
     boundaries = []
 
     def make_material(self, material_name: str, group_id: int):
-        '''Add material to internal list. Will not add if material name already exists'''
+        '''Add material to internal list. Will not add if material name already exists
+
+        :param material_name: Name of material
+        :type material_name: str
+        :param group_id: Cubit ID of group
+        :type group_id: int
+        '''
         if material_name not in [i.name for i in self.materials]:
             self.materials.append(Material(material_name, group_id))
     
     def add_geometry_to_material(self, geometry: GenericCubitInstance, material_name: str):
-        '''Add GenericCubitInstance to group= material name and track internally'''
+        '''Add geometry to material and track in cubit.
+
+        :param geometry: Geometry to add
+        :type geometry: GenericCubitInstance
+        :param material_name: name of material to add geometry to
+        :type material_name: str
+        :return: True or raises error
+        '''
         cubit.cmd(f'group "{material_name}" add {geometry.geometry_type} {geometry.cid}')
         group_id = cubit.get_id_from_name(material_name)
         self.make_material(material_name, group_id)
@@ -479,11 +542,21 @@ class MaterialsTracker:
         return CubismError("Could not add component")
 
     def contains_material(self, material_name):
-        '''Checks for existence of a material with the given name'''
+        '''Check for the existence of a material
+
+        :param material_name: name of material to check for
+        :type material_name: str
+        :return: True or False
+        :rtype: bool
+        '''
         return True if material_name in [i.name for i in self.materials] else False
     
     def sort_materials_into_pairs(self):
-        '''Returns a list with all combinations of pairs of materials (not all permutations)'''
+        '''Get all combinations of pairs of materials (not all permutations)
+
+        :return: List of all pairs of materials in the class
+        :rtype: list
+        '''
         pair_list = []
         # this is my scuffed way of doing this
         min_counter = 0
@@ -495,14 +568,30 @@ class MaterialsTracker:
         return pair_list
     
     def get_boundary_ids(self, boundary_name: str):
-        '''Return list of cubit IDs of the geometries belonging to given boundary name'''
+        '''Get cubit IDs of the geometries belonging to a boundary
+
+        :param boundary_name: name of boundary to look in
+        :type boundary_name: str
+        :raises CubismError: If boundary cannot be found
+        :return: list of cubit IDs
+        :rtype: list
+        '''
         for boundary in self.boundaries:
             if boundary.name == boundary_name:
                 return [component.cid for component in boundary.geometries]
         raise CubismError("Could not find boundary")
     
     def add_geometry_to_boundary(self, geometry: GenericCubitInstance, boundary_name: str):
-        '''If boundary with boundary name exists, add given GenericCubitInstance to boundary'''
+        '''If boundary exists, add geometry to it
+
+        :param geometry: geometry to add
+        :type geometry: GenericCubitInstance
+        :param boundary_name: name of boundary to add to
+        :type boundary_name: str
+        :raises CubismError: If boundary can't be found
+        :return: True
+        :rtype: bool
+        '''
         for boundary in self.boundaries:
             if boundary.name == boundary_name:
                 boundary.add_geometry(geometry)
@@ -573,7 +662,7 @@ class MaterialsTracker:
         cubit.cmd(f'delete group {unmerged_group_id}')
 
     def organise_into_groups(self):
-        '''create a group of material groups, boundary groups'''
+        '''create groups for material groups and boundary groups in cubit'''
 
         # create material groups group
         cubit.cmd('create group "materials"')
@@ -600,21 +689,37 @@ class MaterialsTracker:
         for boundary in self.boundaries:
             print(f"{boundary.name}: Surfaces {[i.cid for i in boundary.geometries]}")
 
-    def update_tracking(self, old_cid, old_geometry_type, new_cid, new_geometry_type, material_name):
-        '''changes reference to a GenericCubitInstance currently being tracked'''
+    def update_tracking(self, old_geometry: GenericCubitInstance, new_geometry: GenericCubitInstance, material_name: str):
+        '''change reference to a geometry currently being tracked
+
+        :param old_geometry: geometry to replace
+        :type old_geometry: GenericCubitInstance
+        :param new_geometry: geometry with which to replace
+        :type new_geometry: GenericCubitInstance
+        :param material_name: name of material geometry belongs to
+        :type material_name: str
+        '''
         for material in self.materials:
             if material.name == material_name:
                 for geometry in material.geometries:
-                    if (geometry.geometry_type == old_geometry_type) and (geometry.cid == old_cid):
+                    if (geometry.geometry_type == old_geometry.geometry_type) and (geometry.cid == old_geometry.cid):
                         # update internally
                         material.geometries.remove(geometry)
-                        material.geometries.append(GenericCubitInstance(new_cid, new_geometry_type))
+                        material.geometries.append(GenericCubitInstance(new_geometry.cid, new_geometry.geometry_type))
                         # update cubitside
-                        cubit.cmd(f'group {material_name} remove {old_geometry_type} {old_cid}')
-                        cubit.cmd(f'group {material_name} add {new_geometry_type} {new_cid}')
+                        cubit.cmd(f'group {material_name} remove {old_geometry.geometry_type} {old_geometry.cid}')
+                        cubit.cmd(f'group {material_name} add {new_geometry.geometry_type} {new_geometry.cid}')
 
-    def update_tracking_list(self, old_instances: list, new_instances: list, material_name):
-        '''removes and adds references to specified GenericCubitInstances in a given material'''
+    def update_tracking_list(self, old_instances: list, new_instances: list, material_name: str):
+        '''remove and adds references to specified GenericCubitInstances in a given material
+
+        :param old_instances: list of GenericCubitInstances to replace
+        :type old_instances: list
+        :param new_instances: list of GenericCubitInstances with which to replace
+        :type new_instances: list
+        :param material_name: name of material geometries belong to
+        :type material_name: str
+        '''
         for material in self.materials:
             if material.name == material_name:
                 for geometry in material.geometries:
@@ -628,8 +733,14 @@ class MaterialsTracker:
                         material.geometries.append(generic_cubit_instance)
                         cubit.cmd(f'group {material_name} add {generic_cubit_instance.geometry_type} {generic_cubit_instance.cid}')
 
-    def stop_tracking_in_material(self, generic_cubit_instance: GenericCubitInstance, material_name):
-        '''stop tracking a currently tracked GenericCubitInstance'''
+    def stop_tracking_in_material(self, generic_cubit_instance: GenericCubitInstance, material_name: str):
+        '''stop tracking a currently tracked geometry
+
+        :param generic_cubit_instance: geometry to stop tracking
+        :type generic_cubit_instance: GenericCubitInstance
+        :param material_name: name of material geometry belongs to
+        :type material_name: str
+        '''
         for material in self.materials:
             if material.name == material_name:
                 for geometry in material.geometries:
@@ -638,6 +749,7 @@ class MaterialsTracker:
                         cubit.cmd(f'group {material_name} remove {generic_cubit_instance.geometry_type} {generic_cubit_instance.cid}')
 
     def add_boundaries_to_sidesets(self):
+        '''Add boundaries to cubit sidesets'''
         for boundary in self.boundaries:
             cubit.cmd(f"sideset {boundary.group_id} add surface {boundary.get_surface_ids()}")
             cubit.cmd(f'sideset {boundary.group_id} name "{boundary.name}"')

@@ -1,10 +1,10 @@
 API
 ===
 
+.. currentmodule:: cubism
+
 Functions
 ---
-
-.. currentmodule:: cubism
 
 .. autofunction:: copy_instances
 .. autofunction:: delete_instances
