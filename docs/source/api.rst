@@ -1,6 +1,10 @@
 API
 ===
 
+.. toctree:: 
+    materials
+    ComplexComponent
+
 .. currentmodule:: cubism
 
 Functions
@@ -23,20 +27,12 @@ Functions
 Classes
 ---
 
-.. autoclass:: AirComponent
 .. autoclass:: BlanketAssembly
-.. autoclass:: BreederComponent
-.. autoclass:: ComplexComponent
 .. autoclass:: CreatedComponentAssembly
 .. autoclass:: ExternalComponent
 .. autoclass:: ExternalComponentAssembly
 .. autoclass:: GenericComponentAssembly
 .. autoclass:: GenericCubitInstance
-.. autoclass:: Material
-.. autoclass:: MaterialsTracker
 .. autoclass:: NeutronTestFacility
 .. autoclass:: RoomAssembly
 .. autoclass:: SourceAssembly
-.. autoclass:: StructureComponent
-.. autoclass:: SurroundingWallsComponent
-.. autoclass:: WallComponent
