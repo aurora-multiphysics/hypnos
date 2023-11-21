@@ -16,8 +16,7 @@ if __name__ == "__main__":
 
     # File to look at
     JSON_FILENAME = args.file
-
-# if this is cubit, reset
+# if this is cubit, reset first
 elif __name__ == "__coreformcubit__":
     cubit.cmd("reset")
     JSON_FILENAME = "sample_morphology.json"
@@ -1034,6 +1033,13 @@ def to_owning_body(component: GenericCubitInstance):
     raise CubismError("Did not recieve a GenericCubicInstance")
 
 def get_bodies_and_volumes_from_group(group_id: int):
+    '''Find bodies and volumes at the top-level of a group.
+
+    :param group_id: ID of group
+    :type group_id: int
+    :return: list of bodies and volumes as GenericCubitInstances
+    :rtype: list
+    '''
     instance_list = []
     body_ids= cubit.get_group_bodies(group_id)
     for body_id in body_ids:
@@ -1054,15 +1060,18 @@ def remove_overlaps_between_generic_cubit_instance_lists(from_list: list, tool_l
                     # i have given up on my python api dreams. we all return to cubit ccl in the end.
                     cubit.cmd(f"remove overlap volume {tool_volume.cid} {from_volume.cid} modify volume {from_volume.cid}")
 
-# maybe i should add this to main()
-with open(JSON_FILENAME) as jsonFile:
-    data = jsonFile.read()
-    objects = json.loads(data)
-universe = []
-for json_object in objects:
-    universe.append(json_object_reader(json_object=json_object))
+def read_file():
+    with open(JSON_FILENAME) as jsonFile:
+        data = jsonFile.read()
+        objects = json.loads(data)
+    universe = []
+    for json_object in objects:
+        universe.append(json_object_reader(json_object=json_object))
 
-if __name__ == "__main__":
+if __name__ == '__coreformcubit__':
+    read_file()
+elif __name__ == "__main__":
+    read_file()
     MaterialsTracker().organise_into_groups()
     cubit.cmd('export cubit "please_work.cub5')
     if args.printinfo:

@@ -1,3 +1,6 @@
 history*.jou
 step_import*.log
 cleanup_cubit.sh
+
+__pycache__
+docs/build
