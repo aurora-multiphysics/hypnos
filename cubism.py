@@ -132,7 +132,8 @@ class GenericComponentAssembly:
     * store components of the specified classnames in corresponding attributes, otherwise other_components
     * be able to fetch cubit instances of components stores in these attributes (get_cubit_instances)
     '''
-    def __init__(self, setup_classnames: list):
+    def __init__(self, classname, setup_classnames: list):
+        self.classname = classname
         # component_mapping defines what classes get stored in what attributes (other_components is default)
         self.other_components = []
         self.component_mapping = {"other": self.other_components}
@@ -240,7 +241,8 @@ class CreatedComponentAssembly(GenericComponentAssembly):
     * store components of the specified classnames in corresponding attributes, otherwise other_components
     * be able to fetch cubit instances of components stores in these attributes (get_cubit_instances)
     '''
-    def __init__(self, component_list: list, required_classnames: list, additional_classnames: list):
+    def __init__(self, classname, component_list: list, required_classnames: list, additional_classnames: list):
+        self.classname = classname
         # this defines what components to require in every instance
         self.required_classnames = required_classnames
 
@@ -292,7 +294,7 @@ class NeutronTestFacility(CreatedComponentAssembly):
     * Adds material interfaces to sidesets
     '''
     def __init__(self, morphology: str, component_list: list):
-        super().__init__(component_list, NEUTRON_TEST_FACILITY_REQUIREMENTS, NEUTRON_TEST_FACILITY_ADDITIONAL)
+        super().__init__("NTF", component_list, NEUTRON_TEST_FACILITY_REQUIREMENTS, NEUTRON_TEST_FACILITY_ADDITIONAL)
         # this defines what morphology will be enforced later
         self.morphology = morphology
         self.enforce_facility_morphology()
@@ -417,7 +419,7 @@ class NeutronTestFacility(CreatedComponentAssembly):
 class BlanketAssembly(CreatedComponentAssembly):
     '''Assembly class that requires at least one breeder and structure. Additionally stores coolants separately'''
     def __init__(self, component_list: list):
-        super().__init__(component_list, BLANKET_REQUIREMENTS, BLANKET_ADDITIONAL)
+        super().__init__("Blanket", component_list, BLANKET_REQUIREMENTS, BLANKET_ADDITIONAL)
 
 class RoomAssembly(CreatedComponentAssembly):
     '''Assembly class that requires surrounding walls and a blanket. Fills with air. Can add walls.'''
@@ -431,7 +433,7 @@ class RoomAssembly(CreatedComponentAssembly):
                 component_list.remove(json_component)
 
         # set up rest of components
-        super().__init__(component_list, ROOM_REQUIREMENTS, ROOM_ADDITIONAL)
+        super().__init__("Room", component_list, ROOM_REQUIREMENTS, ROOM_ADDITIONAL)
 
         self.setup_walls(json_walls)
 
@@ -949,7 +951,7 @@ class ExternalComponentAssembly(GenericComponentAssembly):
     - manufacturer
     '''
     def __init__(self, external_filepath: str, external_groupname: str, manufacturer: str):
-        super().__init__(setup_classnames= ["external"])
+        super().__init__(classname="ExternalAssembly", setup_classnames= ["external"])
         self.group = external_groupname
         self.filepath = external_filepath
         self.manufacturer = manufacturer
@@ -1172,6 +1174,29 @@ def remove_overlaps_between_generic_cubit_instance_lists(from_list: list, tool_l
                     # i have given up on my python api dreams. we all return to cubit ccl in the end.
                     cubit.cmd(f"remove overlap volume {tool_volume.cid} {from_volume.cid} modify volume {from_volume.cid}")
 
+class ComponentTracker:
+    counter = 0
+
+    def track_components_as_groups(self, root_component):
+        if isinstance(root_component, GenericComponentAssembly):
+            groupname = f"{root_component.classname}{self.counter}"
+            cubit.cmd(f'create group "{groupname}"')
+            self.counter += 1
+            for attribute in root_component.component_mapping.values():
+                for component in attribute:
+                    component_groupname = self.track_components_as_groups(component)
+                    if type(groupname) == str:
+                        cubit.cmd(f'group {groupname} add group {component_groupname}')
+            return groupname
+        elif isinstance(root_component, ComplexComponent):
+            groupname = f"{root_component.classname}{self.counter}"
+            cubit.cmd(f'create group "{groupname}"')
+            self.counter += 1
+            for geometry in root_component.subcomponents:
+                if isinstance(geometry, GenericCubitInstance):
+                    cubit.cmd(f'group {groupname} add {geometry.geometry_type} {geometry.cid}')
+            return groupname
+
 def read_file():
     with open(JSON_FILENAME) as jsonFile:
         data = jsonFile.read()
@@ -1179,6 +1204,8 @@ def read_file():
     universe = []
     for json_object in objects:
         universe.append(json_object_reader(json_object=json_object))
+    for component in universe:
+        ComponentTracker().track_components_as_groups(component)
 
 if __name__ == '__coreformcubit__':
     read_file()
