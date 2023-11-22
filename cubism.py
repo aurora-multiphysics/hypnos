@@ -16,10 +16,11 @@ if __name__ == "__main__":
 
     # File to look at
     JSON_FILENAME = args.file
-# if this is cubit, reset first
 elif __name__ == "__coreformcubit__":
+    # if this is cubit, reset first
     cubit.cmd("reset")
     JSON_FILENAME = "sample_morphology.json"
+# NEED TO SET UP JSON_FILENAME VARIABLE IF THIS IS USED IN ANY OTHER CONTEXT
 
 # components in assemblies to be generated
 NEUTRON_TEST_FACILITY_REQUIREMENTS = ["room", "source"]
@@ -301,6 +302,7 @@ class NeutronTestFacility(CreatedComponentAssembly):
         self.apply_facility_morphology()
         self.validate_rooms_and_fix_air()
         self.change_air_to_volumes()
+        self.check_for_overlaps()
         self.imprint_all()
         MaterialsTracker().merge_and_track_boundaries()
         self.merge_all()
@@ -345,7 +347,9 @@ class NeutronTestFacility(CreatedComponentAssembly):
         if self.morphology in ["inclusive", "overlap"]:
             # convert everything to volumes in case of stray bodies
             source_volumes = from_bodies_to_volumes(self.get_generic_cubit_instances_from_classname(["source", "external"]))
-            blanket_volumes = from_bodies_to_volumes(self.get_generic_cubit_instances_from_classname(["blanket", "breeder", "structure", "coolant"]))
+            blanket_volumes = []
+            for room in self.room_components:
+                blanket_volumes += from_bodies_to_volumes(room.get_generic_cubit_instances_from_classname(["blanket", "breeder", "structure", "coolant"]))
             # if there is an overlap, remove it
             for source_volume in source_volumes:
                 for blanket_volume in blanket_volumes:
@@ -354,6 +358,12 @@ class NeutronTestFacility(CreatedComponentAssembly):
                             # i have given up on my python api dreams. we all return to cubit ccl in the end.
                             cubit.cmd(f"remove overlap volume {source_volume.cid} {blanket_volume.cid} modify volume {blanket_volume.cid}")
             print(f"{self.morphology} morphology applied")
+
+    def check_for_overlaps(self):
+        volume_ids_list = [i.cid for i in from_bodies_to_volumes(self.get_all_generic_cubit_instances())]
+        overlaps = cubit.get_overlapping_volumes(volume_ids_list)
+        if overlaps != ():
+            raise CubismError(f"Here be overlaps: {overlaps}")
 
     def imprint_all(self):
         '''imprint all :)'''
@@ -1167,54 +1177,74 @@ def remove_overlaps_between_generic_cubit_instance_lists(from_list: list, tool_l
     '''Remove overlaps between cubit instances of two lists of components'''
     from_volumes = from_bodies_to_volumes(from_list)
     tool_volumes = from_bodies_to_volumes(tool_list)
+    # check each pair
     for from_volume in from_volumes:
         for tool_volume in tool_volumes:
+            # if there is an overlap, remove it
             if isinstance(from_volume, GenericCubitInstance) & isinstance(tool_volume, GenericCubitInstance):
                 if not (cubit.get_overlapping_volumes([from_volume.cid, tool_volume.cid]) == ()):
                     # i have given up on my python api dreams. we all return to cubit ccl in the end.
                     cubit.cmd(f"remove overlap volume {tool_volume.cid} {from_volume.cid} modify volume {from_volume.cid}")
 
 class ComponentTracker:
+    '''Adds components to cubit groups recursively'''
+    # this counter is to ensure every component is named uniquely
     counter = 0
 
     def track_components_as_groups(self, root_component):
+        # if this is an external assembly its volumes should already belong to a group, return that name
         if isinstance(root_component, ExternalComponentAssembly):
             return str(root_component.group)
+        # if this is an assembly, run this function on each component of every attribute
         elif isinstance(root_component, GenericComponentAssembly):
             groupname = f"{root_component.classname}{self.counter}"
             cubit.cmd(f'create group "{groupname}"')
             self.counter += 1
             for attribute in root_component.component_mapping.values():
                 for component in attribute:
+                    # need this function to return the group name it adds components to
                     component_groupname = self.track_components_as_groups(component)
                     if type(groupname) == str:
                         cubit.cmd(f'group {groupname} add group {component_groupname}')
+            # pass up group name
             return groupname
+        # if this is a complex component, add volumes to group
         elif isinstance(root_component, ComplexComponent):
             groupname = f"{root_component.classname}{self.counter}"
             cubit.cmd(f'create group "{groupname}"')
             self.counter += 1
             for geometry in root_component.subcomponents:
                 if isinstance(geometry, GenericCubitInstance):
-                    cubit.cmd(f'group {groupname} add {geometry.geometry_type} {geometry.cid}')
+                    cubit.cmd(f'group {groupname} add {geometry.geometry_type} {geometry.cid}')#
+            # pass up group name
             return groupname
 
 def read_file():
+    '''Read in json file, construct all specified components
+
+    :return: list of all top-level components
+    :rtype: list
+    '''
     with open(JSON_FILENAME) as jsonFile:
         data = jsonFile.read()
         objects = json.loads(data)
     universe = []
     for json_object in objects:
         universe.append(json_object_reader(json_object=json_object))
-    for component in universe:
-        ComponentTracker().track_components_as_groups(component)
+    return universe
 
 if __name__ == '__coreformcubit__':
     read_file()
 elif __name__ == "__main__":
-    read_file()
+    universe = read_file()
+    # track all components as groups
+    for component in universe:
+        root_name = ComponentTracker().track_components_as_groups(component)
+        print(f"components being tracked in root {root_name}")
+    # track all materials and boundaries as groups
     MaterialsTracker().organise_into_groups()
     cubit.cmd('export cubit "please_work.cub5')
+    # print this information if cli flag used
     if args.printinfo:
         MaterialsTracker().print_info()
     pass
