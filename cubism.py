@@ -1178,7 +1178,9 @@ class ComponentTracker:
     counter = 0
 
     def track_components_as_groups(self, root_component):
-        if isinstance(root_component, GenericComponentAssembly):
+        if isinstance(root_component, ExternalComponentAssembly):
+            return str(root_component.group)
+        elif isinstance(root_component, GenericComponentAssembly):
             groupname = f"{root_component.classname}{self.counter}"
             cubit.cmd(f'create group "{groupname}"')
             self.counter += 1

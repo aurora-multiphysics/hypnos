@@ -6,7 +6,7 @@
             {
                 "class" : "source",
                 "filepath": "./dummy_source.stp",
-                "group": "source",
+                "group": "neutron_source",
                 "manufacturer": "blobcorp",
                 "geometry": {
                     "dimensions": [20, 3, 3],
