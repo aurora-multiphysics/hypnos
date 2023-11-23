@@ -790,7 +790,7 @@ class ComplexComponent:
                     self.subcomponents.append(subcomponents)
 
     def make_geometry(self):
-        '''create geometry in cubit. if the class is a blob, make a blob. if the class is a room, make a room. otherwise break.'''
+        '''create geometry in cubit. if the class is a blob or walls, make those. otherwise break.'''
         if self.classname in BLOB_CLASSES:
             self.add_to_subcomponents(self.__create_cubit_blob(self.geometry))
         elif self.classname in ROOM_CLASSES:
@@ -899,7 +899,7 @@ class ComplexComponent:
             self.complexComponentMaterials.stop_tracking_in_material(subcomponent, self.material)
 
     def as_bodies(self):
-        '''convert subcomponents to references to their owning bodies'''
+        '''convert subcomponent references to references to their owning bodies'''
         owning_bodies = from_everything_to_bodies(self.subcomponents)
         self.update_reference_and_tracking(owning_bodies)
     
