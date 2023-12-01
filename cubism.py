@@ -38,9 +38,31 @@ WALL_CLASSES = ["wall"]
 # currently only supports exclusive, inclusive, and overlap
 FACILITY_MORPHOLOGIES= ["exclusive", "inclusive", "overlap", "wall"]
 
+# mapping from json class names to python class names
+CLASS_MAPPING = {
+    "complex": "ComplexComponent",
+    "external": "ExternalComponentAssembly",
+    "source": "SourceAssembly",
+    "neutron test facility": "NeutronTestFacility",
+    "blanket": "BlanketAssembly",
+    "room": "RoomAssembly",
+    "surrounding_walls": "SurroundingWallsComponent",
+    "breeder": "BreederComponent",
+    "structure": "StructureComponent"
+}
+
 # raise this when bad things happen
 class CubismError(Exception):
     pass
+
+def get_constructor_from_name(classname: str):
+    '''Get component constructor using it's json class name
+
+    :param classname: json class name
+    :type classname: str
+    :return: constructor for component
+    '''
+    return globals()[CLASS_MAPPING[classname]]
 
 # map classnames to instances - there should be a better way to do this?
 def json_object_reader(json_object: dict):
@@ -51,50 +73,51 @@ def json_object_reader(json_object: dict):
     :return: Instance of a native class, chosen according to the 'class' value provided
     :rtype: various native classes
     '''
+    constructor = get_constructor_from_name(json_object["class"])
     if json_object["class"] == "complex":
-        return ComplexComponent(
+        return constructor(
             geometry = json_object["geometry"],
             classname = "complex",
             material = json_object["material"]
         )
     elif json_object["class"] == "external":
-        return ExternalComponentAssembly(
+        return constructor(
             external_filepath= json_object["filepath"],
             external_groupname= json_object["group"],
             manufacturer = json_object["manufacturer"],
         )
     elif json_object["class"] == "source":
-        return SourceAssembly(
+        return constructor(
             external_filepath= json_object["filepath"],
             external_groupname= json_object["group"],
             manufacturer = json_object["manufacturer"],
         )
     elif json_object["class"] == "neutron test facility":
-        return NeutronTestFacility(
+        return constructor(
             morphology= json_object["morphology"],
             component_list= list(json_object["components"])
         )
     elif json_object["class"] == "blanket":
-        return BlanketAssembly(
+        return constructor(
             component_list= json_object["components"]
         )
     elif json_object["class"] == "room":
-        return RoomAssembly(
+        return constructor(
             component_list= json_object["components"]
         )
     elif json_object["class"] == "surrounding_walls":
-        return SurroundingWallsComponent(
+        return constructor(
             geometry= json_object["geometry"],
             material= json_object["material"],
             air= json_object["air"]
         )
     elif json_object["class"] == "breeder":
-        return BreederComponent(
+        return constructor(
             geometry= json_object["geometry"],
             material= json_object["material"]
         )
     elif json_object["class"] == "structure":
-        return StructureComponent(
+        return constructor(
             geometry= json_object["geometry"],
             material= json_object["material"]
         )
@@ -343,7 +366,7 @@ class NeutronTestFacility(CreatedComponentAssembly):
             print(f"{self.morphology} morphology enforced")
 
     def apply_facility_morphology(self):
-        '''If the morphology is inclusive/overlap, apply it'''
+        '''If the morphology is inclusive/overlap, remove the parts of the blanket inside the neutron source'''
         if self.morphology in ["inclusive", "overlap"]:
             # convert everything to volumes in case of stray bodies
             source_volumes = from_bodies_to_volumes(self.get_generic_cubit_instances_from_classname(["source", "external"]))
@@ -412,7 +435,7 @@ class NeutronTestFacility(CreatedComponentAssembly):
             for surrounding_walls in room.surrounding_walls_components:
                 if isinstance(surrounding_walls, SurroundingWallsComponent):
                     if surrounding_walls.is_air():
-                        for air in surrounding_walls.air.subcomponents:
+                        for air in surrounding_walls.get_air_subcomponents():
                             all_geometries_copy = all_geometries.copy_cubit_instance()
                             cubit.cmd(f'subtract {all_geometries_copy.geometry_type} {all_geometries_copy.cid} from {air.geometry_type} {air.cid}')
         # cleanup
@@ -907,6 +930,9 @@ class ComplexComponent:
         '''convert any references to bodies in the subcomponents to references to their composing volumes'''
         self.update_reference_and_tracking(from_bodies_to_volumes(self.subcomponents))
 
+    def get_subcomponents(self):
+        return self.subcomponents
+
 class SurroundingWallsComponent(ComplexComponent):
     '''Surrounding walls, filled with air'''
     def __init__(self, geometry: dict, material, air):
@@ -924,6 +950,9 @@ class SurroundingWallsComponent(ComplexComponent):
         '''reference air as volume entities instead of body entities'''
         if self.is_air():
             self.air.as_volumes()
+    
+    def get_air_subcomponents(self):
+        return self.air.get_subcomponents()
 
 class AirComponent(ComplexComponent):
     '''Air, stored as body'''
