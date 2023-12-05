@@ -176,6 +176,19 @@ class GenericComponentAssembly:
         volumes_list = from_bodies_to_volumes(self.get_all_generic_cubit_instances)
         return [volume.cid for volume in volumes_list]
 
+    def get_all_components(self) -> list:
+        '''Return all components stored in this assembly at the top-level
+
+        :return: List of all components
+        :rtype: list
+        '''
+        component_list = []
+        for attribute in self.component_mapping.values():
+            for component in attribute:
+                component_list.append(component)
+        return component_list
+
+
 class CreatedComponentAssembly(GenericComponentAssembly):
     '''
     Assembly to handle components created natively. Takes a list of required and additional classnames to set up a specific assembly:

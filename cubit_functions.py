@@ -129,3 +129,5 @@ def from_everything_to_bodies(component_list: list):
                 if owning_body_id not in [i.cid for i in bodies_list]:
                     bodies_list.append(GenericCubitInstance(owning_body_id, "body"))
     return bodies_list
+
+# unionise is in Assemblies.py as it needs to know about the ComplexComponent and Assembly classes

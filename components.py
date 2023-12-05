@@ -1,6 +1,6 @@
 from constants import *
 from generic_classes import *
-from tracking import MaterialsTracker
+from materials import MaterialsTracker
 from cubit_functions import from_bodies_to_volumes, from_everything_to_bodies
 
 class ExternalComponent(GenericCubitInstance):
@@ -152,7 +152,6 @@ class ComplexComponent:
 
     def get_subcomponents(self):
         return self.subcomponents
-
 
 class SurroundingWallsComponent(ComplexComponent):
     '''Surrounding walls, filled with air'''
