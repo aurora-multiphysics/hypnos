@@ -8,7 +8,7 @@ class GenericCubitInstance:
     '''
     Wrapper for cubit geometry entity.
     Can access cubit ID (cid), geometry type, and cubit handle (cubitInstance).
-    Can destroy cubit instance. Can copy itself (and thus also the cubit instance it refers to). Can update this to refer to a different cubit instance.
+    Can destroy cubit instance. Can copy itself. Can update an instance to refer to a different cubit instance.
     '''
     def __init__(self, cid: int, geometry_type: str) -> None:
         self.cid = cid

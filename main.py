@@ -45,7 +45,7 @@ class ComponentTracker:
         # if this is an assembly, run this function on each of its components
         elif isinstance(root_component, GenericComponentAssembly):
             groupname = self.__make_group_name(root_component.classname)
-            for component in root_component.get_all_components():
+            for component in root_component.get_components():
                 self.__add_to_group(groupname, self.__track_components_as_groups(component))
         # if this is a complex component, add volumes to group
         elif isinstance(root_component, ComplexComponent):
@@ -65,7 +65,7 @@ class ComponentTracker:
         :rtype: str
         '''
         groupname = f"{classname}{self.counter}"
-        cubit.cmd(f'create group {groupname}')
+        cubit.cmd(f'create group "{groupname}"')
         self.counter += 1
         return groupname
     
