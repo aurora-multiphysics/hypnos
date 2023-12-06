@@ -8,7 +8,7 @@ class Material:
     def __init__(self, name: str, group_id: int) -> None:
         self.name = name
         self.group_id = group_id
-        # only stores GenericCubitInstances, i would make this a private member if i could :(
+        # should only store GenericCubitInstances
         self.geometries = []
         # currently does nothing
         self.state_of_matter = ""
@@ -123,42 +123,13 @@ class MaterialsTracker:
     def merge_and_track_boundaries(self):
         '''tries to merge every possible pair of materials, and tracks the resultant material boundaries (if any exist).'''
         pair_list = self.sort_materials_into_pairs()
-        # to check if merging has actually happened 
-        last_tracked_group = cubit.get_last_id("group")
-
-        # try to merge volumes in each group (ie intra-group merge)
+        #intra-group merge
         for material in self.materials:
-            group_name = str(material.name) + "_" + str(material.name)
-            cubit.cmd(f"merge group {material.group_id} with group {material.group_id} group_results")
-            group_id = cubit.get_last_id("group")
-
-            if not (group_id == last_tracked_group):
-                cubit.cmd(f'group {group_id} rename "{group_name}"')
-                self.boundaries.append(Material(group_name, group_id))
-                group_surface_ids = cubit.get_group_surfaces(group_id)
-                for group_surface_id in group_surface_ids:
-                    self.add_geometry_to_boundary(GenericCubitInstance(group_surface_id, "surface"), group_name)
-                # update last tracked group
-                last_tracked_group = group_id
+            self.__merge_and_track_between(material, material)
 
         #try to merge volumes in every pair of materials
-        for (Material1, Material2) in pair_list:
-            group_id_1 = Material1.group_id
-            group_id_2 = Material2.group_id
-            group_name = str(Material1.name) + "_" + str(Material2.name)
-            cubit.cmd(f"merge group {group_id_1} with group {group_id_2} group_results")
-            group_id = cubit.get_last_id("group")
-
-            # if a new group is created, track the material boundary it corresponds to
-            if not (group_id == last_tracked_group):
-                cubit.cmd(f'group {group_id} rename "{group_name}"')
-                # track internally
-                self.boundaries.append(Material(group_name, group_id))
-                group_surface_ids = cubit.get_group_surfaces(group_id)
-                for group_surface_id in group_surface_ids:
-                    self.add_geometry_to_boundary(GenericCubitInstance(group_surface_id, "surface"), group_name)
-                    # update last tracked group
-                last_tracked_group = group_id
+        for (material1, material2) in pair_list:
+            self.__merge_and_track_between(material1, material2)
         
         # track material-air boundaries
 
@@ -183,6 +154,27 @@ class MaterialsTracker:
                     
         cubit.cmd(f'delete group {unmerged_group_id}')
 
+    def __merge_and_track_between(self, material1: Material, material2: Material):
+        group_id_1 = material1.group_id
+        group_id_2 = material2.group_id
+        group_name = str(material1.name) + "_" + str(material2.name)
+
+        # is new group created when trying to merge?
+        last_tracked_group = cubit.get_last_id("group")
+        cubit.cmd(f"merge group {group_id_1} with group {group_id_2} group_results")
+        group_id = cubit.get_last_id("group")
+
+        # if a new group is created, track the material boundary it corresponds to
+        if not (group_id == last_tracked_group):
+            cubit.cmd(f'group {group_id} rename "{group_name}"')
+            self.__track_as_boundary(group_name, group_id)
+
+    def __track_as_boundary(self, group_name: str, group_id: int):
+        self.boundaries.append(Material(group_name, group_id))
+        group_surface_ids = cubit.get_group_surfaces(group_id)
+        for group_surface_id in group_surface_ids:
+            self.add_geometry_to_boundary(GenericCubitInstance(group_surface_id, "surface"), group_name)
+    
     def organise_into_groups(self):
         '''create groups for material groups and boundary groups in cubit'''
 

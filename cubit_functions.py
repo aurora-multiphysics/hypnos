@@ -7,29 +7,12 @@ def delete_instances(component_list: list):
         if isinstance(component, GenericCubitInstance):
             component.destroy_cubit_instance()
 
-def delete_instances_of_same_type(component_list: list):
-    '''similar to delete_instances. fails if all items in list aren't cubit instances or are of different geometry types'''
-    if isinstance(component_list[0], GenericCubitInstance):
-        component_type = component_list[0].geometry_type
-        instances_to_delete = ""
-        for component in component_list:
-            if (isinstance(component, GenericCubitInstance)):
-                if component.geometry_type == component_type:
-                    instances_to_delete += " " + str(component.cid)
-                else:
-                    raise CubismError("All components aren't of the same type")
-            else:
-                raise CubismError("All components aren't cubit instances")
-    else:
-        raise CubismError("First element is not a cubit instance!")
-    cubit.cmd(f"delete {component_type}{instances_to_delete}")
-
 def copy_instances(component_list: list):
-    '''Returns a list of copied CreatedCubitInstance objects'''
+    '''Returns a list of copied GenericCubitInstances'''
     copied_list = []
     for component in component_list:
         if isinstance(component, GenericCubitInstance):
-            copied_list.append(component.copy())
+            copied_list.append(component.copy_cubit_instance())
         else:
             raise CubismError("All components are not instances :(")
 

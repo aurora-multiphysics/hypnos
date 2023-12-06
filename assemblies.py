@@ -86,7 +86,7 @@ class GenericComponentAssembly:
         self.components = []
 
     # These refer to cubit handles
-    def get_cubit_instances_from_class(self, class_list: list):
+    def get_cubit_instances_from_class(self, class_list: list) -> list:
         '''Get list of cubit instances of specified classnames
 
         :param classname_list: list of classnames to search in
@@ -125,7 +125,7 @@ class GenericComponentAssembly:
         return instances_list
 
     # These refer to GenericCubitInstance objects
-    def get_generic_cubit_instances_from(self, class_list: list) -> list:
+    def get_generic_cubit_instances_from(self, class_list: list) -> list[GenericCubitInstance]:
         '''Get list of geometries under given classnames
 
         :param classname_list: list of classnames to search under
@@ -145,7 +145,7 @@ class GenericComponentAssembly:
                         component_list += component.get_generic_cubit_instances_from(class_list)
         return component_list
     
-    def get_all_generic_cubit_instances(self) -> list:
+    def get_all_generic_cubit_instances(self) -> list[GenericCubitInstance]:
         '''get every geometry stored in this assembly instance recursively
 
         :return: list of GenericCubitInstances
@@ -161,7 +161,7 @@ class GenericComponentAssembly:
                 instances_list += component.get_all_generic_cubit_instances()
         return instances_list
 
-    def get_volumes_list(self) -> list:
+    def get_volumes_list(self) -> list[int]:
         volumes_list = from_bodies_to_volumes(self.get_all_generic_cubit_instances)
         return [volume.cid for volume in volumes_list]
 
@@ -173,7 +173,7 @@ class GenericComponentAssembly:
         '''
         return self.components
 
-    def get_components_of_class(self, class_list: list) ->list:
+    def get_components_of_class(self, class_list: list) -> list:
         '''Find components of given classes recursively
 
         :param class_list: List of classes to search for
@@ -336,10 +336,10 @@ class NeutronTestFacility(CreatedComponentAssembly):
         for room in self.get_components_of_class(RoomAssembly):
             # get all air (it is set up to be overlapping with the surrounding walls at this stage)
             for surrounding_walls in room.get_components_of_class(SurroundingWallsComponent):
-                room_bounding_boxes += surrounding_walls.air.subcomponents
+                room_bounding_boxes += surrounding_walls.get_air_subcomponents()
             # walls are set up to be subtracted from air on creation so need to add them in manually
             for walls in room.get_components_of_class(WallComponent):
-                room_bounding_boxes += walls.subcomponents
+                room_bounding_boxes += walls.get_subcomponents()
         
         # get a union defining the 'bounding boxes' for all rooms, and a union of every geometry in the facility. 
         # as well as the union of those two unions
@@ -430,9 +430,9 @@ class ExternalComponentAssembly(GenericComponentAssembly):
 
     def import_file(self):
         '''Import file at specified filepath and add to specified group name'''
-        # cubit imports bodies instead of volumes. why. please.
+        # cubit imports bodies instead of volumes. why.
 
-        # this imports the bodies in a temporary group
+        # import the bodies in a temporary group
         temp_group_name = str(self.group) + "_temp"
         print(f'import "{self.filepath}" heal group "{temp_group_name}"')
         cubit.cmd(f'import "{self.filepath}" heal group "{temp_group_name}"')
@@ -440,13 +440,11 @@ class ExternalComponentAssembly(GenericComponentAssembly):
 
         # convert everything to volumes
         volumes_list = from_bodies_to_volumes(get_bodies_and_volumes_from_group(temp_group_id))
-
-        # add volumes to actual group
         for volume in volumes_list:
             cubit.cmd(f'group "{self.group}" add {volume.geometry_type} {volume.cid}')
         print(f"volumes imported in group {self.group}")
 
-        # this is what you deserve
+        # cleanup
         cubit.cmd(f"delete group {temp_group_id}")
 
     def get_group_id(self):
