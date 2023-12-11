@@ -1,7 +1,7 @@
 history*.jou
 step_import*.log
 cleanup_cubit.sh
-*.kra
+*.kra*
 
 __pycache__
 docs/build

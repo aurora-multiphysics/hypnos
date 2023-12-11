@@ -1,5 +1,21 @@
 from generic_classes import *
 
+def cubit_cmd_check(cmd: str, geometry_type: str):
+    pre_id = cubit.get_last_id(geometry_type)
+    cubit.cmd(cmd)
+    post_id = cubit.get_last_id(geometry_type)
+    if pre_id == post_id:
+        return False
+    else:
+        return GenericCubitInstance(post_id, geometry_type)
+
+def create_2d_vertex(x, y):
+    vertex = cubit_cmd_check(f"create vertex {x} {y} 0", "vertex")
+    if vertex:
+        return vertex
+    else:
+        raise CubismError("Failed to create vertex")
+
 # functions to delete and copy lists of GenericCubitInstances
 def delete_instances(component_list: list):
     '''Deletes cubit instances of all GenericCubitInstance objects in list'''

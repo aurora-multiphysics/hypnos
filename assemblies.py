@@ -469,6 +469,10 @@ class SourceAssembly(ExternalComponentAssembly):
     def __init__(self, external_filepath: str, external_groupname: str, manufacturer: str):
         super().__init__(external_filepath, external_groupname, manufacturer)
 
+class BreederPinAssembly(CreatedComponentAssembly):
+    def __init__(self, component_list: list):
+        super().__init__("breeder pin", component_list, ["pin"])
+
 def get_all_geometries_from_components(component_list):
     instances = []
     for component in component_list:

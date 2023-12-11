@@ -1,7 +1,7 @@
 from constants import *
 from generic_classes import *
 from materials import MaterialsTracker
-from cubit_functions import from_bodies_to_volumes, from_everything_to_bodies
+from cubit_functions import from_bodies_to_volumes, from_everything_to_bodies, cubit_cmd_check
 
 class ExternalComponent(GenericCubitInstance):
     def __init__(self, cid: int, geometry_type: str) -> None:
@@ -164,29 +164,42 @@ class WallComponent(ComplexComponent):
         cubit.cmd(f"create cylinder height {thickness} radius {hole_radius}")
         subtract_vol = GenericCubitInstance(cubit.get_last_id("volume"), "volume")
 
-        # depending on what plane the wall needs to be in, create wall + make hole at right place + move wall
+        # depending on what plane the wall needs to be in, create wall + make hole at right place
         if plane == "x":
             cubit.brick(thickness, wall_dims[1], wall_dims[2])
             wall = GenericCubitInstance(cubit.get_last_id("volume"), "volume")
             cubit.cmd(f"rotate volume {subtract_vol.cid} angle 90 about Y")
             cubit.cmd(f"move volume {subtract_vol.cid} y {hole_pos[1]} z {hole_pos[0]}")
-            cubit.cmd(f"subtract volume {subtract_vol.cid} from volume {wall.cid}")
-            cubit.cmd(f"move volume {wall.cid} x {pos}")
         elif plane == "y":
             cubit.brick( wall_dims[0], thickness, wall_dims[2])
             wall = GenericCubitInstance(cubit.get_last_id("volume"), "volume")
             cubit.cmd(f"rotate volume {subtract_vol.cid} angle 90 about X")
             cubit.cmd(f"move volume {subtract_vol.cid} x {hole_pos[0]} z {hole_pos[1]}")
-            cubit.cmd(f"subtract volume {subtract_vol.cid} from volume {wall.cid}")
-            cubit.cmd(f"move volume {wall.cid} y {pos}")
         elif plane == "z":
             cubit.brick( wall_dims[0], wall_dims[1], thickness)
             wall = GenericCubitInstance(cubit.get_last_id("volume"), "volume")
             cubit.cmd(f"move volume {subtract_vol.cid} x {hole_pos[0]} y {hole_pos[1]}")
-            cubit.cmd(f"subtract volume {subtract_vol.cid} from volume {wall.cid}")
-            cubit.cmd(f"move volume {wall.cid} z {pos}")
         else:
             raise CubismError("unrecognised plane specified")
         
+        cubit.cmd(f"subtract volume {subtract_vol.cid} from volume {wall.cid}")
+        # move wall
+        cubit.cmd(f"move volume {wall.cid} {plane} {pos}")
+        
         return GenericCubitInstance(wall.cid, wall.geometry_type)            
+
+class PinComponent(ComplexComponent):
+    def __init__(self, geometry, material):
+        super().__init__(geometry, "pin", material)
     
+    def make_geometry(self):
+        geometry = self.geometry
+        outer_length = geometry["outer length"]
+        inner_length = geometry["inner length"]
+        offset = geometry["offset"]
+        bluntness = geometry["bluntness"]
+        coolant_inlet_radius = geometry["coolant inlet radius"]
+        inner_cladding = geometry["inner cladding"]
+        breeder_chamber_thickness = geometry["breeder chamber thickness"]
+        outer_cladding = geometry["outer cladding"]
+
