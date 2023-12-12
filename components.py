@@ -2,6 +2,9 @@ from constants import *
 from generic_classes import *
 from materials import MaterialsTracker
 from cubit_functions import from_bodies_to_volumes, from_everything_to_bodies, cubit_cmd_check
+from geometry import connect_vertices_straight, connect_curves_tangentially
+import numpy as np
+from geometry import Vertex2D
 
 class ExternalComponent(GenericCubitInstance):
     def __init__(self, cid: int, geometry_type: str) -> None:
@@ -203,3 +206,44 @@ class PinComponent(ComplexComponent):
         breeder_chamber_thickness = geometry["breeder chamber thickness"]
         outer_cladding = geometry["outer cladding"]
 
+        net_thickness = inner_cladding + breeder_chamber_thickness + outer_cladding
+        slope_angle = np.arctan(net_thickness / offset)
+        pin_vertices = list(np.zeros(12))
+
+        pin_vertices[1] = Vertex2D(0)
+        pin_vertices[0] = Vertex2D(0, inner_cladding)
+
+        inner_cladding_ref1 = Vertex2D(-inner_length)
+        pin_vertices[2] = inner_cladding_ref1 + Vertex2D(bluntness)
+        pin_vertices[3] = inner_cladding_ref1 + Vertex2D(bluntness).rotate(slope_angle)
+
+        outer_cladding_ref1 = inner_cladding_ref1 + Vertex2D(offset, net_thickness)
+        pin_vertices[4] = outer_cladding_ref1 + Vertex2D(bluntness).rotate(slope_angle-2*np.pi)
+        pin_vertices[5] = outer_cladding_ref1 + Vertex2D(bluntness)
+
+        pin_vertices[6] = outer_cladding_ref1 + Vertex2D(outer_length)
+        pin_vertices[7] = outer_cladding_ref1 + Vertex2D(outer_length, -outer_cladding)
+
+        outer_cladding_ref2 = outer_cladding_ref1 + Vertex2D(outer_cladding * np.tan(slope_angle/2), -outer_cladding)
+        pin_vertices[8] = outer_cladding_ref2 + Vertex2D(bluntness)
+        pin_vertices[9] = outer_cladding_ref2 + Vertex2D(bluntness).rotate(slope_angle-2*np.pi)
+
+        inner_cladding_ref2 = inner_cladding_ref1 + Vertex2D(inner_cladding/np.tan(slope_angle) + outer_cladding/np.sin(slope_angle), inner_cladding)
+        pin_vertices[10] = inner_cladding_ref2 + Vertex2D(bluntness).rotate(slope_angle)
+        pin_vertices[11] = inner_cladding_ref2 + Vertex2D(bluntness)
+
+        pin_vertices = [vertex.create() for vertex in pin_vertices]
+
+        pin_curves = list(np.zeros(12))
+        for i in range(11):
+            if i == 2 or i == 4:
+                pin_curves[i] = connect_curves_tangentially(pin_vertices[i], pin_vertices[i+1])
+            else:
+                pin_curves[i] = connect_vertices_straight(pin_vertices[i], pin_vertices[i+1])
+        pin_curves[11] = connect_vertices_straight(pin_vertices[11], pin_vertices[0])
+        
+        pin_curve_string = ""
+        for curve in pin_curves:
+            pin_curve_string = pin_curve_string + f"{curve.cid} "
+        
+        surface_to_sweep = cubit_cmd_check(f"create surface curve {pin_curve_string}", "surface")

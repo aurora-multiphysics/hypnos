@@ -69,6 +69,15 @@ def json_object_reader(json_object: dict):
             geometry= json_object["geometry"],
             material= json_object["material"]
         )
+    elif json_object["class"] == "breeder pin":
+        return constructor(
+            component_list= json_object["components"]
+        )
+    elif json_object["class"] == "pin":
+        return constructor(
+            geometry = json_object["geometry"],
+            material = json_object["material"]
+        )
 
 # generic collection of components
 class GenericComponentAssembly:
@@ -191,7 +200,6 @@ class GenericComponentAssembly:
                 if isinstance(component, GenericComponentAssembly):
                     component_list += component.get_components_of_class(class_list)
         return component_list
-
 
 class CreatedComponentAssembly(GenericComponentAssembly):
     '''

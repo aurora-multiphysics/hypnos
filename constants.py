@@ -24,5 +24,7 @@ CLASS_MAPPING = {
     "room": "RoomAssembly",
     "surrounding_walls": "SurroundingWallsComponent",
     "breeder": "BreederComponent",
-    "structure": "StructureComponent"
+    "structure": "StructureComponent",
+    "breeder pin": "BreederPinAssembly",
+    "pin": "PinComponent"
 }

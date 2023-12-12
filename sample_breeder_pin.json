@@ -1,0 +1,19 @@
+[{
+    "class": "breeder pin",
+    "components": [
+        {
+            "class": "pin",
+            "material": "Steel",
+            "geometry": {
+                "outer length": 400,
+                "inner length": 500,
+                "offset": 30,
+                "bluntness": 5,
+                "inner cladding": 6,
+                "outer cladding": 3,
+                "breeder chamber thickness": 16,
+                "coolant inlet radius": 8
+            }
+        }
+    ]
+}]
