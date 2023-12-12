@@ -21,7 +21,7 @@ class ComplexComponent:
         self.classname = classname
         self.geometry = geometry
         self.material = material
-        self.make_geometry()
+        self.add_to_subcomponents(self.make_geometry())
         # add geometries to material tracker
         for subcomponent in self.subcomponents:
             self.complexComponentMaterials.add_geometry_to_material(subcomponent, self.material)
@@ -38,7 +38,7 @@ class ComplexComponent:
     def make_geometry(self):
         '''create geometry in cubit. if the class is a blob or walls, make those. otherwise break.'''
         if self.classname in BLOB_CLASSES:
-            self.add_to_subcomponents(self.__create_cubit_blob(self.geometry))
+            return self.__create_cubit_blob(self.geometry)
         else:
             raise CubismError("Wrong class name somewhere?: " + self.classname)
 
@@ -218,7 +218,7 @@ class PinComponent(ComplexComponent):
         pin_vertices[3] = inner_cladding_ref1 + Vertex2D(bluntness).rotate(slope_angle)
 
         outer_cladding_ref1 = inner_cladding_ref1 + Vertex2D(offset, net_thickness)
-        pin_vertices[4] = outer_cladding_ref1 + Vertex2D(bluntness).rotate(slope_angle-2*np.pi)
+        pin_vertices[4] = outer_cladding_ref1 + Vertex2D(bluntness).rotate(slope_angle-np.pi)
         pin_vertices[5] = outer_cladding_ref1 + Vertex2D(bluntness)
 
         pin_vertices[6] = outer_cladding_ref1 + Vertex2D(outer_length)
@@ -226,7 +226,7 @@ class PinComponent(ComplexComponent):
 
         outer_cladding_ref2 = outer_cladding_ref1 + Vertex2D(outer_cladding * np.tan(slope_angle/2), -outer_cladding)
         pin_vertices[8] = outer_cladding_ref2 + Vertex2D(bluntness)
-        pin_vertices[9] = outer_cladding_ref2 + Vertex2D(bluntness).rotate(slope_angle-2*np.pi)
+        pin_vertices[9] = outer_cladding_ref2 + Vertex2D(bluntness).rotate(slope_angle-np.pi)
 
         inner_cladding_ref2 = inner_cladding_ref1 + Vertex2D(inner_cladding/np.tan(slope_angle) + outer_cladding/np.sin(slope_angle), inner_cladding)
         pin_vertices[10] = inner_cladding_ref2 + Vertex2D(bluntness).rotate(slope_angle)
@@ -236,14 +236,18 @@ class PinComponent(ComplexComponent):
 
         pin_curves = list(np.zeros(12))
         for i in range(11):
-            if i == 2 or i == 4:
-                pin_curves[i] = connect_curves_tangentially(pin_vertices[i], pin_vertices[i+1])
-            else:
+            if not i in [2, 4, 8, 10]:
                 pin_curves[i] = connect_vertices_straight(pin_vertices[i], pin_vertices[i+1])
+
         pin_curves[11] = connect_vertices_straight(pin_vertices[11], pin_vertices[0])
+        for i in [2, 4, 8, 10]:
+            pin_curves[i] = connect_curves_tangentially(pin_vertices[i], pin_vertices[i+1])
         
         pin_curve_string = ""
         for curve in pin_curves:
             pin_curve_string = pin_curve_string + f"{curve.cid} "
         
         surface_to_sweep = cubit_cmd_check(f"create surface curve {pin_curve_string}", "surface")
+        cubit.cmd(f"sweep surface {surface_to_sweep.cid} axis 0 {-coolant_inlet_radius} 0 1 0 0 angle 360")
+        pin_id = cubit.get_last_id("volume")
+        return GenericCubitInstance(pin_id, "volume")

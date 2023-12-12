@@ -479,7 +479,7 @@ class SourceAssembly(ExternalComponentAssembly):
 
 class BreederPinAssembly(CreatedComponentAssembly):
     def __init__(self, component_list: list):
-        super().__init__("breeder pin", component_list, ["pin"])
+        super().__init__("breeder_pin", component_list, ["pin"])
 
 def get_all_geometries_from_components(component_list):
     instances = []
