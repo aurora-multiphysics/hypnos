@@ -1,5 +1,5 @@
 from generic_classes import *
-from cubit_functions import from_bodies_and_volumes_to_surfaces, from_bodies_to_volumes
+from cubit_functions import from_bodies_and_volumes_to_surfaces, from_bodies_to_volumes, cubit_cmd_check
 
 # Classes to track materials and geometries made of those materials
 class Material:
@@ -141,8 +141,7 @@ class MaterialsTracker:
         for material in self.materials:
             # setup group and tracking for interface with air
             boundary_name = material.name + "_air"
-            cubit.cmd(f'create group "{boundary_name}"')
-            boundary_id = cubit.get_last_id("group")
+            boundary_id = cubit_cmd_check(f'create group "{boundary_name}"', "group")
             self.boundaries.append(Material(boundary_name, boundary_id))
             # look at every surface of this material
             material_surface_ids = material.get_surface_ids()
@@ -160,12 +159,10 @@ class MaterialsTracker:
         group_name = str(material1.name) + "_" + str(material2.name)
 
         # is new group created when trying to merge?
-        last_tracked_group = cubit.get_last_id("group")
-        cubit.cmd(f"merge group {group_id_1} with group {group_id_2} group_results")
-        group_id = cubit.get_last_id("group")
+        group_id = cubit_cmd_check(f"merge group {group_id_1} with group {group_id_2} group_results", "group")
 
         # if a new group is created, track the material boundary it corresponds to
-        if not (group_id == last_tracked_group):
+        if group_id:
             cubit.cmd(f'group {group_id} rename "{group_name}"')
             self.__track_as_boundary(group_name, group_id)
 

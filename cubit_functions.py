@@ -1,13 +1,23 @@
 from generic_classes import *
 
-def cubit_cmd_check(cmd: str, geometry_type: str):
-    pre_id = cubit.get_last_id(geometry_type)
+def cubit_cmd_check(cmd: str, id_type: str):
+    '''Perform cubit command and check whether a new entity has been created
+
+    :param cmd: command to run
+    :type cmd: str
+    :param id_type: type of entity to check for
+    :type id_type: str
+    :return: id of new entity/ false
+    :rtype: int/ bool
+    '''
+    pre_id = cubit.get_last_id(id_type)
     cubit.cmd(cmd)
-    post_id = cubit.get_last_id(geometry_type)
+    post_id = cubit.get_last_id(id_type)
     if pre_id == post_id:
+        # material tracking function depends on this btw
         return False
     else:
-        return GenericCubitInstance(post_id, geometry_type)
+        return GenericCubitInstance(post_id, id_type)
 
 # functions to delete and copy lists of GenericCubitInstances
 def delete_instances(component_list: list):

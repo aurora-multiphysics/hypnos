@@ -96,6 +96,9 @@ class ComplexComponent:
     def get_subcomponents(self):
         return self.subcomponents
 
+    def get_parameters(self, parameters: list):
+        return [self.geometry[parameter] for parameter in parameters]
+
 class SurroundingWallsComponent(ComplexComponent):
     '''Surrounding walls, filled with air'''
     def __init__(self, geometry: dict, material, air):
@@ -196,6 +199,7 @@ class PinComponent(ComplexComponent):
         super().__init__(geometry, "pin", material)
     
     def make_geometry(self):
+
         geometry = self.geometry
         outer_length = geometry["outer length"]
         inner_length = geometry["inner length"]
@@ -238,7 +242,6 @@ class PinComponent(ComplexComponent):
         for i in range(11):
             if not i in [2, 4, 8, 10]:
                 pin_curves[i] = connect_vertices_straight(pin_vertices[i], pin_vertices[i+1])
-
         pin_curves[11] = connect_vertices_straight(pin_vertices[11], pin_vertices[0])
         for i in [2, 4, 8, 10]:
             pin_curves[i] = connect_curves_tangentially(pin_vertices[i], pin_vertices[i+1])
