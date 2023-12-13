@@ -1,7 +1,7 @@
 from constants import *
 from generic_classes import *
 from materials import MaterialsTracker
-from cubit_functions import from_bodies_to_volumes, from_everything_to_bodies, cubit_cmd_check
+from cubit_functions import from_bodies_to_volumes, from_everything_to_bodies, cubit_cmd_check, get_last_geometry, get_id_string
 from geometry import connect_vertices_straight, connect_curves_tangentially
 import numpy as np
 from geometry import Vertex2D
@@ -248,12 +248,43 @@ class PinComponent(ComplexComponent):
         for i in tangent_connections:
             pin_curves[i] = connect_curves_tangentially(pin_vertices[i], pin_vertices[i+1])
         
-        pin_curve_string = ""
-        for curve in pin_curves:
-            pin_curve_string = pin_curve_string + f"{curve.cid} "
+        pin_curve_string = get_id_string(pin_curves)
         
         surface_to_sweep = cubit_cmd_check(f"create surface curve {pin_curve_string}", "surface")
         cubit.cmd(f"sweep surface {surface_to_sweep.cid} axis 0 {-coolant_inlet_radius} 0 1 0 0 angle 360")
-        pin_id = cubit.get_last_id("volume")
-        return GenericCubitInstance(pin_id, "volume")
+        pin = get_last_geometry("volume")
+        # realign with y-axis
+        cubit.move(pin.cubitInstance, [0, coolant_inlet_radius, 0])
+        return pin
     
+class PressureTubeComponent(ComplexComponent):
+    def __init__(self, geometry, material):
+        super().__init__(geometry, "pressure_tube", material)
+    
+    def make_geometry(self):
+        length = self.geometry["length"]
+        outer_radius = self.geometry["outer radius"]
+        thickness = self.geometry["thickness"]
+
+        subtract_vol = cubit_cmd_check(f"create cylinder height {length} radius {outer_radius-thickness}")
+        cylinder = cubit_cmd_check(f"create cylinder height {length} radius {outer_radius}")
+
+        cubit.subtract(subtract_vol.cubitInstance, cylinder.cubitInstance)
+        tube = get_last_geometry("volume")
+        cubit.cmd(f"rotate volume {tube.cid} about Y angle -90")
+        cubit.cmd(f"volume {tube.cid} move {length/2} 0 0")
+        return tube
+
+class Multiplier(ComplexComponent):
+    def __init__(self, geometry, material):
+        super().__init__(geometry, "multiplier", material)
+    
+    def make_geometry(self):
+        length = self.geometry["length"]
+        side_length = self.geometry["side"]
+
+        # hexagonal face
+        face_vertices= [Vertex2D(side_length).rotate(i*np.pi/6) for i in range(6)]
+        face_vertices = [vertex.create() for vertex in face_vertices]
+
+

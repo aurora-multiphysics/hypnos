@@ -47,6 +47,13 @@ def connect_curves_tangentially(vertex1: GenericCubitInstance, vertex2: GenericC
     connection = cubit_cmd_check(f"create curve tangent vertex {vertex1.cid} vertex {vertex2.cid}", "curve")
     return connection
 
+def make_closed_loop(vertices: list[GenericCubitInstance]):
+    curves_list = []
+    for i in range(len(vertices) - 1):
+        curves_list.append(connect_vertices_straight(vertices[i], vertices[i+1]))
+    curves_list.append(connect_vertices_straight(vertices[-1], vertices[0]))
+    return curves_list
+
 class Vertex2D():
     '''Representation of a vertex in the x-y plane
     '''
