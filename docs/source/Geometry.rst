@@ -10,3 +10,4 @@ Geometry
 .. autofunction:: connect_curves_tangentially
 
 .. autoclass:: Vertex2D
+    :members:
