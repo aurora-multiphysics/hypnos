@@ -4,7 +4,7 @@ materials
 
 This contains the classes responsible for tracking materials and the interfaces between them.
 
-.. currentmodule:: cubism
+.. currentmodule:: materials
 
 .. autoclass:: Material
     :members:

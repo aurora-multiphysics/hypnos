@@ -214,8 +214,8 @@ class PinComponent(ComplexComponent):
         slope_angle = np.arctan(net_thickness / offset)
         pin_vertices = list(np.zeros(12))
 
-        pin_vertices[1] = Vertex2D(0)
         pin_vertices[0] = Vertex2D(0, inner_cladding)
+        pin_vertices[1] = Vertex2D(0)
 
         inner_cladding_ref1 = Vertex2D(-inner_length)
         pin_vertices[2] = inner_cladding_ref1 + Vertex2D(bluntness)
@@ -239,11 +239,13 @@ class PinComponent(ComplexComponent):
         pin_vertices = [vertex.create() for vertex in pin_vertices]
 
         pin_curves = list(np.zeros(12))
+        tangent_connections = [2, 4, 8, 10]
         for i in range(11):
-            if not i in [2, 4, 8, 10]:
+            if not i in tangent_connections:
                 pin_curves[i] = connect_vertices_straight(pin_vertices[i], pin_vertices[i+1])
         pin_curves[11] = connect_vertices_straight(pin_vertices[11], pin_vertices[0])
-        for i in [2, 4, 8, 10]:
+        # need to do this after straight connections for tangents to actually exist
+        for i in tangent_connections:
             pin_curves[i] = connect_curves_tangentially(pin_vertices[i], pin_vertices[i+1])
         
         pin_curve_string = ""
@@ -254,3 +256,4 @@ class PinComponent(ComplexComponent):
         cubit.cmd(f"sweep surface {surface_to_sweep.cid} axis 0 {-coolant_inlet_radius} 0 1 0 0 angle 360")
         pin_id = cubit.get_last_id("volume")
         return GenericCubitInstance(pin_id, "volume")
+    

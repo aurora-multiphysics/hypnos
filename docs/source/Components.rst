@@ -1,9 +1,10 @@
-ComplexComponent
+Components
 ================
 
-This contains the ComplexComponent class and subclasses.
+.. currentmodule:: components
 
-.. currentmodule:: cubism
+.. autoclass:: ExternalComponent
+
 .. autoclass:: ComplexComponent
     :members:
 
@@ -21,3 +22,5 @@ subclasses
     :members:
 
 .. autoclass:: WallComponent
+
+.. autoclass:: PinComponent

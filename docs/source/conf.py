@@ -18,7 +18,7 @@ sys.path.insert(0, os.path.abspath('../../'))
 # -- Project information -----------------------------------------------------
 
 project = 'blobmaker'
-copyright = '2023, sid'
+copyright = 'no'
 author = 'sid'
 
 # The full version, including alpha/beta/rc tags

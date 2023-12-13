@@ -14,7 +14,7 @@ if __name__ == "__main__":
     # accept command line arguments
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--file", type=str, help="name of json file", default="sample_breeder_pin.json")
-    parser.add_argument("-p", "--printinfo", action="store_true")
+    parser.add_argument("-p", "--info", action="store_true")
     args = parser.parse_args()
 
     # File to look at
@@ -107,7 +107,7 @@ elif __name__ == "__main__":
 
     cubit.cmd('export cubit "please_work.cub5')
     # print this information if cli flag used
-    if args.printinfo:
+    if args.info:
         MaterialsTracker().print_info()
     pass
 #       cubit.cmd('volume all scheme auto')

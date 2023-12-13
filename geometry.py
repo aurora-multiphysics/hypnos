@@ -33,7 +33,7 @@ class Vertex2D():
         return create_2d_vertex(self.x, self.y)
     
     def rotate(self, angle: int):
-        '''rotate clockwise by angle. don't rotate after creation.
+        '''rotate clockwise by angle.
 
         :param angle: angle in radians
         :type angle: int
@@ -41,3 +41,9 @@ class Vertex2D():
         x = (self.x * np.cos(angle)) - (self.y * np.sin(angle))
         y = (self.x * np.sin(angle)) + (self.y * np.cos(angle))
         return Vertex2D(x, y)
+    
+    def add_x(self, x):
+        return Vertex2D(self.x + x, self.y)
+    
+    def add_y(self, y):
+        return Vertex2D(self.y, self.y + y)

@@ -1,7 +1,7 @@
 Assemblies
 ==========
 
-.. currentmodule:: cubism
+.. currentmodule:: assemblies
 
 .. autoclass:: GenericComponentAssembly
     :members:
@@ -20,3 +20,15 @@ Assemblies
 .. autoclass:: BlanketAssembly
 
 .. autoclass:: ExternalComponentAssembly
+
+.. autoclass:: BreederPinAssembly
+
+Functions in this file:
+
+.. autofunction:: json_object_reader
+
+.. autofunction:: get_constructor_from_name
+
+.. autofunction:: unionise
+
+.. autofunction:: get_all_geometries_from_components

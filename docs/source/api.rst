@@ -2,9 +2,10 @@ API
 ===
 
 .. toctree:: 
-    Materials
-    ComplexComponent
     Assemblies
-    Conversion Functions
-    Other Functions
-    Other Classes
+    Components
+    Cubit Functions
+    Generic Classes
+    Geometry
+    Materials
+    Misc
