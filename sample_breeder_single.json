@@ -1,10 +1,10 @@
 [{
     "class": "breeder unit",
     "materials": {
-        "pin material": "Steel",
-        "pressure tube material": "Steel",
-        "multiplier material": "Beryllium",
-        "coolant material": "Helium"
+        "pin": "Steel",
+        "pressure tube": "Steel",
+        "multiplier": "Beryllium",
+        "coolant": "Helium"
     },
     "geometry": {
         "outer length": 370,
@@ -18,11 +18,11 @@
         "filter disc thickness": 10,
 
         "pressure tube gap": 20,
-        "pressure tube outer radius": 0,
-        "pressure tube thickness": 0,
-        "pressure tube length": 0,
+        "pressure tube outer radius": 40,
+        "pressure tube thickness": 1,
+        "pressure tube length": 300,
 
-        "mulitplier length": 0,
-        "multiplier side": 0
+        "multiplier length": 200,
+        "multiplier side": 72
     }
 }]

@@ -69,11 +69,22 @@ def json_object_reader(json_object: dict):
             geometry= json_object["geometry"],
             material= json_object["material"]
         )
-    elif json_object["class"] == "breeder pin":
+    elif json_object["class"] == "breeder unit":
         return constructor(
-            component_list= json_object["components"]
+            materials_dict = json_object["materials"],
+            geometry_dict = json_object["geometry"]
         )
     elif json_object["class"] == "pin":
+        return constructor(
+            geometry = json_object["geometry"],
+            material = json_object["material"]
+        )
+    elif json_object["class"] == "pressure tube":
+        return constructor(
+            geometry = json_object["geometry"],
+            material = json_object["material"]
+        )
+    elif json_object["class"] == "multiplier":
         return constructor(
             geometry = json_object["geometry"],
             material = json_object["material"]
@@ -477,9 +488,44 @@ class SourceAssembly(ExternalComponentAssembly):
     def __init__(self, external_filepath: str, external_groupname: str, manufacturer: str):
         super().__init__(external_filepath, external_groupname, manufacturer)
 
-class BreederPinAssembly(CreatedComponentAssembly):
-    def __init__(self, component_list: list):
-        super().__init__("breeder_pin", component_list, ["pin"])
+class BreederUnitAssembly(CreatedComponentAssembly):
+    def __init__(self, materials_dict: dict, geometry_dict: dict):
+        self.components = []
+        self.classname = "breeder_unit"
+        self.materials = materials_dict
+        self.geometry = geometry_dict
+        self.setup_assembly()
+    
+    def setup_assembly(self):
+        pin_geometry = self.__extract_parameters(["outer length", "inner length", "offset", "bluntness", "inner cladding", "outer cladding", "breeder chamber thickness", "coolant inlet radius"])
+        pressure_tube_geometry = self.__extract_parameters({
+            "pressure tube outer radius": "outer radius",
+            "pressure tube thickness": "thickness",
+            "pressure tube length": "length"
+        })
+        multiplier_geometry = self.__extract_parameters({
+            "multiplier length": "length",
+            "multiplier side": "side",
+            "pressure tube outer radius": "inner radius"
+        })
+
+        pin = PinComponent(pin_geometry, self.materials["pin"])
+        pressure_tube = PressureTubeComponent(pressure_tube_geometry, self.materials["pressure tube"])
+        multiplier = MultiplierComponent(multiplier_geometry, self.materials["multiplier"])
+
+        self.components.extend([pin, pressure_tube, multiplier])
+
+    def __extract_parameters(self, parameters):
+        out_dict = {}
+        if type(parameters) == list:
+            for parameter in parameters:
+                out_dict[parameter] = self.geometry[parameter]
+        elif type(parameters) == dict:
+            for fetch_parameter, out_parameter in parameters.items():
+                out_dict[out_parameter] = self.geometry[fetch_parameter]
+        else:
+            raise CubismError(f"parameters type not recognised: {type(parameters)}")
+        return out_dict
 
 def get_all_geometries_from_components(component_list):
     instances = []

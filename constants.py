@@ -25,6 +25,8 @@ CLASS_MAPPING = {
     "surrounding_walls": "SurroundingWallsComponent",
     "breeder": "BreederComponent",
     "structure": "StructureComponent",
-    "breeder pin": "BreederPinAssembly",
-    "pin": "PinComponent"
+    "breeder unit": "BreederUnitAssembly",
+    "pin": "PinComponent",
+    "pressure tube": "PressureTubeComponent",
+    "multiplier": "MultiplierComponent"
 }

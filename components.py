@@ -1,8 +1,8 @@
 from constants import *
 from generic_classes import *
 from materials import MaterialsTracker
-from cubit_functions import from_bodies_to_volumes, from_everything_to_bodies, cubit_cmd_check, get_last_geometry, get_id_string
-from geometry import connect_vertices_straight, connect_curves_tangentially
+from cubit_functions import from_bodies_to_volumes, from_everything_to_bodies, cubit_cmd_check, get_last_geometry, get_id_string, to_owning_body
+from geometry import connect_vertices_straight, connect_curves_tangentially, make_surface_from_curves, make_closed_loop, make_cylinder_along
 import numpy as np
 from geometry import Vertex2D
 
@@ -247,10 +247,8 @@ class PinComponent(ComplexComponent):
         # need to do this after straight connections for tangents to actually exist
         for i in tangent_connections:
             pin_curves[i] = connect_curves_tangentially(pin_vertices[i], pin_vertices[i+1])
-        
-        pin_curve_string = get_id_string(pin_curves)
-        
-        surface_to_sweep = cubit_cmd_check(f"create surface curve {pin_curve_string}", "surface")
+                
+        surface_to_sweep = make_surface_from_curves(pin_curves)
         cubit.cmd(f"sweep surface {surface_to_sweep.cid} axis 0 {-coolant_inlet_radius} 0 1 0 0 angle 360")
         pin = get_last_geometry("volume")
         # realign with y-axis
@@ -266,8 +264,8 @@ class PressureTubeComponent(ComplexComponent):
         outer_radius = self.geometry["outer radius"]
         thickness = self.geometry["thickness"]
 
-        subtract_vol = cubit_cmd_check(f"create cylinder height {length} radius {outer_radius-thickness}")
-        cylinder = cubit_cmd_check(f"create cylinder height {length} radius {outer_radius}")
+        subtract_vol = cubit_cmd_check(f"create cylinder height {length} radius {outer_radius-thickness}", "volume")
+        cylinder = cubit_cmd_check(f"create cylinder height {length} radius {outer_radius}", "volume")
 
         cubit.subtract(subtract_vol.cubitInstance, cylinder.cubitInstance)
         tube = get_last_geometry("volume")
@@ -275,16 +273,30 @@ class PressureTubeComponent(ComplexComponent):
         cubit.cmd(f"volume {tube.cid} move {length/2} 0 0")
         return tube
 
-class Multiplier(ComplexComponent):
+class MultiplierComponent(ComplexComponent):
     def __init__(self, geometry, material):
         super().__init__(geometry, "multiplier", material)
     
     def make_geometry(self):
+        inner_radius = self.geometry["inner radius"]
         length = self.geometry["length"]
         side_length = self.geometry["side"]
 
+        subtract_vol = make_cylinder_along(inner_radius, length, "z")
+        cubit.cmd(f"volume {subtract_vol.cid} move 0 0 {length/2}")
+        subtract_vol = to_owning_body(subtract_vol)
+
         # hexagonal face
-        face_vertices= [Vertex2D(side_length).rotate(i*np.pi/6) for i in range(6)]
-        face_vertices = [vertex.create() for vertex in face_vertices]
+        face_vertex_positions= [Vertex2D(side_length).rotate(i*np.pi/6) for i in range(6)]
+        face_vertices = [vertex.create() for vertex in face_vertex_positions]
+        face_curves = make_closed_loop(face_vertices)
+        face = make_surface_from_curves(face_curves)
+        cubit.cmd(f"sweep surface {face.cid} vector 0 0 1 distance {length}")
+        hex_prism = to_owning_body(get_last_geometry("volume"))
+
+        cubit.subtract(subtract_vol.cubitInstance, hex_prism.cubitInstance)
+        multiplier = get_last_geometry("volume")
+
+        return multiplier
 
 

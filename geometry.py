@@ -1,6 +1,7 @@
 from generic_classes import GenericCubitInstance, CubismError
-from cubit_functions import cubit_cmd_check
+from cubit_functions import cubit_cmd_check, get_id_string
 import numpy as np
+import cubit
 
 def create_2d_vertex(x, y):
     '''Create a vertex in the x-y plane
@@ -53,6 +54,19 @@ def make_closed_loop(vertices: list[GenericCubitInstance]):
         curves_list.append(connect_vertices_straight(vertices[i], vertices[i+1]))
     curves_list.append(connect_vertices_straight(vertices[-1], vertices[0]))
     return curves_list
+
+def make_surface_from_curves(curves_list: list[GenericCubitInstance]):
+    curve_id_string= get_id_string(curves_list)
+    surface = cubit_cmd_check(f"create surface curve {curve_id_string}", "surface")
+    return surface
+
+def make_cylinder_along(radius, length, axis):
+    cylinder = cubit_cmd_check(f"create cylinder radius {radius} height {length}", "volume")
+    if axis == "x":
+        cubit.cmd(f"rotate volume {cylinder.cid} about Y angle -90")
+    elif axis == "y":
+        cubit.cmd(f"rotate volume {cylinder.cid} about X angle -90")
+    return cylinder
 
 class Vertex2D():
     '''Representation of a vertex in the x-y plane

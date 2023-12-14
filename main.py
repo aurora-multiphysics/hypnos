@@ -13,7 +13,7 @@ if __name__ == "__main__":
 
     # accept command line arguments
     parser = argparse.ArgumentParser()
-    parser.add_argument("-f", "--file", type=str, help="name of json file", default="sample_breeder_pin.json")
+    parser.add_argument("-f", "--file", type=str, help="name of json file", default="sample_breeder_single.json")
     parser.add_argument("-p", "--info", action="store_true")
     args = parser.parse_args()
 
