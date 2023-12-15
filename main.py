@@ -103,6 +103,10 @@ elif __name__ == "__main__":
     # track all components, materials, and boundaries as groups
     for component in universe:
         print(f"components being tracked in root {ComponentTracker(component).root_name}")
+    cubit.cmd("imprint volume all")
+    MaterialsTracker().merge_and_track_boundaries()
+    cubit.cmd("merge volume all")
+    MaterialsTracker().add_boundaries_to_sidesets()
     MaterialsTracker().organise_into_groups()
 
     cubit.cmd('export cubit "please_work.cub5')

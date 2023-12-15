@@ -48,13 +48,6 @@ def connect_curves_tangentially(vertex1: GenericCubitInstance, vertex2: GenericC
     connection = cubit_cmd_check(f"create curve tangent vertex {vertex1.cid} vertex {vertex2.cid}", "curve")
     return connection
 
-def make_closed_loop(vertices: list[GenericCubitInstance]):
-    curves_list = []
-    for i in range(len(vertices) - 1):
-        curves_list.append(connect_vertices_straight(vertices[i], vertices[i+1]))
-    curves_list.append(connect_vertices_straight(vertices[-1], vertices[0]))
-    return curves_list
-
 def make_surface_from_curves(curves_list: list[GenericCubitInstance]):
     curve_id_string= get_id_string(curves_list)
     surface = cubit_cmd_check(f"create surface curve {curve_id_string}", "surface")
@@ -67,6 +60,17 @@ def make_cylinder_along(radius, length, axis):
     elif axis == "y":
         cubit.cmd(f"rotate volume {cylinder.cid} about X angle -90")
     return cylinder
+
+def make_loop(vertices: list[GenericCubitInstance], tangent_indices: list[int]):
+    curves = list(np.zeros(len(vertices)))
+    for i in range(len(vertices)-1):
+         if not i in tangent_indices:
+            curves[i] = connect_vertices_straight(vertices[i], vertices[i+1])
+    curves[-1] = connect_vertices_straight(vertices[-1], vertices[0])
+    # need to do this after straight connections for tangents to actually exist
+    for i in tangent_indices:
+        curves[i] = connect_curves_tangentially(vertices[i], vertices[i+1])
+    return curves
 
 class Vertex2D():
     '''Representation of a vertex in the x-y plane

@@ -2,7 +2,7 @@ from constants import *
 from generic_classes import *
 from materials import MaterialsTracker
 from cubit_functions import from_bodies_to_volumes, from_everything_to_bodies, cubit_cmd_check, get_last_geometry, get_id_string, to_owning_body
-from geometry import connect_vertices_straight, connect_curves_tangentially, make_surface_from_curves, make_closed_loop, make_cylinder_along
+from geometry import connect_vertices_straight, connect_curves_tangentially, make_surface_from_curves, make_cylinder_along, make_loop
 import numpy as np
 from geometry import Vertex2D
 
@@ -237,27 +237,17 @@ class PinComponent(ComplexComponent):
         pin_vertices[11] = inner_cladding_ref2 + Vertex2D(bluntness)
 
         pin_vertices = [vertex.create() for vertex in pin_vertices]
-
-        pin_curves = list(np.zeros(12))
-        tangent_connections = [2, 4, 8, 10]
-        for i in range(11):
-            if not i in tangent_connections:
-                pin_curves[i] = connect_vertices_straight(pin_vertices[i], pin_vertices[i+1])
-        pin_curves[11] = connect_vertices_straight(pin_vertices[11], pin_vertices[0])
-        # need to do this after straight connections for tangents to actually exist
-        for i in tangent_connections:
-            pin_curves[i] = connect_curves_tangentially(pin_vertices[i], pin_vertices[i+1])
-                
+        pin_curves = make_loop(pin_vertices, [2, 4, 8, 10])                
         surface_to_sweep = make_surface_from_curves(pin_curves)
         cubit.cmd(f"sweep surface {surface_to_sweep.cid} axis 0 {-coolant_inlet_radius} 0 1 0 0 angle 360")
         pin = get_last_geometry("volume")
-        # realign with y-axis
-        cubit.move(pin.cubitInstance, [0, coolant_inlet_radius, 0])
+        # realign with origin
+        cubit.move(pin.cubitInstance, [inner_length, coolant_inlet_radius, 0])
         return pin
     
-class PressureTubeComponent(ComplexComponent):
-    def __init__(self, geometry, material):
-        super().__init__(geometry, "pressure_tube", material)
+class TubeComponent(ComplexComponent):
+    def __init__(self, geometry, classname, material):
+        super().__init__(geometry, classname, material)
     
     def make_geometry(self):
         length = self.geometry["length"]
@@ -267,11 +257,19 @@ class PressureTubeComponent(ComplexComponent):
         subtract_vol = cubit_cmd_check(f"create cylinder height {length} radius {outer_radius-thickness}", "volume")
         cylinder = cubit_cmd_check(f"create cylinder height {length} radius {outer_radius}", "volume")
 
-        cubit.subtract(subtract_vol.cubitInstance, cylinder.cubitInstance)
+        cubit.cmd(f"subtract volume {subtract_vol.cid} from volume {cylinder.cid}")
         tube = get_last_geometry("volume")
         cubit.cmd(f"rotate volume {tube.cid} about Y angle -90")
         cubit.cmd(f"volume {tube.cid} move {length/2} 0 0")
         return tube
+
+class PressureTubeComponent(TubeComponent):
+    def __init__(self, geometry, material):
+        super().__init__(geometry, "pressure_tube", material)
+
+class FilterDiskComponent(TubeComponent):
+    def __init__(self, geometry, material):
+        super().__init__(geometry, "filter_disk", material)
 
 class MultiplierComponent(ComplexComponent):
     def __init__(self, geometry, material):
@@ -284,19 +282,51 @@ class MultiplierComponent(ComplexComponent):
 
         subtract_vol = make_cylinder_along(inner_radius, length, "z")
         cubit.cmd(f"volume {subtract_vol.cid} move 0 0 {length/2}")
-        subtract_vol = to_owning_body(subtract_vol)
 
         # hexagonal face
-        face_vertex_positions= [Vertex2D(side_length).rotate(i*np.pi/6) for i in range(6)]
+        face_vertex_positions= [Vertex2D(side_length).rotate(i*np.pi/3) for i in range(6)]
         face_vertices = [vertex.create() for vertex in face_vertex_positions]
-        face_curves = make_closed_loop(face_vertices)
+        face_curves = make_loop(face_vertices, [])
         face = make_surface_from_curves(face_curves)
         cubit.cmd(f"sweep surface {face.cid} vector 0 0 1 distance {length}")
-        hex_prism = to_owning_body(get_last_geometry("volume"))
+        hex_prism = get_last_geometry("volume")
 
-        cubit.subtract(subtract_vol.cubitInstance, hex_prism.cubitInstance)
+        cubit.cmd(f"subtract volume {subtract_vol.cid} from volume {hex_prism.cid}")
         multiplier = get_last_geometry("volume")
+        cubit.cmd(f"rotate volume {multiplier.cid} about Y angle 90")
 
         return multiplier
 
+class BreederChamber(ComplexComponent):
+    def __init__(self, geometry, material):
+        super().__init__(geometry, "breeder", material)
+    
+    def make_geometry(self):
+        inner_radius = self.geometry["inner radius"]
+        outer_radius = self.geometry["outer radius"]
+        bluntness = self.geometry["bluntness"]
+        length = self.geometry["length"]
+        offset = self.geometry["offset"]
+
+        thickness = outer_radius - inner_radius
+        slope_angle = np.arctan(thickness/ offset)
+        
+        breeder_vertices = list(np.zeros(6))
+        breeder_vertices[0] = Vertex2D(length)
+        breeder_vertices[1] = Vertex2D(bluntness)
+        breeder_vertices[2] = Vertex2D(bluntness).rotate(slope_angle)
+
+        outer_ref = Vertex2D(offset, thickness)
+        breeder_vertices[3] = outer_ref + Vertex2D(bluntness).rotate(slope_angle-np.pi)
+        breeder_vertices[4] = outer_ref + Vertex2D(bluntness)
+        breeder_vertices[5] = Vertex2D(length, thickness)
+
+        breeder_vertices = [vertex.create() for vertex in breeder_vertices]
+        breeder_curves = make_loop(breeder_vertices, [1, 3])
+        surface_to_sweep = make_surface_from_curves(breeder_curves)
+        cubit.cmd(f"sweep surface {surface_to_sweep.cid} axis 0 {-inner_radius} 0 1 0 0 angle 360")
+        breeder = get_last_geometry("volume")
+        cubit.move(breeder.cubitInstance, [0, inner_radius, 0])
+
+        return breeder
 

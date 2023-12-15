@@ -273,10 +273,6 @@ class NeutronTestFacility(CreatedComponentAssembly):
         self.validate_rooms_and_fix_air()
         self.change_air_to_volumes()
         self.check_for_overlaps()
-        self.imprint_all()
-        MaterialsTracker().merge_and_track_boundaries()
-        self.merge_all()
-        MaterialsTracker().add_boundaries_to_sidesets()
 
     def enforce_facility_morphology(self):
         '''
@@ -508,12 +504,23 @@ class BreederUnitAssembly(CreatedComponentAssembly):
             "multiplier side": "side",
             "pressure tube outer radius": "inner radius"
         })
+        breeder_geometry = self.__get_breeder_parameters()
+        filter_disk_geometry = self.__get_filter_disk_parameters()
+
+        pressure_tube_gap = self.geometry["pressure tube gap"]
+        chamber_spacing = breeder_geometry["chamber offset"] + pressure_tube_gap
+        filter_disk_spacing = pressure_tube_gap + self.geometry["offset"] + self.geometry["outer length"] - filter_disk_geometry["length"]
 
         pin = PinComponent(pin_geometry, self.materials["pin"])
         pressure_tube = PressureTubeComponent(pressure_tube_geometry, self.materials["pressure tube"])
         multiplier = MultiplierComponent(multiplier_geometry, self.materials["multiplier"])
+        breeder = BreederChamber(breeder_geometry, self.materials["breeder"])
+        filter_disk = FilterDiskComponent(filter_disk_geometry, self.materials["filter disk"])
 
-        self.components.extend([pin, pressure_tube, multiplier])
+        cubit.move(pin.get_subcomponents()[0].cubitInstance, [pressure_tube_gap, 0, 0])
+        cubit.move(breeder.get_subcomponents()[0].cubitInstance, [chamber_spacing, 0, 0])
+        cubit.move(filter_disk.get_subcomponents()[0].cubitInstance, [filter_disk_spacing, 0, 0])
+        self.components.extend([pin, pressure_tube, multiplier, breeder, filter_disk])
 
     def __extract_parameters(self, parameters):
         out_dict = {}
@@ -526,6 +533,43 @@ class BreederUnitAssembly(CreatedComponentAssembly):
         else:
             raise CubismError(f"parameters type not recognised: {type(parameters)}")
         return out_dict
+    
+    def __get_breeder_parameters(self):
+        geometry = self.geometry
+        outer_length = geometry["outer length"]
+        inner_length = geometry["inner length"]
+        offset = geometry["offset"]
+        coolant_inlet_radius = geometry["coolant inlet radius"]
+        inner_cladding = geometry["inner cladding"]
+        breeder_chamber_thickness = geometry["breeder chamber thickness"]
+        outer_cladding = geometry["outer cladding"]
+        filter_disc_thickness = geometry["filter disk thickness"]
+
+        slope_angle = np.arctan((inner_cladding + breeder_chamber_thickness + outer_cladding) / offset)
+
+        parameters = {}
+        parameters["bluntness"] = geometry["bluntness"]
+        parameters["inner radius"] = coolant_inlet_radius + inner_cladding
+        parameters["outer radius"] = coolant_inlet_radius + inner_cladding + breeder_chamber_thickness
+        parameters["chamber offset"] = outer_cladding/np.sin(slope_angle) + inner_cladding/np.tan(slope_angle)
+        parameters["length"] = offset + outer_length - (filter_disc_thickness + parameters["chamber offset"])
+        parameters["offset"] = geometry["offset"] + (outer_cladding*np.tan(slope_angle/2)) - parameters["chamber offset"]
+
+        return parameters
+
+    def __get_filter_disk_parameters(self):
+        geometry = self.geometry
+        coolant_inlet_radius = geometry["coolant inlet radius"]
+        inner_cladding = geometry["inner cladding"]
+        breeder_chamber_thickness = geometry["breeder chamber thickness"]
+
+        parameters = self.__extract_parameters({
+            "breeder chamber thickness": "thickness",
+            "filter disk thickness": "length"
+        })
+        parameters["outer radius"] = coolant_inlet_radius + inner_cladding + breeder_chamber_thickness
+
+        return parameters
 
 def get_all_geometries_from_components(component_list):
     instances = []

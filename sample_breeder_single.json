@@ -4,7 +4,9 @@
         "pin": "Steel",
         "pressure tube": "Steel",
         "multiplier": "Beryllium",
-        "coolant": "Helium"
+        "coolant": "Helium",
+        "breeder": "KALOS",
+        "filter disk": "SteelMaybe"
     },
     "geometry": {
         "outer length": 370,
@@ -15,7 +17,7 @@
         "outer cladding": 3,
         "breeder chamber thickness": 16,
         "coolant inlet radius": 8,
-        "filter disc thickness": 10,
+        "filter disk thickness": 10,
 
         "pressure tube gap": 20,
         "pressure tube outer radius": 40,
