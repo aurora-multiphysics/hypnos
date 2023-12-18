@@ -199,7 +199,7 @@ class PinComponent(ComplexComponent):
         super().__init__(geometry, "pin", material)
     
     def make_geometry(self):
-
+        # get params
         geometry = self.geometry
         outer_length = geometry["outer length"]
         inner_length = geometry["inner length"]
@@ -209,11 +209,12 @@ class PinComponent(ComplexComponent):
         inner_cladding = geometry["inner cladding"]
         breeder_chamber_thickness = geometry["breeder chamber thickness"]
         outer_cladding = geometry["outer cladding"]
-
+        # helpful calculations
         net_thickness = inner_cladding + breeder_chamber_thickness + outer_cladding
         slope_angle = np.arctan(net_thickness / offset)
         pin_vertices = list(np.zeros(12))
-
+        
+        # set up points of face-to-sweep
         pin_vertices[0] = Vertex2D(0, inner_cladding)
         pin_vertices[1] = Vertex2D(0)
 
@@ -245,9 +246,28 @@ class PinComponent(ComplexComponent):
         cubit.move(pin.cubitInstance, [inner_length, coolant_inlet_radius, 0])
         return pin
     
-class TubeComponent(ComplexComponent):
-    def __init__(self, geometry, classname, material):
-        super().__init__(geometry, classname, material)
+class PressureTubeComponent(ComplexComponent):
+    def __init__(self, geometry, material):
+        super().__init__(geometry, "pressure_tube", material)
+    
+    def make_geometry(self):
+        length = self.geometry["length"]
+        outer_radius = self.geometry["outer radius"]
+        thickness = self.geometry["thickness"]
+
+        subtract_vol = cubit_cmd_check(f"create cylinder height {length-thickness} radius {outer_radius-thickness}", "volume")
+        cubit.cmd(f"volume {subtract_vol.cid} move 0 0 {-thickness/2}")
+        cylinder = cubit_cmd_check(f"create cylinder height {length} radius {outer_radius}", "volume")
+
+        cubit.cmd(f"subtract volume {subtract_vol.cid} from volume {cylinder.cid}")
+        tube = get_last_geometry("volume")
+        cubit.cmd(f"rotate volume {tube.cid} about Y angle -90")
+        cubit.cmd(f"volume {tube.cid} move {length/2} 0 0")
+        return tube
+
+class FilterDiskComponent(ComplexComponent):
+    def __init__(self, geometry, material):
+        super().__init__(geometry, "filter_disk", material)
     
     def make_geometry(self):
         length = self.geometry["length"]
@@ -262,14 +282,6 @@ class TubeComponent(ComplexComponent):
         cubit.cmd(f"rotate volume {tube.cid} about Y angle -90")
         cubit.cmd(f"volume {tube.cid} move {length/2} 0 0")
         return tube
-
-class PressureTubeComponent(TubeComponent):
-    def __init__(self, geometry, material):
-        super().__init__(geometry, "pressure_tube", material)
-
-class FilterDiskComponent(TubeComponent):
-    def __init__(self, geometry, material):
-        super().__init__(geometry, "filter_disk", material)
 
 class MultiplierComponent(ComplexComponent):
     def __init__(self, geometry, material):

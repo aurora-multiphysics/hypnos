@@ -1,23 +1,33 @@
 from generic_classes import *
 
 def get_last_geometry(geometry_type: str):
+    '''Get last geometry of given type
+
+    :param geometry_type: type of geometry to search for.
+    :type geometry_type: str
+    :return: geometry
+    :rtype: GenericCubitInstance
+    '''
     geom_id = cubit.get_last_id(geometry_type)
     return GenericCubitInstance(geom_id, geometry_type)
 
 def cubit_cmd_check(cmd: str, id_type: str):
-    '''Perform cubit command and check whether a new entity has been created
+    '''Perform cubit command and check whether a new entity has been created.
+    If this is a geometry return GenericCubitInstance, if a group then the group id.
 
     :param cmd: command to run
     :type cmd: str
     :param id_type: type of entity to check for
     :type id_type: str
-    :return: id of new entity/ false
-    :rtype: int/ bool
+    :return: geometry/ id/ false
+    :rtype: GenericCubitInstance/ int/ bool
     '''
     pre_id = cubit.get_last_id(id_type)
     cubit.cmd(cmd)
     post_id = cubit.get_last_id(id_type)
     if pre_id == post_id:
+        if not id_type == "group":
+            raise CubismError(f"no new {id_type} created, last id: {pre_id}")
         # material tracking function depends on this btw
         return False
     elif id_type == "group":
@@ -26,6 +36,13 @@ def cubit_cmd_check(cmd: str, id_type: str):
         return GenericCubitInstance(post_id, id_type)
 
 def get_id_string(geometry_list: list[GenericCubitInstance]):
+    '''Convert list of GenericCubitInstances to a string of space-separated IDs.
+
+    :param geometry_list: list to convert
+    :type geometry_list: list[GenericCubitInstance]
+    :return: string of IDs
+    :rtype: str
+    '''
     id_string = ""
     for geometry in geometry_list:
         id_string += f"{geometry.cid} "
