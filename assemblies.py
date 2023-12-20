@@ -9,7 +9,6 @@ def get_constructor_from_name(classname: str):
     :type classname: str
     :return: constructor for component
     '''
-    print(globals().keys())
     return globals()[CLASS_MAPPING[classname]]
 
 # map classnames to instances - there should be a better way to do this?
@@ -88,6 +87,11 @@ def json_object_reader(json_object: dict):
         return constructor(
             geometry = json_object["geometry"],
             material = json_object["material"]
+        )
+    elif json_object["class"] == "first wall":
+        return constructor(
+            geometry= json_object["geometry"],
+            material= json_object["material"]
         )
 
 # generic collection of components
@@ -395,6 +399,13 @@ class BlanketAssembly(CreatedComponentAssembly):
     def __init__(self, component_list: list):
         super().__init__("Blanket", component_list, BLANKET_REQUIREMENTS)
 
+class BlanketShellAssembly(CreatedComponentAssembly):
+    def __init__(self, classname, component_list: list):
+        super().__init__(classname, component_list, ["first wall", "breeder unit"])
+    
+    def setup_assembly(self, component_list: list):
+        return super().setup_assembly(component_list)
+
 class RoomAssembly(CreatedComponentAssembly):
     '''Assembly class that requires surrounding walls and a blanket. Fills with air. Can add walls.'''
     def __init__(self, component_list: list):
@@ -537,7 +548,7 @@ class BreederUnitAssembly(CreatedComponentAssembly):
     def __get_breeder_parameters(self):
         geometry = self.geometry
         outer_length = geometry["outer length"]
-        inner_length = geometry["inner length"]
+        #inner_length = geometry["inner length"]
         offset = geometry["offset"]
         coolant_inlet_radius = geometry["coolant inlet radius"]
         inner_cladding = geometry["inner cladding"]

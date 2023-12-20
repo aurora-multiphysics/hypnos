@@ -28,5 +28,6 @@ CLASS_MAPPING = {
     "breeder unit": "BreederUnitAssembly",
     "pin": "PinComponent",
     "pressure tube": "PressureTubeComponent",
-    "multiplier": "MultiplierComponent"
+    "multiplier": "MultiplierComponent",
+    "first wall": "FirstWallComponent"
 }

@@ -13,7 +13,7 @@ if __name__ == "__main__":
 
     # accept command line arguments
     parser = argparse.ArgumentParser()
-    parser.add_argument("-f", "--file", type=str, help="name of json file", default="sample_breeder_single.json")
+    parser.add_argument("-f", "--file", type=str, help="name of json file", default="sample_first_wall.json")
     parser.add_argument("-p", "--info", action="store_true")
     args = parser.parse_args()
 
@@ -92,9 +92,14 @@ def read_file():
         data = jsonFile.read()
         objects = json.loads(data)
     universe = []
-    for json_object in objects:
-        universe.append(json_object_reader(json_object=json_object))
-    return universe
+    if type(objects) == list:
+        for json_object in objects:
+            universe.append(json_object_reader(json_object))
+        return universe
+    elif type(objects) == dict:
+        universe.append(json_object_reader(objects))
+        return universe
+    raise CubismError("File not in readable format")
 
 if __name__ == '__coreformcubit__':
     read_file()

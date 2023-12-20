@@ -72,17 +72,21 @@ def make_loop(vertices: list[GenericCubitInstance], tangent_indices: list[int]):
         curves[i] = connect_curves_tangentially(vertices[i], vertices[i+1])
     return curves
 
-class Vertex2D():
-    '''Representation of a vertex in the x-y plane
-    '''
-    def __init__(self, x: int, y: int=0) -> None:
+class Vertex():
+    '''Representation of a vertex'''
+    def __init__(self, x: int, y: int, z: int) -> None:
         self.x = x
         self.y = y
+        self.z = z
     
     def __add__(self, other):
         x = self.x + other.x
         y = self.y + other.y
-        return Vertex2D(x, y)
+        z = self.z + other.z
+        return Vertex(x, y, z)
+    
+    def __str__(self) -> str:
+        return f"{self.x} {self.y} {self.z}"
     
     def create(self):
         '''Create this vertex in cubit.
@@ -90,30 +94,48 @@ class Vertex2D():
         :return: created vertex
         :rtype: GenericCubitInstance
         '''
-        return create_2d_vertex(self.x, self.y)
+        vertex = cubit_cmd_check(f"create vertex {self.x} {self.y} {self.z}", "vertex")
+        if vertex:
+            return vertex
+        else:
+            raise CubismError("Failed to create vertex")
+    
+    def rotate(self, z: int, y=0, x=0):
+        '''Rotate about z then y and then x axes.
+
+        :param z: Angle to rotate about the z axis
+        :type z: int
+        :param y: Angle to rotate about the y axis, defaults to 0
+        :type y: int, optional
+        :param x: Angle to rotate about the x axis, defaults to 0
+        :type x: int, optional
+        :return: Rotated vertex
+        :rtype: Vertex
+        '''
+        x = (self.x*np.cos(z)*np.cos(y)) + (self.y*(np.cos(z)*np.sin(y)*np.sin(x) - np.sin(z)*np.cos(x))) + (self.z*(np.cos(z)*np.sin(y)*np.cos(x) + np.sin(z)*np.sin(x)))
+        y = (self.x*np.sin(z)*np.cos(y)) + (self.y*(np.sin(z)*np.sin(y)*np.sin(x) + np.cos(z)*np.cos(x))) + (self.z*(np.sin(z)*np.sin(y)*np.cos(x) - np.cos(z)*np.sin(x)))
+        z = (-self.z*np.sin(y)) + (self.y*np.cos(y)*np.sin(x)) + (self.z*np.cos(y)*np.cos(x))
+        return Vertex(x, y, z)
+
+class Vertex2D(Vertex):
+    '''Representation of a vertex in the x-y plane'''
+    def __init__(self, x: int, y=0) -> None:
+        super().__init__(x, y, 0)
+    
+    def __add__(self, other):
+        x = self.x + other.x
+        y = self.y + other.y
+        return Vertex2D(x, y)
+    
+    def __str__(self) -> str:
+        return f"{self.x} {self.y}"
     
     def rotate(self, angle: int):
-        '''rotate clockwise by angle.
+        '''Rotate about the z-axis
 
         :param angle: angle in radians
         :type angle: int
+        :return: rotated vertex
+        :rtype: Vertex
         '''
-        x = (self.x * np.cos(angle)) - (self.y * np.sin(angle))
-        y = (self.x * np.sin(angle)) + (self.y * np.cos(angle))
-        return Vertex2D(x, y)
-    
-    def add_x(self, x: int):
-        '''Add to x-coord
-
-        :param x: value to add
-        :type x: int
-        '''
-        return Vertex2D(self.x + x, self.y)
-    
-    def add_y(self, y):
-        '''Add to y-coord
-
-        :param y: value to add
-        :type y: int
-        '''
-        return Vertex2D(self.y, self.y + y)
+        return super().rotate(angle)

@@ -4,7 +4,7 @@ from materials import MaterialsTracker
 from cubit_functions import from_bodies_to_volumes, from_everything_to_bodies, cubit_cmd_check, get_last_geometry, get_id_string, to_owning_body
 from geometry import connect_vertices_straight, connect_curves_tangentially, make_surface_from_curves, make_cylinder_along, make_loop
 import numpy as np
-from geometry import Vertex2D
+from geometry import Vertex2D, Vertex
 
 class ExternalComponent(GenericCubitInstance):
     def __init__(self, cid: int, geometry_type: str) -> None:
@@ -16,12 +16,16 @@ class ExternalComponent(GenericCubitInstance):
 class ComplexComponent:
     # stores information about what materials exist. geometries can then be found from groups with the same name
     complexComponentMaterials = MaterialsTracker()
-    def __init__(self, geometry, classname, material):
+    def __init__(self, geometry, classname, material, origin= Vertex(0, 0, 0)):
         self.subcomponents = []
         self.classname = classname
         self.geometry = geometry
         self.material = material
+        self.origin = origin
+
         self.add_to_subcomponents(self.make_geometry())
+        if not origin == Vertex(0,0,0):
+            self.move(origin)
         # add geometries to material tracker
         for subcomponent in self.subcomponents:
             self.complexComponentMaterials.add_geometry_to_material(subcomponent, self.material)
@@ -98,6 +102,10 @@ class ComplexComponent:
 
     def get_parameters(self, parameters: list):
         return [self.geometry[parameter] for parameter in parameters]
+    
+    def move(self, vector: Vertex):
+        for subcomponent in self.subcomponents:
+            cubit.cmd(f"{subcomponent.geometry_type} {subcomponent.cid} move {str(vector)}")
 
 class SurroundingWallsComponent(ComplexComponent):
     '''Surrounding walls, filled with air'''
@@ -341,4 +349,54 @@ class BreederChamber(ComplexComponent):
         cubit.move(breeder.cubitInstance, [0, inner_radius, 0])
 
         return breeder
+
+class FirstWallComponent(ComplexComponent):
+    def __init__(self, geometry, material):
+        super().__init__(geometry, "first_wall", material)
+    
+    def make_geometry(self):
+        geometry = self.geometry
+        inner_width = geometry["inner width"]
+        outer_width = geometry["outer width"]
+        bluntness = geometry["bluntness"]
+        length = geometry["length"]
+        thickness = geometry["thickness"]
+        height = geometry["height"]
+
+        offset = (outer_width - inner_width)/2
+        slope_angle = np.arctan(2*length/offset)
+
+        vertices = list(np.zeros(12))
+        vertices[0] = Vertex2D(0, 0)
+
+        left_ref = Vertex2D(offset, length)
+        vertices[1] = left_ref + Vertex2D(bluntness).rotate(slope_angle-np.pi)
+        vertices[2] = left_ref + Vertex2D(bluntness)
+
+        right_ref = left_ref + Vertex2D(inner_width)
+        vertices[3] = right_ref + Vertex2D(-bluntness)
+        vertices[4] = right_ref + Vertex2D(bluntness).rotate(-slope_angle)
+
+        vertices[5] = vertices[0] + Vertex2D(outer_width)
+        vertices[6] = vertices[5] + Vertex2D(-thickness)
+
+        right_ref_inner = right_ref + Vertex2D(-thickness) + Vertex2D(thickness).rotate(-slope_angle)
+        vertices[7] = right_ref_inner + Vertex2D(bluntness).rotate(-slope_angle)
+        vertices[8] = right_ref_inner + Vertex2D(-bluntness)
+
+        left_ref_inner = left_ref + Vertex2D(thickness) + Vertex2D(thickness).rotate(slope_angle-np.pi)
+        vertices[9] = left_ref_inner + Vertex2D(bluntness)
+        vertices[10] = left_ref_inner + Vertex2D(bluntness).rotate(slope_angle-np.pi)
+
+        vertices[11] = vertices[0] + Vertex2D(thickness)
+
+        vertices = [vertex.create() for vertex in vertices]
+        face_to_sweep = make_surface_from_curves(make_loop(vertices, [1, 3, 7, 9]))
+        cubit.cmd(f"surface {face_to_sweep.cid} move -{outer_width} 0 0")
+        cubit.cmd(f"surface {face_to_sweep.cid} rotate 90 about z")
+        cubit.cmd(f"surface {face_to_sweep.cid} rotate -90 about y")
+        cubit.cmd(f"sweep surface {face_to_sweep.cid} vector 1 0 0 distance {height}")
+        first_wall = get_last_geometry("volume")
+
+        return first_wall
 
