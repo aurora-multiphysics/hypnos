@@ -1,98 +1,6 @@
 from generic_classes import *
 from components import *
-from cubit_functions import from_bodies_to_volumes, get_bodies_and_volumes_from_group
-
-def get_constructor_from_name(classname: str):
-    '''Get component constructor using it's json class name
-
-    :param classname: json class name
-    :type classname: str
-    :return: constructor for component
-    '''
-    return globals()[CLASS_MAPPING[classname]]
-
-# map classnames to instances - there should be a better way to do this?
-def json_object_reader(json_object: dict):
-    '''parse json representation of a component and set up class instance
-
-    :param json_object: json representation of a component. 
-    :type json_object: dict
-    :return: Instance of a native class, chosen according to the 'class' value provided
-    :rtype: various native classes
-    '''
-    constructor = get_constructor_from_name(json_object["class"])
-    if json_object["class"] == "complex":
-        return constructor(
-            geometry = json_object["geometry"],
-            classname = "complex",
-            material = json_object["material"]
-        )
-    elif json_object["class"] == "external":
-        return constructor(
-            external_filepath= json_object["filepath"],
-            external_groupname= json_object["group"],
-            manufacturer = json_object["manufacturer"],
-        )
-    elif json_object["class"] == "source":
-        return constructor(
-            external_filepath= json_object["filepath"],
-            external_groupname= json_object["group"],
-            manufacturer = json_object["manufacturer"],
-        )
-    elif json_object["class"] == "neutron test facility":
-        return constructor(
-            morphology= json_object["morphology"],
-            component_list= list(json_object["components"])
-        )
-    elif json_object["class"] == "blanket":
-        return constructor(
-            component_list= json_object["components"]
-        )
-    elif json_object["class"] == "room":
-        return constructor(
-            component_list= json_object["components"]
-        )
-    elif json_object["class"] == "surrounding_walls":
-        return constructor(
-            geometry= json_object["geometry"],
-            material= json_object["material"],
-            air= json_object["air"]
-        )
-    elif json_object["class"] == "breeder":
-        return constructor(
-            geometry= json_object["geometry"],
-            material= json_object["material"]
-        )
-    elif json_object["class"] == "structure":
-        return constructor(
-            geometry= json_object["geometry"],
-            material= json_object["material"]
-        )
-    elif json_object["class"] == "breeder unit":
-        return constructor(
-            materials_dict = json_object["materials"],
-            geometry_dict = json_object["geometry"]
-        )
-    elif json_object["class"] == "pin":
-        return constructor(
-            geometry = json_object["geometry"],
-            material = json_object["material"]
-        )
-    elif json_object["class"] == "pressure tube":
-        return constructor(
-            geometry = json_object["geometry"],
-            material = json_object["material"]
-        )
-    elif json_object["class"] == "multiplier":
-        return constructor(
-            geometry = json_object["geometry"],
-            material = json_object["material"]
-        )
-    elif json_object["class"] == "first wall":
-        return constructor(
-            geometry= json_object["geometry"],
-            material= json_object["material"]
-        )
+from cubit_functions import from_bodies_to_volumes, get_bodies_and_volumes_from_group, delve, extract_data
 
 # generic collection of components
 class GenericComponentAssembly:
@@ -216,42 +124,39 @@ class GenericComponentAssembly:
                     component_list += component.get_components_of_class(class_list)
         return component_list
 
+    def move(self, vector: Vertex):
+        for component in self.get_components():
+            component.move(vector)
+
 class CreatedComponentAssembly(GenericComponentAssembly):
     '''
-    Assembly to handle components created natively. Takes a list of required and additional classnames to set up a specific assembly:
+    Assembly to handle components created natively. Takes a list of required classnames to set up a specific assembly:
 
     * *required classnames*: instantiating will fail without at least one component of the given classnames
-    * *additional classnames*: defines attributes to store components with this classname
-
-    An assembly class specified from this will:
-
-    * have attributes corresponding to the supplied classnames
-    * require every instance have at least one component from the required classnames
-    * store components of the specified classnames in corresponding attributes, otherwise other_components
-    * be able to fetch cubit instances of components stores in these attributes (get_cubit_instances)
     '''
     def __init__(self, classname, component_list: list, required_classnames: list):
         self.classname = classname
         # this defines what components to require in every instance
         self.required_classnames = required_classnames
         self.components = []
+        self.component_list = delve(component_list)
 
         # enforce given component_list based on required_classnames
-        self.enforce_structure(component_list)
+        self.enforce_structure()
         # store instances
-        self.setup_assembly(component_list)
+        self.setup_assembly()
 
-    def enforce_structure(self, comp_list: list):
+    def enforce_structure(self):
         '''Make sure an instance of this class contains the required components. This looks at the classnames specified in the json file'''
-        class_list = [i["class"] for i in comp_list]
+        class_list = [i["class"] for i in self.component_list]
         for classes_required in self.required_classnames:
             if classes_required not in class_list:
                 # Can change this to a warning, for now it just throws an error
                 raise CubismError(f"This assembly must contain: {self.required_classnames}. Currently contains: {class_list}")
     
-    def setup_assembly(self, component_list: list):
+    def setup_assembly(self):
         '''Add components to attributes according to their class'''
-        for component_json_dict in component_list:
+        for component_json_dict in self.component_list:
             self.components.append(json_object_reader(component_json_dict))
 
 class NeutronTestFacility(CreatedComponentAssembly):
@@ -400,11 +305,42 @@ class BlanketAssembly(CreatedComponentAssembly):
         super().__init__("Blanket", component_list, BLANKET_REQUIREMENTS)
 
 class BlanketShellAssembly(CreatedComponentAssembly):
-    def __init__(self, classname, component_list: list):
-        super().__init__(classname, component_list, ["first wall", "breeder unit"])
+    def __init__(self, component_list: list, geometry: dict):
+        self.geometry = geometry
+        super().__init__("blanket_shell", component_list, ["first wall", "breeder unit"])
     
-    def setup_assembly(self, component_list: list):
-        return super().setup_assembly(component_list)
+    def setup_assembly(self):
+        for component in self.component_list:
+            if component["class"] == "first wall":
+                first_wall_geometry = component["geometry"]
+                first_wall_material = component["material"]
+            elif component["class"] == "breeder unit":
+                breeder_materials = component["materials"]
+                breeder_geometry = component["geometry"]
+        
+        vertical_offset = self.geometry["vertical offset"]
+        horizontal_offset = self.geometry["horizontal offset"]
+        pin_spacing = self.geometry["pin spacing"]
+        inner_width = first_wall_geometry["inner width"]
+        length = first_wall_geometry["length"]
+        height = first_wall_geometry["height"]
+
+        accesible_width = inner_width - 2*horizontal_offset
+        row_pins = int(accesible_width // (pin_spacing * np.cos(np.pi/6)))
+        extra_offset = (accesible_width - row_pins*pin_spacing*np.cos(np.pi/6)) / 2
+        no_columns = int(accesible_width // pin_spacing * 2 * np.sin(np.pi/6))
+
+        start_pos = Vertex(-accesible_width/2 + extra_offset, height - vertical_offset, length)
+
+        for j in range(no_columns):
+            pin_pos = start_pos + Vertex(0, -pin_spacing*j)
+            for i in range(row_pins):
+                self.components.append(BreederUnitAssembly(breeder_materials, breeder_geometry, pin_pos))
+                pin_pos += Vertex(pin_spacing).rotate(((-1)^i)*-np.pi/6)
+            
+        self.components.append(FirstWallComponent(first_wall_geometry, first_wall_material))
+
+        return super().setup_assembly()
 
 class RoomAssembly(CreatedComponentAssembly):
     '''Assembly class that requires surrounding walls and a blanket. Fills with air. Can add walls.'''
@@ -496,12 +432,14 @@ class SourceAssembly(ExternalComponentAssembly):
         super().__init__(external_filepath, external_groupname, manufacturer)
 
 class BreederUnitAssembly(CreatedComponentAssembly):
-    def __init__(self, materials_dict: dict, geometry_dict: dict):
+    def __init__(self, materials_dict: dict, geometry_dict: dict, origin=Vertex(0,0,0)):
         self.components = []
         self.classname = "breeder_unit"
         self.materials = materials_dict
         self.geometry = geometry_dict
+        self.origin = origin
         self.setup_assembly()
+        self.move(self.origin)
     
     def setup_assembly(self):
         pin_geometry = self.__extract_parameters(["outer length", "inner length", "offset", "bluntness", "inner cladding", "outer cladding", "breeder chamber thickness", "coolant inlet radius"])
@@ -630,3 +568,104 @@ def unionise(component_list: list):
         return GenericCubitInstance(cubit.get_last_id("volume"), "volume")
     else:
         raise CubismError("Something unknowable was created in this union. Or worse, a surface.")
+
+def get_constructor_from_name(classname: str):
+    '''Get component constructor using it's json class name
+
+    :param classname: json class name
+    :type classname: str
+    :return: constructor for component
+    '''
+    return globals()[CLASS_MAPPING[classname]]
+
+# map classnames to instances - there should be a better way to do this?
+def json_object_reader(json_object: dict):
+    '''parse json representation of a component and set up class instance
+
+    :param json_object: json representation of a component. 
+    :type json_object: dict
+    :return: Instance of a native class, chosen according to the 'class' value provided
+    :rtype: various native classes
+    '''
+    if "file" in json_object.keys():
+        filename = json_object["file"]
+        json_object = extract_data(filename)
+
+    constructor = get_constructor_from_name(json_object["class"])
+    if json_object["class"] == "complex":
+        return constructor(
+            geometry = json_object["geometry"],
+            classname = "complex",
+            material = json_object["material"]
+        )
+    elif json_object["class"] == "external":
+        return constructor(
+            external_filepath= json_object["filepath"],
+            external_groupname= json_object["group"],
+            manufacturer = json_object["manufacturer"],
+        )
+    elif json_object["class"] == "source":
+        return constructor(
+            external_filepath= json_object["filepath"],
+            external_groupname= json_object["group"],
+            manufacturer = json_object["manufacturer"],
+        )
+    elif json_object["class"] == "neutron test facility":
+        return constructor(
+            morphology= json_object["morphology"],
+            component_list= list(json_object["components"])
+        )
+    elif json_object["class"] == "blanket":
+        return constructor(
+            component_list= json_object["components"]
+        )
+    elif json_object["class"] == "room":
+        return constructor(
+            component_list= json_object["components"]
+        )
+    elif json_object["class"] == "surrounding_walls":
+        return constructor(
+            geometry= json_object["geometry"],
+            material= json_object["material"],
+            air= json_object["air"]
+        )
+    elif json_object["class"] == "breeder":
+        return constructor(
+            geometry= json_object["geometry"],
+            material= json_object["material"]
+        )
+    elif json_object["class"] == "structure":
+        return constructor(
+            geometry= json_object["geometry"],
+            material= json_object["material"]
+        )
+    elif json_object["class"] == "breeder unit":
+        return constructor(
+            materials_dict = json_object["materials"],
+            geometry_dict = json_object["geometry"]
+        )
+    elif json_object["class"] == "pin":
+        return constructor(
+            geometry = json_object["geometry"],
+            material = json_object["material"]
+        )
+    elif json_object["class"] == "pressure tube":
+        return constructor(
+            geometry = json_object["geometry"],
+            material = json_object["material"]
+        )
+    elif json_object["class"] == "multiplier":
+        return constructor(
+            geometry = json_object["geometry"],
+            material = json_object["material"]
+        )
+    elif json_object["class"] == "first wall":
+        return constructor(
+            geometry= json_object["geometry"],
+            material= json_object["material"]
+        )
+    elif json_object["class"] == "blanket shell":
+        return constructor(
+            geometry= json_object["geometry"],
+            component_list= json_object["components"]
+        )

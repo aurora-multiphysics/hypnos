@@ -29,5 +29,6 @@ CLASS_MAPPING = {
     "pin": "PinComponent",
     "pressure tube": "PressureTubeComponent",
     "multiplier": "MultiplierComponent",
-    "first wall": "FirstWallComponent"
+    "first wall": "FirstWallComponent",
+    "blanket shell": "BlanketShellAssembly"
 }

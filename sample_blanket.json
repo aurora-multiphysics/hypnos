@@ -2,18 +2,21 @@
     {
         "class": "blanket shell",
         "geometry": {
-            "pin spacing": 0
+            "pin spacing": 135,
+            "vertical offset": 0,
+            "horizontal offset": 0
         },
         "components": [
             {
                 "class": "first wall",
                 "material": "Tungsten",
                 "geometry": {
-                    "inner width": 0,
-                    "outer width": 0,
-                    "bluntness": 0,
-                    "length": 0,
-                    "thickness": 0
+                    "inner width": 1480,
+                    "outer width": 1600,
+                    "bluntness": 100,
+                    "length": 500,
+                    "thickness": 30,
+                    "height": 625
                 }
             },
             {

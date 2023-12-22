@@ -15,6 +15,9 @@ class GenericCubitInstance:
         self.geometry_type = geometry_type
         self.cubitInstance = get_cubit_geometry(self.cid, self.geometry_type)
     
+    def __str__(self) -> str:
+        return f"{self.geometry_type} {self.cid}"
+
     def destroy_cubit_instance(self):
         '''delete cubitside instance'''
         cubit.cmd(f"delete {self.geometry_type} {self.cid}")

@@ -13,7 +13,7 @@ if __name__ == "__main__":
 
     # accept command line arguments
     parser = argparse.ArgumentParser()
-    parser.add_argument("-f", "--file", type=str, help="name of json file", default="sample_first_wall.json")
+    parser.add_argument("-f", "--file", type=str, help="name of json file", default="sample_blanket.json")
     parser.add_argument("-p", "--info", action="store_true")
     args = parser.parse_args()
 
@@ -82,15 +82,13 @@ class ComponentTracker:
         elif isinstance(thing_to_add, GenericCubitInstance):
             cubit.cmd(f'group {group} add {thing_to_add.geometry_type} {thing_to_add.cid}')
 
-def read_file():
+def read_file(filename):
     '''Read in json file, construct all specified components
 
     :return: list of all top-level components
     :rtype: list
     '''
-    with open(JSON_FILENAME) as jsonFile:
-        data = jsonFile.read()
-        objects = json.loads(data)
+    objects = extract_data(filename)
     universe = []
     if type(objects) == list:
         for json_object in objects:
@@ -102,17 +100,17 @@ def read_file():
     raise CubismError("File not in readable format")
 
 if __name__ == '__coreformcubit__':
-    read_file()
+    read_file(JSON_FILENAME)
 elif __name__ == "__main__":
-    universe = read_file()
+    universe = read_file(JSON_FILENAME)
     # track all components, materials, and boundaries as groups
     for component in universe:
         print(f"components being tracked in root {ComponentTracker(component).root_name}")
-    cubit.cmd("imprint volume all")
-    MaterialsTracker().merge_and_track_boundaries()
-    cubit.cmd("merge volume all")
-    MaterialsTracker().add_boundaries_to_sidesets()
-    MaterialsTracker().organise_into_groups()
+    #cubit.cmd("imprint volume all")
+    #MaterialsTracker().merge_and_track_boundaries()
+    #cubit.cmd("merge volume all")
+    #MaterialsTracker().add_boundaries_to_sidesets()
+    #MaterialsTracker().organise_into_groups()
 
     cubit.cmd('export cubit "please_work.cub5')
     # print this information if cli flag used

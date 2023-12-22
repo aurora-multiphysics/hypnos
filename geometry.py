@@ -49,11 +49,29 @@ def connect_curves_tangentially(vertex1: GenericCubitInstance, vertex2: GenericC
     return connection
 
 def make_surface_from_curves(curves_list: list[GenericCubitInstance]):
+    '''Make surface from bounding curves
+
+    :param curves_list: List of bounding curves
+    :type curves_list: list[GenericCubitInstance]
+    :return: surface geometry/ false
+    :rtype: GenericCubitInstance/ bool
+    '''
     curve_id_string= get_id_string(curves_list)
     surface = cubit_cmd_check(f"create surface curve {curve_id_string}", "surface")
     return surface
 
-def make_cylinder_along(radius, length, axis):
+def make_cylinder_along(radius: int, length: int, axis: str):
+    '''Make a cylinder along one of the cartesian axes
+
+    :param radius: radius of cylinder
+    :type radius: int
+    :param length: length of cylinder
+    :type length: int
+    :param axis: axes to create cylinder along: x, y, or z
+    :type axis: str
+    :return: cylinder geometry
+    :rtype: GenericCubitInstance
+    '''
     cylinder = cubit_cmd_check(f"create cylinder radius {radius} height {length}", "volume")
     if axis == "x":
         cubit.cmd(f"rotate volume {cylinder.cid} about Y angle -90")
@@ -62,6 +80,16 @@ def make_cylinder_along(radius, length, axis):
     return cylinder
 
 def make_loop(vertices: list[GenericCubitInstance], tangent_indices: list[int]):
+    '''Connect vertices with straight curves. 
+    For specified indices connect with curves tangential to adjacent curves.
+
+    :param vertices: Vertices to connect
+    :type vertices: list[GenericCubitInstance]
+    :param tangent_indices: Vertices to start tangent curves from
+    :type tangent_indices: list[int]
+    :return: curve geometries
+    :rtype: list[GenericCubitInstance]
+    '''
     curves = list(np.zeros(len(vertices)))
     for i in range(len(vertices)-1):
          if not i in tangent_indices:
@@ -74,7 +102,7 @@ def make_loop(vertices: list[GenericCubitInstance], tangent_indices: list[int]):
 
 class Vertex():
     '''Representation of a vertex'''
-    def __init__(self, x: int, y: int, z: int) -> None:
+    def __init__(self, x: int, y= 0, z= 0) -> None:
         self.x = x
         self.y = y
         self.z = z

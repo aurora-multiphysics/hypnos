@@ -1,4 +1,5 @@
 from generic_classes import *
+import json
 
 def get_last_geometry(geometry_type: str):
     '''Get last geometry of given type
@@ -162,3 +163,16 @@ def from_everything_to_bodies(component_list: list):
     return bodies_list
 
 # unionise is in Assemblies.py as it needs to know about the ComplexComponent and Assembly classes
+
+
+def extract_data(filename):
+    with open(filename) as jsonFile:
+        data = jsonFile.read()
+        objects = json.loads(data)
+    return objects
+
+def delve(component_list):
+    for i in range(len(component_list)):
+        if type(component_list[i]) == str:
+            component_list[i] = extract_data(component_list[i])
+    return component_list
