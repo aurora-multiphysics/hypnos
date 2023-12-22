@@ -144,6 +144,9 @@ class Vertex():
         y = (self.x*np.sin(z)*np.cos(y)) + (self.y*(np.sin(z)*np.sin(y)*np.sin(x) + np.cos(z)*np.cos(x))) + (self.z*(np.sin(z)*np.sin(y)*np.cos(x) - np.cos(z)*np.sin(x)))
         z = (-self.z*np.sin(y)) + (self.y*np.cos(y)*np.sin(x)) + (self.z*np.cos(y)*np.cos(x))
         return Vertex(x, y, z)
+    
+    def distance(self):
+        return np.sqrt(np.square(self.x)+np.square(self.y)+np.square(self.z))
 
 class Vertex2D(Vertex):
     '''Representation of a vertex in the x-y plane'''

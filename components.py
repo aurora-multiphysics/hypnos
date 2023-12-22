@@ -397,6 +397,6 @@ class FirstWallComponent(ComplexComponent):
         cubit.cmd(f"surface {face_to_sweep.cid} rotate -90 about y")
         cubit.cmd(f"sweep surface {face_to_sweep.cid} vector 1 0 0 distance {height}")
         first_wall = get_last_geometry("volume")
-
+        cubit.cmd(f"volume {first_wall.cid} move 0 {outer_width} 0")
         return first_wall
 

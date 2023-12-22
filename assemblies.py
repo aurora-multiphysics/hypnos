@@ -324,23 +324,21 @@ class BlanketShellAssembly(CreatedComponentAssembly):
         inner_width = first_wall_geometry["inner width"]
         length = first_wall_geometry["length"]
         height = first_wall_geometry["height"]
+        wall_bluntness = first_wall_geometry["bluntness"]
+        wall_thickness = first_wall_geometry["thickness"]
 
-        accesible_width = inner_width - 2*horizontal_offset
+        accesible_width = inner_width - 2*(horizontal_offset + wall_bluntness)
         row_pins = int(accesible_width // (pin_spacing * np.cos(np.pi/6)))
         extra_offset = (accesible_width - row_pins*pin_spacing*np.cos(np.pi/6)) / 2
-        no_columns = int(accesible_width // pin_spacing * 2 * np.sin(np.pi/6))
-
-        start_pos = Vertex(-accesible_width/2 + extra_offset, height - vertical_offset, length)
+        no_columns = int(height // (pin_spacing * 2 * np.sin(np.pi/6)))
 
         for j in range(no_columns):
-            pin_pos = start_pos + Vertex(0, -pin_spacing*j)
+            pin_pos = Vertex(length-vertical_offset, -accesible_width/2 + extra_offset, length-wall_thickness) + Vertex(-pin_spacing*j)
             for i in range(row_pins):
                 self.components.append(BreederUnitAssembly(breeder_materials, breeder_geometry, pin_pos))
-                pin_pos += Vertex(pin_spacing).rotate(((-1)^i)*-np.pi/6)
+                pin_pos = pin_pos + Vertex(0, pin_spacing, 0).rotate(((-1)**(i+1))*np.pi/6)
             
         self.components.append(FirstWallComponent(first_wall_geometry, first_wall_material))
-
-        return super().setup_assembly()
 
 class RoomAssembly(CreatedComponentAssembly):
     '''Assembly class that requires surrounding walls and a blanket. Fills with air. Can add walls.'''
