@@ -140,10 +140,10 @@ class Vertex():
         :return: Rotated vertex
         :rtype: Vertex
         '''
-        x = (self.x*np.cos(z)*np.cos(y)) + (self.y*(np.cos(z)*np.sin(y)*np.sin(x) - np.sin(z)*np.cos(x))) + (self.z*(np.cos(z)*np.sin(y)*np.cos(x) + np.sin(z)*np.sin(x)))
-        y = (self.x*np.sin(z)*np.cos(y)) + (self.y*(np.sin(z)*np.sin(y)*np.sin(x) + np.cos(z)*np.cos(x))) + (self.z*(np.sin(z)*np.sin(y)*np.cos(x) - np.cos(z)*np.sin(x)))
-        z = (-self.z*np.sin(y)) + (self.y*np.cos(y)*np.sin(x)) + (self.z*np.cos(y)*np.cos(x))
-        return Vertex(x, y, z)
+        x_rotated = (self.x*np.cos(z)*np.cos(y)) + (self.y*(np.cos(z)*np.sin(y)*np.sin(x) - np.sin(z)*np.cos(x))) + (self.z*(np.cos(z)*np.sin(y)*np.cos(x) + np.sin(z)*np.sin(x)))
+        y_rotated = (self.x*np.sin(z)*np.cos(y)) + (self.y*(np.sin(z)*np.sin(y)*np.sin(x) + np.cos(z)*np.cos(x))) + (self.z*(np.sin(z)*np.sin(y)*np.cos(x) - np.cos(z)*np.sin(x)))
+        z_rotated = (-self.z*np.sin(y)) + (self.y*np.cos(y)*np.sin(x)) + (self.z*np.cos(y)*np.cos(x))
+        return Vertex(x_rotated, y_rotated, z_rotated)
     
     def distance(self):
         return np.sqrt(np.square(self.x)+np.square(self.y)+np.square(self.z))
@@ -156,7 +156,10 @@ class Vertex2D(Vertex):
     def __add__(self, other):
         x = self.x + other.x
         y = self.y + other.y
-        return Vertex2D(x, y)
+        if isinstance(other, Vertex2D):
+            return Vertex2D(x, y)
+        else:
+            return Vertex(x, y, 0)
     
     def __str__(self) -> str:
         return f"{self.x} {self.y}"
@@ -169,4 +172,5 @@ class Vertex2D(Vertex):
         :return: rotated vertex
         :rtype: Vertex
         '''
+        
         return super().rotate(angle)

@@ -317,6 +317,7 @@ class BlanketShellAssembly(CreatedComponentAssembly):
             elif component["class"] == "breeder unit":
                 breeder_materials = component["materials"]
                 breeder_geometry = component["geometry"]
+                multiplier_side = breeder_geometry["multiplier side"]
         
         vertical_offset = self.geometry["vertical offset"]
         horizontal_offset = self.geometry["horizontal offset"]
@@ -328,15 +329,20 @@ class BlanketShellAssembly(CreatedComponentAssembly):
         wall_thickness = first_wall_geometry["thickness"]
 
         accesible_width = inner_width - 2*(horizontal_offset + wall_bluntness)
-        row_pins = int(accesible_width // (pin_spacing * np.cos(np.pi/6)))
-        extra_offset = (accesible_width - row_pins*pin_spacing*np.cos(np.pi/6)) / 2
-        no_columns = int(height // (pin_spacing * 2 * np.sin(np.pi/6)))
+        accesible_height = height - 2*vertical_offset
+        row_pins = int((accesible_width - 2*multiplier_side) // (pin_spacing * np.cos(np.pi/6))) + 1
+        start_horizontal = -(row_pins-1)*pin_spacing*np.cos(np.pi/6) / 2
+    
+        columns_indices = int((accesible_height - 2*multiplier_side*np.cos(np.pi/6)) // pin_spacing) + 1
+        column_pins = int((accesible_height - 2*multiplier_side*np.cos(np.pi/6)) // (pin_spacing*np.sin(np.pi/6))) + 1
+        extra_vertical_offset = ((accesible_height- 2*multiplier_side*np.cos(np.pi/6)) - (column_pins-1)*pin_spacing*np.sin(np.pi/6)) / 2
 
-        for j in range(no_columns):
-            pin_pos = Vertex(length-vertical_offset, -accesible_width/2 + extra_offset, length-wall_thickness) + Vertex(-pin_spacing*j)
+        for j in range(columns_indices):
+            pin_pos = Vertex(start_horizontal , height - (extra_vertical_offset + multiplier_side*np.cos(np.pi/6)), length-wall_thickness) + Vertex(0, -pin_spacing*j)
             for i in range(row_pins):
-                self.components.append(BreederUnitAssembly(breeder_materials, breeder_geometry, pin_pos))
-                pin_pos = pin_pos + Vertex(0, pin_spacing, 0).rotate(((-1)**(i+1))*np.pi/6)
+                if (j*2)+1 + (i%2) <= column_pins:
+                    self.components.append(BreederUnitAssembly(breeder_materials, breeder_geometry, pin_pos))
+                pin_pos = pin_pos + Vertex2D(pin_spacing).rotate(((-1)**(i+1))*np.pi/6)
             
         self.components.append(FirstWallComponent(first_wall_geometry, first_wall_material))
 
@@ -468,6 +474,26 @@ class BreederUnitAssembly(CreatedComponentAssembly):
         cubit.move(breeder.get_subcomponents()[0].cubitInstance, [chamber_spacing, 0, 0])
         cubit.move(filter_disk.get_subcomponents()[0].cubitInstance, [filter_disk_spacing, 0, 0])
         self.components.extend([pin, pressure_tube, multiplier, breeder, filter_disk])
+        # align with z-axis properly
+        self.rotate(90, Vertex(0, 0, 0), Vertex(0, 1, 0))
+        #self.rotate(30, Vertex(0, 0, 0), Vertex(0, 0, 1))
+    
+    def rotate(self, angle, origin: Vertex, axis=Vertex(0,0,1)):
+        '''Rotate about a point+axis (IN DEGREES)
+
+        :param angle: Angle to rotate by in degrees
+        :type angle: int
+        :param origin: centre of rotation
+        :type origin: Vertex
+        :param axis: axis to rotate about, defaults to Vertex(0,0,1)
+        :type axis: Vertex, optional
+        '''
+        if origin == "origin":
+            origin = self.origin
+    
+        for component in self.get_components():
+            for subcomponent in component.get_subcomponents():
+                cubit.cmd(f"rotate {subcomponent.geometry_type} {subcomponent.cid} about origin {str(origin)} direction {str(axis)} angle {angle}")
 
     def __extract_parameters(self, parameters):
         out_dict = {}

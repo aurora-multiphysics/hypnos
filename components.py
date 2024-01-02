@@ -366,37 +366,55 @@ class FirstWallComponent(ComplexComponent):
         offset = (outer_width - inner_width)/2
         slope_angle = np.arctan(2*length/offset)
 
-        vertices = list(np.zeros(12))
-        vertices[0] = Vertex2D(0, 0)
+        if bluntness == 0:
+            vertices = list(np.zeros(8))
+            vertices[0] = Vertex2D(0, 0)
 
-        left_ref = Vertex2D(offset, length)
-        vertices[1] = left_ref + Vertex2D(bluntness).rotate(slope_angle-np.pi)
-        vertices[2] = left_ref + Vertex2D(bluntness)
+            vertices[1] = Vertex2D(offset, length)
+            vertices[2] = vertices[1] + Vertex2D(inner_width)
 
-        right_ref = left_ref + Vertex2D(inner_width)
-        vertices[3] = right_ref + Vertex2D(-bluntness)
-        vertices[4] = right_ref + Vertex2D(bluntness).rotate(-slope_angle)
+            vertices[3] = vertices[0] + Vertex2D(outer_width)
+            vertices[4] = vertices[3] + Vertex2D(-thickness)
 
-        vertices[5] = vertices[0] + Vertex2D(outer_width)
-        vertices[6] = vertices[5] + Vertex2D(-thickness)
+            vertices[5] = vertices[2] + Vertex2D(-thickness) + Vertex2D(thickness).rotate(-slope_angle)
+            vertices[6] = vertices[1] + Vertex2D(thickness) + Vertex2D(thickness).rotate(slope_angle-np.pi)
 
-        right_ref_inner = right_ref + Vertex2D(-thickness) + Vertex2D(thickness).rotate(-slope_angle)
-        vertices[7] = right_ref_inner + Vertex2D(bluntness).rotate(-slope_angle)
-        vertices[8] = right_ref_inner + Vertex2D(-bluntness)
+            vertices[7] = vertices[0] + Vertex2D(thickness)
 
-        left_ref_inner = left_ref + Vertex2D(thickness) + Vertex2D(thickness).rotate(slope_angle-np.pi)
-        vertices[9] = left_ref_inner + Vertex2D(bluntness)
-        vertices[10] = left_ref_inner + Vertex2D(bluntness).rotate(slope_angle-np.pi)
+            vertices = [vertex.create() for vertex in vertices]
+            face_to_sweep = make_surface_from_curves(make_loop(vertices, []))
+        else:
+            vertices = list(np.zeros(12))
+            vertices[0] = Vertex2D(0, 0)
 
-        vertices[11] = vertices[0] + Vertex2D(thickness)
+            left_ref = Vertex2D(offset, length)
+            vertices[1] = left_ref + Vertex2D(bluntness).rotate(slope_angle-np.pi)
+            vertices[2] = left_ref + Vertex2D(bluntness)
 
-        vertices = [vertex.create() for vertex in vertices]
-        face_to_sweep = make_surface_from_curves(make_loop(vertices, [1, 3, 7, 9]))
-        cubit.cmd(f"surface {face_to_sweep.cid} move -{outer_width} 0 0")
-        cubit.cmd(f"surface {face_to_sweep.cid} rotate 90 about z")
-        cubit.cmd(f"surface {face_to_sweep.cid} rotate -90 about y")
-        cubit.cmd(f"sweep surface {face_to_sweep.cid} vector 1 0 0 distance {height}")
+            right_ref = left_ref + Vertex2D(inner_width)
+            vertices[3] = right_ref + Vertex2D(-bluntness)
+            vertices[4] = right_ref + Vertex2D(bluntness).rotate(-slope_angle)
+
+            vertices[5] = vertices[0] + Vertex2D(outer_width)
+            vertices[6] = vertices[5] + Vertex2D(-thickness)
+
+            right_ref_inner = right_ref + Vertex2D(-thickness) + Vertex2D(thickness).rotate(-slope_angle)
+            vertices[7] = right_ref_inner + Vertex2D(bluntness).rotate(-slope_angle)
+            vertices[8] = right_ref_inner + Vertex2D(-bluntness)
+
+            left_ref_inner = left_ref + Vertex2D(thickness) + Vertex2D(thickness).rotate(slope_angle-np.pi)
+            vertices[9] = left_ref_inner + Vertex2D(bluntness)
+            vertices[10] = left_ref_inner + Vertex2D(bluntness).rotate(slope_angle-np.pi)
+
+            vertices[11] = vertices[0] + Vertex2D(thickness)
+
+            vertices = [vertex.create() for vertex in vertices]
+            face_to_sweep = make_surface_from_curves(make_loop(vertices, [1, 3, 7, 9]))
+        
+        # line up sweep direction along y axis
+        cubit.cmd(f"surface {face_to_sweep.cid} move -{outer_width/2} 0 0")
+        cubit.cmd(f"surface {face_to_sweep.cid} rotate 90 about x")
+        cubit.cmd(f"sweep surface {face_to_sweep.cid} vector 0 1 0 distance {height}")
         first_wall = get_last_geometry("volume")
-        cubit.cmd(f"volume {first_wall.cid} move 0 {outer_width} 0")
         return first_wall
 
