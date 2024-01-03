@@ -129,7 +129,7 @@ class Vertex():
             raise CubismError("Failed to create vertex")
     
     def rotate(self, z: int, y=0, x=0):
-        '''Rotate about z then y and then x axes.
+        '''Rotate about z, then y, and then x axes.
 
         :param z: Angle to rotate about the z axis
         :type z: int
@@ -146,6 +146,11 @@ class Vertex():
         return Vertex(x_rotated, y_rotated, z_rotated)
     
     def distance(self):
+        '''Return distance from (0, 0, 0)
+
+        :return: Distance
+        :rtype: np.float64
+        '''
         return np.sqrt(np.square(self.x)+np.square(self.y)+np.square(self.z))
 
 class Vertex2D(Vertex):

@@ -342,7 +342,7 @@ class BlanketShellAssembly(CreatedComponentAssembly):
             for i in range(row_pins):
                 if (j*2)+1 + (i%2) <= column_pins:
                     self.components.append(BreederUnitAssembly(breeder_materials, breeder_geometry, pin_pos))
-                pin_pos = pin_pos + Vertex2D(pin_spacing).rotate(((-1)**(i+1))*np.pi/6)
+                pin_pos = pin_pos + Vertex(pin_spacing).rotate(((-1)**(i+1))*np.pi/6)
             
         self.components.append(FirstWallComponent(first_wall_geometry, first_wall_material))
 
@@ -611,9 +611,6 @@ def json_object_reader(json_object: dict):
     :return: Instance of a native class, chosen according to the 'class' value provided
     :rtype: various native classes
     '''
-    if "file" in json_object.keys():
-        filename = json_object["file"]
-        json_object = extract_data(filename)
 
     constructor = get_constructor_from_name(json_object["class"])
     if json_object["class"] == "complex":

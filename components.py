@@ -4,7 +4,7 @@ from materials import MaterialsTracker
 from cubit_functions import from_bodies_to_volumes, from_everything_to_bodies, cubit_cmd_check, get_last_geometry, get_id_string, to_owning_body
 from geometry import connect_vertices_straight, connect_curves_tangentially, make_surface_from_curves, make_cylinder_along, make_loop
 import numpy as np
-from geometry import Vertex2D, Vertex
+from geometry import Vertex, Vertex
 
 class ExternalComponent(GenericCubitInstance):
     def __init__(self, cid: int, geometry_type: str) -> None:
@@ -223,27 +223,27 @@ class PinComponent(ComplexComponent):
         pin_vertices = list(np.zeros(12))
         
         # set up points of face-to-sweep
-        pin_vertices[0] = Vertex2D(0, inner_cladding)
-        pin_vertices[1] = Vertex2D(0)
+        pin_vertices[0] = Vertex(0, inner_cladding)
+        pin_vertices[1] = Vertex(0)
 
-        inner_cladding_ref1 = Vertex2D(-inner_length)
-        pin_vertices[2] = inner_cladding_ref1 + Vertex2D(bluntness)
-        pin_vertices[3] = inner_cladding_ref1 + Vertex2D(bluntness).rotate(slope_angle)
+        inner_cladding_ref1 = Vertex(-inner_length)
+        pin_vertices[2] = inner_cladding_ref1 + Vertex(bluntness)
+        pin_vertices[3] = inner_cladding_ref1 + Vertex(bluntness).rotate(slope_angle)
 
-        outer_cladding_ref1 = inner_cladding_ref1 + Vertex2D(offset, net_thickness)
-        pin_vertices[4] = outer_cladding_ref1 + Vertex2D(bluntness).rotate(slope_angle-np.pi)
-        pin_vertices[5] = outer_cladding_ref1 + Vertex2D(bluntness)
+        outer_cladding_ref1 = inner_cladding_ref1 + Vertex(offset, net_thickness)
+        pin_vertices[4] = outer_cladding_ref1 + Vertex(bluntness).rotate(slope_angle-np.pi)
+        pin_vertices[5] = outer_cladding_ref1 + Vertex(bluntness)
 
-        pin_vertices[6] = outer_cladding_ref1 + Vertex2D(outer_length)
-        pin_vertices[7] = outer_cladding_ref1 + Vertex2D(outer_length, -outer_cladding)
+        pin_vertices[6] = outer_cladding_ref1 + Vertex(outer_length)
+        pin_vertices[7] = outer_cladding_ref1 + Vertex(outer_length, -outer_cladding)
 
-        outer_cladding_ref2 = outer_cladding_ref1 + Vertex2D(outer_cladding * np.tan(slope_angle/2), -outer_cladding)
-        pin_vertices[8] = outer_cladding_ref2 + Vertex2D(bluntness)
-        pin_vertices[9] = outer_cladding_ref2 + Vertex2D(bluntness).rotate(slope_angle-np.pi)
+        outer_cladding_ref2 = outer_cladding_ref1 + Vertex(outer_cladding * np.tan(slope_angle/2), -outer_cladding)
+        pin_vertices[8] = outer_cladding_ref2 + Vertex(bluntness)
+        pin_vertices[9] = outer_cladding_ref2 + Vertex(bluntness).rotate(slope_angle-np.pi)
 
-        inner_cladding_ref2 = inner_cladding_ref1 + Vertex2D(inner_cladding/np.tan(slope_angle) + outer_cladding/np.sin(slope_angle), inner_cladding)
-        pin_vertices[10] = inner_cladding_ref2 + Vertex2D(bluntness).rotate(slope_angle)
-        pin_vertices[11] = inner_cladding_ref2 + Vertex2D(bluntness)
+        inner_cladding_ref2 = inner_cladding_ref1 + Vertex(inner_cladding/np.tan(slope_angle) + outer_cladding/np.sin(slope_angle), inner_cladding)
+        pin_vertices[10] = inner_cladding_ref2 + Vertex(bluntness).rotate(slope_angle)
+        pin_vertices[11] = inner_cladding_ref2 + Vertex(bluntness)
 
         pin_vertices = [vertex.create() for vertex in pin_vertices]
         pin_curves = make_loop(pin_vertices, [2, 4, 8, 10])                
@@ -304,7 +304,7 @@ class MultiplierComponent(ComplexComponent):
         cubit.cmd(f"volume {subtract_vol.cid} move 0 0 {length/2}")
 
         # hexagonal face
-        face_vertex_positions= [Vertex2D(side_length).rotate(i*np.pi/3) for i in range(6)]
+        face_vertex_positions= [Vertex(side_length).rotate(i*np.pi/3) for i in range(6)]
         face_vertices = [vertex.create() for vertex in face_vertex_positions]
         face_curves = make_loop(face_vertices, [])
         face = make_surface_from_curves(face_curves)
@@ -332,14 +332,14 @@ class BreederChamber(ComplexComponent):
         slope_angle = np.arctan(thickness/ offset)
         
         breeder_vertices = list(np.zeros(6))
-        breeder_vertices[0] = Vertex2D(length)
-        breeder_vertices[1] = Vertex2D(bluntness)
-        breeder_vertices[2] = Vertex2D(bluntness).rotate(slope_angle)
+        breeder_vertices[0] = Vertex(length)
+        breeder_vertices[1] = Vertex(bluntness)
+        breeder_vertices[2] = Vertex(bluntness).rotate(slope_angle)
 
-        outer_ref = Vertex2D(offset, thickness)
-        breeder_vertices[3] = outer_ref + Vertex2D(bluntness).rotate(slope_angle-np.pi)
-        breeder_vertices[4] = outer_ref + Vertex2D(bluntness)
-        breeder_vertices[5] = Vertex2D(length, thickness)
+        outer_ref = Vertex(offset, thickness)
+        breeder_vertices[3] = outer_ref + Vertex(bluntness).rotate(slope_angle-np.pi)
+        breeder_vertices[4] = outer_ref + Vertex(bluntness)
+        breeder_vertices[5] = Vertex(length, thickness)
 
         breeder_vertices = [vertex.create() for vertex in breeder_vertices]
         breeder_curves = make_loop(breeder_vertices, [1, 3])
@@ -366,47 +366,48 @@ class FirstWallComponent(ComplexComponent):
         offset = (outer_width - inner_width)/2
         slope_angle = np.arctan(2*length/offset)
 
+        # need less vertices when bluntness = 0 so treat as a special case
         if bluntness == 0:
             vertices = list(np.zeros(8))
-            vertices[0] = Vertex2D(0, 0)
+            vertices[0] = Vertex(0, 0)
 
-            vertices[1] = Vertex2D(offset, length)
-            vertices[2] = vertices[1] + Vertex2D(inner_width)
+            vertices[1] = Vertex(offset, length)
+            vertices[2] = vertices[1] + Vertex(inner_width)
 
-            vertices[3] = vertices[0] + Vertex2D(outer_width)
-            vertices[4] = vertices[3] + Vertex2D(-thickness)
+            vertices[3] = vertices[0] + Vertex(outer_width)
+            vertices[4] = vertices[3] + Vertex(-thickness)
 
-            vertices[5] = vertices[2] + Vertex2D(-thickness) + Vertex2D(thickness).rotate(-slope_angle)
-            vertices[6] = vertices[1] + Vertex2D(thickness) + Vertex2D(thickness).rotate(slope_angle-np.pi)
+            vertices[5] = vertices[2] + Vertex(-thickness) + Vertex(thickness).rotate(-slope_angle)
+            vertices[6] = vertices[1] + Vertex(thickness) + Vertex(thickness).rotate(slope_angle-np.pi)
 
-            vertices[7] = vertices[0] + Vertex2D(thickness)
+            vertices[7] = vertices[0] + Vertex(thickness)
 
             vertices = [vertex.create() for vertex in vertices]
             face_to_sweep = make_surface_from_curves(make_loop(vertices, []))
         else:
             vertices = list(np.zeros(12))
-            vertices[0] = Vertex2D(0, 0)
+            vertices[0] = Vertex(0, 0)
 
-            left_ref = Vertex2D(offset, length)
-            vertices[1] = left_ref + Vertex2D(bluntness).rotate(slope_angle-np.pi)
-            vertices[2] = left_ref + Vertex2D(bluntness)
+            left_ref = Vertex(offset, length)
+            vertices[1] = left_ref + Vertex(bluntness).rotate(slope_angle-np.pi)
+            vertices[2] = left_ref + Vertex(bluntness)
 
-            right_ref = left_ref + Vertex2D(inner_width)
-            vertices[3] = right_ref + Vertex2D(-bluntness)
-            vertices[4] = right_ref + Vertex2D(bluntness).rotate(-slope_angle)
+            right_ref = left_ref + Vertex(inner_width)
+            vertices[3] = right_ref + Vertex(-bluntness)
+            vertices[4] = right_ref + Vertex(bluntness).rotate(-slope_angle)
 
-            vertices[5] = vertices[0] + Vertex2D(outer_width)
-            vertices[6] = vertices[5] + Vertex2D(-thickness)
+            vertices[5] = vertices[0] + Vertex(outer_width)
+            vertices[6] = vertices[5] + Vertex(-thickness)
 
-            right_ref_inner = right_ref + Vertex2D(-thickness) + Vertex2D(thickness).rotate(-slope_angle)
-            vertices[7] = right_ref_inner + Vertex2D(bluntness).rotate(-slope_angle)
-            vertices[8] = right_ref_inner + Vertex2D(-bluntness)
+            right_ref_inner = right_ref + Vertex(-thickness) + Vertex(thickness).rotate(-slope_angle)
+            vertices[7] = right_ref_inner + Vertex(bluntness).rotate(-slope_angle)
+            vertices[8] = right_ref_inner + Vertex(-bluntness)
 
-            left_ref_inner = left_ref + Vertex2D(thickness) + Vertex2D(thickness).rotate(slope_angle-np.pi)
-            vertices[9] = left_ref_inner + Vertex2D(bluntness)
-            vertices[10] = left_ref_inner + Vertex2D(bluntness).rotate(slope_angle-np.pi)
+            left_ref_inner = left_ref + Vertex(thickness) + Vertex(thickness).rotate(slope_angle-np.pi)
+            vertices[9] = left_ref_inner + Vertex(bluntness)
+            vertices[10] = left_ref_inner + Vertex(bluntness).rotate(slope_angle-np.pi)
 
-            vertices[11] = vertices[0] + Vertex2D(thickness)
+            vertices[11] = vertices[0] + Vertex(thickness)
 
             vertices = [vertex.create() for vertex in vertices]
             face_to_sweep = make_surface_from_curves(make_loop(vertices, [1, 3, 7, 9]))
@@ -414,6 +415,7 @@ class FirstWallComponent(ComplexComponent):
         # line up sweep direction along y axis
         cubit.cmd(f"surface {face_to_sweep.cid} move -{outer_width/2} 0 0")
         cubit.cmd(f"surface {face_to_sweep.cid} rotate 90 about x")
+
         cubit.cmd(f"sweep surface {face_to_sweep.cid} vector 0 1 0 distance {height}")
         first_wall = get_last_geometry("volume")
         return first_wall
