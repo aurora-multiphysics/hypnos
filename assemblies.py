@@ -1,17 +1,10 @@
 from generic_classes import *
 from components import *
-from cubit_functions import from_bodies_to_volumes, get_bodies_and_volumes_from_group, delve, extract_data
+from cubit_functions import from_bodies_to_volumes, get_bodies_and_volumes_from_group, delve
 
-# generic collection of components
 class GenericComponentAssembly:
     '''
-    Generic assembly that takes a list of classnames to set up a subclass.
-
-    An assembly class specified from this will:
-
-    * have attributes corresponding to the supplied classnames
-    * store components of the specified classnames in corresponding attributes, otherwise other_components
-    * be able to fetch cubit instances of components stores in these attributes (get_cubit_instances)
+    Generic assembly to store components
     '''
     def __init__(self, classname):
         self.classname = classname
@@ -57,7 +50,7 @@ class GenericComponentAssembly:
         return instances_list
 
     # These refer to GenericCubitInstance objects
-    def get_generic_cubit_instances_from(self, class_list: list) -> list[GenericCubitInstance]:
+    def get_geometries_from(self, class_list: list) -> list[GenericCubitInstance]:
         '''Get list of geometries under given classnames
 
         :param classname_list: list of classnames to search under
@@ -77,7 +70,7 @@ class GenericComponentAssembly:
                         component_list += component.get_generic_cubit_instances_from(class_list)
         return component_list
     
-    def get_all_generic_cubit_instances(self) -> list[GenericCubitInstance]:
+    def get_all_geometries(self) -> list[GenericCubitInstance]:
         '''get every geometry stored in this assembly instance recursively
 
         :return: list of GenericCubitInstances
@@ -90,7 +83,7 @@ class GenericComponentAssembly:
             elif isinstance(component,ComplexComponent):
                 instances_list += component.subcomponents 
             elif isinstance(component, GenericComponentAssembly):
-                instances_list += component.get_all_generic_cubit_instances()
+                instances_list += component.get_all_geometries()
         return instances_list
 
     def get_volumes_list(self) -> list[int]:
@@ -130,12 +123,12 @@ class GenericComponentAssembly:
 
 class CreatedComponentAssembly(GenericComponentAssembly):
     '''
-    Assembly to handle components created natively. Takes a list of required classnames to set up a specific assembly:
-
-    * *required classnames*: instantiating will fail without at least one component of the given classnames
+    Assembly to handle components created natively. Takes a list of required classnames to set up a specific assembly. 
+    Instantiating will fail without at least one component of the given classnames.
     '''
-    def __init__(self, classname, component_list: list, required_classnames: list):
+    def __init__(self, classname, component_list: list, required_classnames: list, origin=Vertex(0,0,0)):
         self.classname = classname
+        self.origin = origin
         # this defines what components to require in every instance
         self.required_classnames = required_classnames
         self.components = []
@@ -145,6 +138,7 @@ class CreatedComponentAssembly(GenericComponentAssembly):
         self.enforce_structure()
         # store instances
         self.setup_assembly()
+        self.move(origin)
 
     def enforce_structure(self):
         '''Make sure an instance of this class contains the required components. This looks at the classnames specified in the json file'''
@@ -158,20 +152,40 @@ class CreatedComponentAssembly(GenericComponentAssembly):
         '''Add components to attributes according to their class'''
         for component_json_dict in self.component_list:
             self.components.append(json_object_reader(component_json_dict))
+    
+    def rotate(self, angle, origin: Vertex, axis=Vertex(0,0,1)):
+        '''Rotate about a point+axis (IN DEGREES)
+
+        :param angle: Angle to rotate by in degrees
+        :type angle: int
+        :param origin: centre of rotation
+        :type origin: Vertex
+        :param axis: axis to rotate about, defaults to Vertex(0,0,1)
+        :type axis: Vertex, optional
+        '''
+        if origin == "origin":
+            origin = self.origin
+    
+        for component in self.get_components():
+            if isinstance(component, CreatedComponentAssembly):
+                component.rotate(angle, origin, axis)
+            elif isinstance(component, ComplexComponent):
+                for subcomponent in component.get_subcomponents():
+                    cubit.cmd(f"rotate {subcomponent.geometry_type} {subcomponent.cid} about origin {str(origin)} direction {str(axis)} angle {angle}")
 
 class NeutronTestFacility(CreatedComponentAssembly):
     '''
-    Assmebly class that requires at least one source, blanket, and room.
+    Assembly class that requires at least one source, blanket, and room.
     Fails if specified morphology is not followed.
     Currently supports inclusive, exclusive, and overlap morphologies.
 
     On instantiating this performs the following tasks:
 
-    * Ensure the specified morphology is followed
-    * Fills room components with air
-    * Imprints and merges geometry
-    * Tracks specified materials and material interfaces
-    * Adds material interfaces to sidesets
+    * Ensures the specified morphology is followed
+    * Fills rooms with 'air'
+    * Checks that all components are inside rooms
+    * Checks for any overlaps between components
+
     '''
     def __init__(self, morphology: str, component_list: list):
         super().__init__("NTF", component_list, NEUTRON_TEST_FACILITY_REQUIREMENTS)
@@ -224,11 +238,11 @@ class NeutronTestFacility(CreatedComponentAssembly):
         '''If the morphology is inclusive/overlap, remove the parts of the blanket inside the neutron source'''
         if self.morphology in ["inclusive", "overlap"]:
             # convert everything to volumes in case of stray bodies
-            source_volumes = from_bodies_to_volumes(self.get_generic_cubit_instances_from([SourceAssembly, ExternalComponent]))
+            source_volumes = from_bodies_to_volumes(self.get_geometries_from([SourceAssembly, ExternalComponent]))
             blanket_volumes = []
             for room in self.get_components_of_class(RoomAssembly):
                 for blanket in room.get_components_of_class(BlanketAssembly):
-                    blanket_volumes += from_bodies_to_volumes(blanket.get_all_generic_cubit_instances())
+                    blanket_volumes += from_bodies_to_volumes(blanket.get_all_geometries())
             # if there is an overlap, remove it
             for source_volume in source_volumes:
                 for blanket_volume in blanket_volumes:
@@ -243,14 +257,6 @@ class NeutronTestFacility(CreatedComponentAssembly):
         overlaps = cubit.get_overlapping_volumes(volume_ids_list)
         if overlaps != ():
             raise CubismError(f"Here be overlaps: {overlaps}")
-
-    def imprint_all(self):
-        '''imprint all :)'''
-        cubit.cmd("imprint all")
-    
-    def merge_all(self):
-        '''merge all :)'''
-        cubit.cmd("merge all")
 
     def validate_rooms_and_fix_air(self):
         '''subtract all non-air geometries from all air geometries. Validate that everything is inside a room'''
@@ -268,7 +274,7 @@ class NeutronTestFacility(CreatedComponentAssembly):
         # get a union defining the 'bounding boxes' for all rooms, and a union of every geometry in the facility. 
         # as well as the union of those two unions
         room_bounding_box = unionise(room_bounding_boxes)
-        all_geometries = unionise(self.get_all_generic_cubit_instances())
+        all_geometries = unionise(self.get_all_geometries())
         union_object = unionise([room_bounding_box, all_geometries])
 
         # get volumes
@@ -305,9 +311,9 @@ class BlanketAssembly(CreatedComponentAssembly):
         super().__init__("Blanket", component_list, BLANKET_REQUIREMENTS)
 
 class BlanketShellAssembly(CreatedComponentAssembly):
-    def __init__(self, component_list: list, geometry: dict):
+    def __init__(self, component_list: list, geometry: dict, origin=Vertex(0,0,0)):
         self.geometry = geometry
-        super().__init__("blanket_shell", component_list, ["first wall", "breeder unit"])
+        super().__init__("blanket_shell", component_list, ["first wall", "breeder unit"], origin)
     
     def setup_assembly(self):
         for component in self.component_list:
@@ -328,18 +334,23 @@ class BlanketShellAssembly(CreatedComponentAssembly):
         wall_bluntness = first_wall_geometry["bluntness"]
         wall_thickness = first_wall_geometry["thickness"]
 
-        accesible_width = inner_width - 2*(horizontal_offset + wall_bluntness)
-        accesible_height = height - 2*vertical_offset
-        row_pins = int((accesible_width - 2*multiplier_side) // (pin_spacing * np.cos(np.pi/6))) + 1
+        # 'accesible' for tiling breeder units
+        accessible_width = inner_width - 2*(horizontal_offset + wall_bluntness)
+        accessible_height = height - 2*vertical_offset
+        # hexagonally tiled breeder units are broken up into 'rows' and 'columns'
+        # number of pins that will fit in a 'row'
+        row_pins = int((accessible_width - 2*multiplier_side) // (pin_spacing * np.cos(np.pi/6))) + 1
         start_horizontal = -(row_pins-1)*pin_spacing*np.cos(np.pi/6) / 2
-    
-        columns_indices = int((accesible_height - 2*multiplier_side*np.cos(np.pi/6)) // pin_spacing) + 1
-        column_pins = int((accesible_height - 2*multiplier_side*np.cos(np.pi/6)) // (pin_spacing*np.sin(np.pi/6))) + 1
-        extra_vertical_offset = ((accesible_height- 2*multiplier_side*np.cos(np.pi/6)) - (column_pins-1)*pin_spacing*np.sin(np.pi/6)) / 2
+        # each column 'index' has breeder units at 2 different heights
+        columns_indices = int((accessible_height - 2*multiplier_side*np.cos(np.pi/6)) // pin_spacing) + 1
+        # this refers to the number of distinct heights we can place breeder units
+        column_pins = int((accessible_height - 2*multiplier_side*np.cos(np.pi/6)) // (pin_spacing*np.sin(np.pi/6))) + 1
+        extra_vertical_offset = ((accessible_height- 2*multiplier_side*np.cos(np.pi/6)) - (column_pins-1)*pin_spacing*np.sin(np.pi/6)) / 2
 
         for j in range(columns_indices):
             pin_pos = Vertex(start_horizontal , height - (extra_vertical_offset + multiplier_side*np.cos(np.pi/6)), length-wall_thickness) + Vertex(0, -pin_spacing*j)
             for i in range(row_pins):
+                # stop tiling if we overshoot the number of column pins (each column index corresponds to 2 column pins)
                 if (j*2)+1 + (i%2) <= column_pins:
                     self.components.append(BreederUnitAssembly(breeder_materials, breeder_geometry, pin_pos))
                 pin_pos = pin_pos + Vertex(pin_spacing).rotate(((-1)**(i+1))*np.pi/6)
@@ -478,23 +489,6 @@ class BreederUnitAssembly(CreatedComponentAssembly):
         self.rotate(90, Vertex(0, 0, 0), Vertex(0, 1, 0))
         #self.rotate(30, Vertex(0, 0, 0), Vertex(0, 0, 1))
     
-    def rotate(self, angle, origin: Vertex, axis=Vertex(0,0,1)):
-        '''Rotate about a point+axis (IN DEGREES)
-
-        :param angle: Angle to rotate by in degrees
-        :type angle: int
-        :param origin: centre of rotation
-        :type origin: Vertex
-        :param axis: axis to rotate about, defaults to Vertex(0,0,1)
-        :type axis: Vertex, optional
-        '''
-        if origin == "origin":
-            origin = self.origin
-    
-        for component in self.get_components():
-            for subcomponent in component.get_subcomponents():
-                cubit.cmd(f"rotate {subcomponent.geometry_type} {subcomponent.cid} about origin {str(origin)} direction {str(axis)} angle {angle}")
-
     def __extract_parameters(self, parameters):
         out_dict = {}
         if type(parameters) == list:
@@ -544,6 +538,56 @@ class BreederUnitAssembly(CreatedComponentAssembly):
 
         return parameters
 
+class BlanketRingAssembly(CreatedComponentAssembly):
+    def __init__(self, component_list: list, geometry: dict):
+        self.geometry = geometry
+        super().__init__("blanket_ring", component_list, ["blanket shell"])
+    
+    def setup_assembly(self):
+        blanket_shell, min_radius, blanket_segment, blanket_length, ring_thickness = self.__get_data()
+        radius = self.__tweak_radius(blanket_segment, min_radius)
+        origin_vertices, angle_subtended = self.__get_blanket_origins(radius, blanket_segment, blanket_length)
+        for i in range(len(origin_vertices)):
+            blanket = BlanketShellAssembly(*blanket_shell, origin=origin_vertices[i])
+            blanket.rotate(-90, "origin", Vertex(0, 1, 0))
+            if i == 0:
+                start_angle = np.arctan(origin_vertices[0].y/origin_vertices[0].x)
+            else:
+                blanket.rotate(np.arctan(angle_subtended*i - start_angle))
+            self.components.append(blanket)
+        
+    def __tweak_radius(self, blanket_segment, min_radius):
+        angle_subtended = 2*np.arcsin(blanket_segment/(2*min_radius))
+        if not 2*np.pi % angle_subtended == 0:
+            segments_needed = int(2*np.pi // angle_subtended) + 1
+            angle_needed = 2*np.pi / segments_needed
+            radius = blanket_segment / (2*np.sin(angle_needed/2))
+            return radius
+        else:
+            return min_radius
+    
+    def __get_data(self):
+        geometry = self.geometry
+        min_radius = geometry["minimum radius"]
+        for component in self.component_list:
+            if component["class"] == "blanket shell":
+                blanket_shell_geometry = component["geometry"]
+                blanket_shell_components = delve(component["components"])
+                for subcomponent in blanket_shell_components:
+                    if subcomponent["class"] == "first wall":
+                        sub_geometry = subcomponent["geometry"]
+                        blanket_segment = sub_geometry["height"]
+                        blanket_length = sub_geometry["length"]
+                        ring_thickness = sub_geometry["inner width"]
+        return [blanket_shell_components, blanket_shell_geometry], min_radius, blanket_segment, blanket_length, ring_thickness
+
+    def __get_blanket_origins(self, radius, blanket_segment, blanket_length):
+        angle_subtended = 2*np.arcsin(blanket_segment/(2*radius))
+        segments_needed = int(2*np.pi/angle_subtended)
+        origin_vertex = Vertex(radius*np.cos(angle_subtended/2) + blanket_length) + Vertex(0, -blanket_segment/2)
+        origin_vertices = [origin_vertex.rotate(angle_subtended*i) for i in range(segments_needed)]
+        return origin_vertices, angle_subtended
+
 def get_all_geometries_from_components(component_list):
     instances = []
     for component in component_list:
@@ -552,15 +596,17 @@ def get_all_geometries_from_components(component_list):
         elif isinstance(component, ComplexComponent):
             instances += component.subcomponents
         elif isinstance(component, GenericComponentAssembly):
-            instances += component.get_all_generic_cubit_instances()
+            instances += component.get_all_geometries()
     return instances
 
 # wrapper for cubit.union
 def unionise(component_list: list):
-    '''
-    creates a union of all instances in given components.
-    accepts list of components.
-    returns GenericCubitInstance of created union.
+    '''creates a union of all instances in given components.
+
+    :param component_list: list of components
+    :type component_list: list
+    :return: Geometry of union
+    :rtype: GenericCubitInstance
     '''
     if len(component_list) == 0:
         raise CubismError("This is an empty list you have given me")
@@ -686,6 +732,11 @@ def json_object_reader(json_object: dict):
             material= json_object["material"]
         )
     elif json_object["class"] == "blanket shell":
+        return constructor(
+            geometry= json_object["geometry"],
+            component_list= json_object["components"]
+        )
+    elif json_object["class"] == "blanket ring":
         return constructor(
             geometry= json_object["geometry"],
             component_list= json_object["components"]

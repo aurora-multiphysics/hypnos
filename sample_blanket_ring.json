@@ -1,0 +1,9 @@
+{
+    "class": "blanket ring",
+    "geometry": {
+        "minimum radius": 580
+    },
+    "components": [
+        "sample_mini_blanket.json"
+    ]
+}

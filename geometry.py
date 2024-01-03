@@ -152,30 +152,3 @@ class Vertex():
         :rtype: np.float64
         '''
         return np.sqrt(np.square(self.x)+np.square(self.y)+np.square(self.z))
-
-class Vertex2D(Vertex):
-    '''Representation of a vertex in the x-y plane'''
-    def __init__(self, x: int, y=0) -> None:
-        super().__init__(x, y, 0)
-    
-    def __add__(self, other):
-        x = self.x + other.x
-        y = self.y + other.y
-        if isinstance(other, Vertex2D):
-            return Vertex2D(x, y)
-        else:
-            return Vertex(x, y, 0)
-    
-    def __str__(self) -> str:
-        return f"{self.x} {self.y}"
-    
-    def rotate(self, angle: int):
-        '''Rotate about the z-axis
-
-        :param angle: angle in radians
-        :type angle: int
-        :return: rotated vertex
-        :rtype: Vertex
-        '''
-        
-        return super().rotate(angle)

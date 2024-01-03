@@ -1,10 +1,9 @@
 from constants import *
 from generic_classes import *
 from materials import MaterialsTracker
-from cubit_functions import from_bodies_to_volumes, from_everything_to_bodies, cubit_cmd_check, get_last_geometry, get_id_string, to_owning_body
-from geometry import connect_vertices_straight, connect_curves_tangentially, make_surface_from_curves, make_cylinder_along, make_loop
+from cubit_functions import from_bodies_to_volumes, from_everything_to_bodies, cubit_cmd_check, get_last_geometry
+from geometry import make_surface_from_curves, make_cylinder_along, make_loop, Vertex
 import numpy as np
-from geometry import Vertex, Vertex
 
 class ExternalComponent(GenericCubitInstance):
     def __init__(self, cid: int, geometry_type: str) -> None:
@@ -220,6 +219,7 @@ class PinComponent(ComplexComponent):
         # helpful calculations
         net_thickness = inner_cladding + breeder_chamber_thickness + outer_cladding
         slope_angle = np.arctan(net_thickness / offset)
+        
         pin_vertices = list(np.zeros(12))
         
         # set up points of face-to-sweep

@@ -30,5 +30,6 @@ CLASS_MAPPING = {
     "pressure tube": "PressureTubeComponent",
     "multiplier": "MultiplierComponent",
     "first wall": "FirstWallComponent",
-    "blanket shell": "BlanketShellAssembly"
+    "blanket shell": "BlanketShellAssembly",
+    "blanket ring": "BlanketRingAssembly"
 }

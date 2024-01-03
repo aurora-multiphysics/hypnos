@@ -1,9 +1,10 @@
 import sys
-import json
+#import json
 import argparse
-from constants import CLASS_MAPPING
+#from constants import CLASS_MAPPING
 from components import *
 from assemblies import *
+from cubit_functions import extract_data
 
 if __name__ == "__main__":
     # if this is run as a python file, import cubit
@@ -13,7 +14,7 @@ if __name__ == "__main__":
 
     # accept command line arguments
     parser = argparse.ArgumentParser()
-    parser.add_argument("-f", "--file", type=str, help="name of json file", default="sample_blanket.json")
+    parser.add_argument("-f", "--file", type=str, help="name of json file", default="sample_blanket_ring.json")
     parser.add_argument("-p", "--info", action="store_true")
     args = parser.parse_args()
 
