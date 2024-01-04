@@ -546,14 +546,12 @@ class BlanketRingAssembly(CreatedComponentAssembly):
     def setup_assembly(self):
         blanket_shell, min_radius, blanket_segment, blanket_length, ring_thickness = self.__get_data()
         radius = self.__tweak_radius(blanket_segment, min_radius)
-        origin_vertices, angle_subtended = self.__get_blanket_origins(radius, blanket_segment, blanket_length)
-        for i in range(len(origin_vertices)):
-            blanket = BlanketShellAssembly(*blanket_shell, origin=origin_vertices[i])
+        midpoint_vertices, angle_subtended = self.__get_segment_midpoints(radius, blanket_segment, blanket_length)
+        for i in range(len(midpoint_vertices)):
+            blanket = BlanketShellAssembly(*blanket_shell, origin=midpoint_vertices[i]+Vertex(0, -blanket_segment/2))
             blanket.rotate(-90, "origin", Vertex(0, 1, 0))
-            if i == 0:
-                start_angle = np.arctan(origin_vertices[0].y/origin_vertices[0].x)
-            else:
-                blanket.rotate(np.arctan(angle_subtended*i - start_angle))
+            if not i==0:
+                blanket.rotate(180*(angle_subtended*i)/np.pi, midpoint_vertices[i])
             self.components.append(blanket)
         
     def __tweak_radius(self, blanket_segment, min_radius):
@@ -581,12 +579,12 @@ class BlanketRingAssembly(CreatedComponentAssembly):
                         ring_thickness = sub_geometry["inner width"]
         return [blanket_shell_components, blanket_shell_geometry], min_radius, blanket_segment, blanket_length, ring_thickness
 
-    def __get_blanket_origins(self, radius, blanket_segment, blanket_length):
+    def __get_segment_midpoints(self, radius, blanket_segment, blanket_length):
         angle_subtended = 2*np.arcsin(blanket_segment/(2*radius))
         segments_needed = int(2*np.pi/angle_subtended)
-        origin_vertex = Vertex(radius*np.cos(angle_subtended/2) + blanket_length) + Vertex(0, -blanket_segment/2)
-        origin_vertices = [origin_vertex.rotate(angle_subtended*i) for i in range(segments_needed)]
-        return origin_vertices, angle_subtended
+        midpoint_vertex = Vertex(radius*np.cos(angle_subtended/2) + blanket_length)
+        midpoint_vertices = [midpoint_vertex.rotate(angle_subtended*i) for i in range(segments_needed)]
+        return midpoint_vertices, angle_subtended
 
 def get_all_geometries_from_components(component_list):
     instances = []

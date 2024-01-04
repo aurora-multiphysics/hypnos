@@ -219,7 +219,7 @@ class PinComponent(ComplexComponent):
         # helpful calculations
         net_thickness = inner_cladding + breeder_chamber_thickness + outer_cladding
         slope_angle = np.arctan(net_thickness / offset)
-        
+
         pin_vertices = list(np.zeros(12))
         
         # set up points of face-to-sweep
