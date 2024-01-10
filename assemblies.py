@@ -1,6 +1,7 @@
 from generic_classes import *
 from components import *
 from cubit_functions import from_bodies_to_volumes, get_bodies_and_volumes_from_group, delve
+from constants import STANDARD_COMPONENTS
 
 class GenericComponentAssembly:
     '''
@@ -305,57 +306,11 @@ class NeutronTestFacility(CreatedComponentAssembly):
         for surrounding_walls in self.get_components_of_class(SurroundingWallsComponent):
             surrounding_walls.air_as_volumes()
 
+# replace this at some point
 class BlanketAssembly(CreatedComponentAssembly):
     '''Assembly class that requires at least one breeder and structure. Additionally stores coolants separately'''
     def __init__(self, component_list: list):
         super().__init__("Blanket", component_list, BLANKET_REQUIREMENTS)
-
-class BlanketShellAssembly(CreatedComponentAssembly):
-    def __init__(self, component_list: list, geometry: dict, origin=Vertex(0,0,0)):
-        self.geometry = geometry
-        super().__init__("blanket_shell", component_list, ["first wall", "breeder unit"], origin)
-    
-    def setup_assembly(self):
-        for component in self.component_list:
-            if component["class"] == "first wall":
-                first_wall_geometry = component["geometry"]
-                first_wall_material = component["material"]
-            elif component["class"] == "breeder unit":
-                breeder_materials = component["materials"]
-                breeder_geometry = component["geometry"]
-                multiplier_side = breeder_geometry["multiplier side"]
-        
-        vertical_offset = self.geometry["vertical offset"]
-        horizontal_offset = self.geometry["horizontal offset"]
-        pin_spacing = self.geometry["pin spacing"]
-        inner_width = first_wall_geometry["inner width"]
-        length = first_wall_geometry["length"]
-        height = first_wall_geometry["height"]
-        wall_bluntness = first_wall_geometry["bluntness"]
-        wall_thickness = first_wall_geometry["thickness"]
-
-        # 'accesible' for tiling breeder units
-        accessible_width = inner_width - 2*(horizontal_offset + wall_bluntness)
-        accessible_height = height - 2*vertical_offset
-        # hexagonally tiled breeder units are broken up into 'rows' and 'columns'
-        # number of pins that will fit in a 'row'
-        row_pins = int((accessible_width - 2*multiplier_side) // (pin_spacing * np.cos(np.pi/6))) + 1
-        start_horizontal = -(row_pins-1)*pin_spacing*np.cos(np.pi/6) / 2
-        # each column 'index' has breeder units at 2 different heights
-        columns_indices = int((accessible_height - 2*multiplier_side*np.cos(np.pi/6)) // pin_spacing) + 1
-        # this refers to the number of distinct heights we can place breeder units
-        column_pins = int((accessible_height - 2*multiplier_side*np.cos(np.pi/6)) // (pin_spacing*np.sin(np.pi/6))) + 1
-        extra_vertical_offset = ((accessible_height- 2*multiplier_side*np.cos(np.pi/6)) - (column_pins-1)*pin_spacing*np.sin(np.pi/6)) / 2
-
-        for j in range(columns_indices):
-            pin_pos = Vertex(start_horizontal , height - (extra_vertical_offset + multiplier_side*np.cos(np.pi/6)), length-wall_thickness) + Vertex(0, -pin_spacing*j)
-            for i in range(row_pins):
-                # stop tiling if we overshoot the number of column pins (each column index corresponds to 2 column pins)
-                if (j*2)+1 + (i%2) <= column_pins:
-                    self.components.append(BreederUnitAssembly(breeder_materials, breeder_geometry, pin_pos))
-                pin_pos = pin_pos + Vertex(pin_spacing).rotate(((-1)**(i+1))*np.pi/6)
-            
-        self.components.append(FirstWallComponent(first_wall_geometry, first_wall_material))
 
 class RoomAssembly(CreatedComponentAssembly):
     '''Assembly class that requires surrounding walls and a blanket. Fills with air. Can add walls.'''
@@ -446,7 +401,9 @@ class SourceAssembly(ExternalComponentAssembly):
     def __init__(self, external_filepath: str, external_groupname: str, manufacturer: str):
         super().__init__(external_filepath, external_groupname, manufacturer)
 
+# more detailed components
 class BreederUnitAssembly(CreatedComponentAssembly):
+    '''Pin filled with breeder capped by a filter disc. Enclosed in a pressure surrounded by a hexagonal prism of multiplier'''
     def __init__(self, materials_dict: dict, geometry_dict: dict, origin=Vertex(0,0,0)):
         self.components = []
         self.classname = "breeder_unit"
@@ -538,7 +495,57 @@ class BreederUnitAssembly(CreatedComponentAssembly):
 
         return parameters
 
+class BlanketShellAssembly(CreatedComponentAssembly):
+    '''First wall with tiled breeder units'''
+    def __init__(self, component_list: list, geometry: dict, origin=Vertex(0,0,0)):
+        self.geometry = geometry
+        super().__init__("blanket_shell", component_list, ["first wall", "breeder unit"], origin)
+    
+    def setup_assembly(self):
+        for component in self.component_list:
+            if component["class"] == "first wall":
+                first_wall_geometry = component["geometry"]
+                first_wall_material = component["material"]
+            elif component["class"] == "breeder unit":
+                breeder_materials = component["materials"]
+                breeder_geometry = component["geometry"]
+                multiplier_side = breeder_geometry["multiplier side"]
+        
+        vertical_offset = self.geometry["vertical offset"]
+        horizontal_offset = self.geometry["horizontal offset"]
+        pin_spacing = self.geometry["pin spacing"]
+        inner_width = first_wall_geometry["inner width"]
+        length = first_wall_geometry["length"]
+        height = first_wall_geometry["height"]
+        wall_bluntness = first_wall_geometry["bluntness"]
+        wall_thickness = first_wall_geometry["thickness"]
+
+        # 'accessible' for tiling breeder units
+        accessible_width = inner_width - 2*(horizontal_offset + wall_bluntness)
+        accessible_height = height - 2*vertical_offset
+        # hexagonally tiled breeder units are broken up into 'rows' and 'columns'
+        # number of pins that will fit in a 'row'
+        row_pins = int((accessible_width - 2*multiplier_side) // (pin_spacing * np.cos(np.pi/6))) + 1
+        horizontal_start_pos = -(row_pins-1)*pin_spacing*np.cos(np.pi/6) / 2
+        # each column 'index' has breeder units at 2 different heights
+        columns_indices = int((accessible_height - 2*multiplier_side*np.cos(np.pi/6)) // pin_spacing) + 1
+        # number of distinct heights we can place breeder units
+        distinct_pin_heights = int((accessible_height - 2*multiplier_side*np.cos(np.pi/6)) // (pin_spacing*np.sin(np.pi/6))) + 1
+        centering_vertical_offset = ((accessible_height- 2*multiplier_side*np.cos(np.pi/6)) - (distinct_pin_heights-1)*pin_spacing*np.sin(np.pi/6)) / 2
+        vertical_start_pos = height - (vertical_offset + centering_vertical_offset + multiplier_side*np.cos(np.pi/6))
+
+        for j in range(columns_indices):
+            pin_pos = Vertex(horizontal_start_pos , vertical_start_pos, length-wall_thickness) + Vertex(0, -pin_spacing*j)
+            for i in range(row_pins):
+                # stop tiling if we overshoot the number of column pins (each column index corresponds to 2 column pins)
+                if (j*2)+1 + (i%2) <= distinct_pin_heights:
+                    self.components.append(BreederUnitAssembly(breeder_materials, breeder_geometry, pin_pos))
+                pin_pos = pin_pos + Vertex(pin_spacing).rotate(((-1)**(i+1))*np.pi/6)
+            
+        self.components.append(FirstWallComponent(first_wall_geometry, first_wall_material))
+
 class BlanketRingAssembly(CreatedComponentAssembly):
+    '''Makes a ring of blanket shells'''
     def __init__(self, component_list: list, geometry: dict):
         self.geometry = geometry
         super().__init__("blanket_ring", component_list, ["blanket shell"])
@@ -550,8 +557,7 @@ class BlanketRingAssembly(CreatedComponentAssembly):
         for i in range(len(midpoint_vertices)):
             blanket = BlanketShellAssembly(*blanket_shell, origin=midpoint_vertices[i]+Vertex(0, -blanket_segment/2))
             blanket.rotate(-90, "origin", Vertex(0, 1, 0))
-            if not i==0:
-                blanket.rotate(180*(angle_subtended*i)/np.pi, midpoint_vertices[i])
+            blanket.rotate(180*(angle_subtended*i)/np.pi, midpoint_vertices[i])
             self.components.append(blanket)
         
     def __tweak_radius(self, blanket_segment, min_radius):
@@ -694,12 +700,7 @@ def json_object_reader(json_object: dict):
             material= json_object["material"],
             air= json_object["air"]
         )
-    elif json_object["class"] == "breeder":
-        return constructor(
-            geometry= json_object["geometry"],
-            material= json_object["material"]
-        )
-    elif json_object["class"] == "structure":
+    elif json_object["class"] in STANDARD_COMPONENTS:
         return constructor(
             geometry= json_object["geometry"],
             material= json_object["material"]
@@ -708,26 +709,6 @@ def json_object_reader(json_object: dict):
         return constructor(
             materials_dict = json_object["materials"],
             geometry_dict = json_object["geometry"]
-        )
-    elif json_object["class"] == "pin":
-        return constructor(
-            geometry = json_object["geometry"],
-            material = json_object["material"]
-        )
-    elif json_object["class"] == "pressure tube":
-        return constructor(
-            geometry = json_object["geometry"],
-            material = json_object["material"]
-        )
-    elif json_object["class"] == "multiplier":
-        return constructor(
-            geometry = json_object["geometry"],
-            material = json_object["material"]
-        )
-    elif json_object["class"] == "first wall":
-        return constructor(
-            geometry= json_object["geometry"],
-            material= json_object["material"]
         )
     elif json_object["class"] == "blanket shell":
         return constructor(

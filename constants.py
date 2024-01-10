@@ -33,3 +33,6 @@ CLASS_MAPPING = {
     "blanket shell": "BlanketShellAssembly",
     "blanket ring": "BlanketRingAssembly"
 }
+
+# components requiring only geometry and material parameters
+STANDARD_COMPONENTS = ["first wall", "multiplier", "pressure tube", "pin", "structure", "breeder", ]
