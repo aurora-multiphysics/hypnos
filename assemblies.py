@@ -88,7 +88,7 @@ class GenericComponentAssembly:
         return instances_list
 
     def get_volumes_list(self) -> list[int]:
-        volumes_list = from_bodies_to_volumes(self.get_all_generic_cubit_instances)
+        volumes_list = from_bodies_to_volumes(self.get_all_geometries())
         return [volume.cid for volume in volumes_list]
 
     def get_components(self) -> list:
@@ -254,7 +254,7 @@ class NeutronTestFacility(CreatedComponentAssembly):
             print(f"{self.morphology} morphology applied")
 
     def check_for_overlaps(self):
-        volume_ids_list = [i.cid for i in from_bodies_to_volumes(self.get_all_generic_cubit_instances())]
+        volume_ids_list = [i.cid for i in from_bodies_to_volumes(self.get_all_geometries())]
         overlaps = cubit.get_overlapping_volumes(volume_ids_list)
         if overlaps != ():
             raise CubismError(f"Here be overlaps: {overlaps}")
