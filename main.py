@@ -6,25 +6,6 @@ from components import *
 from assemblies import *
 from cubit_functions import extract_data
 
-if __name__ == "__main__":
-    # if this is run as a python file, import cubit
-    sys.path.append('/opt/Coreform-Cubit-2023.8/bin')
-    import cubit
-    cubit.init(['cubit', '-nojournal'])
-
-    # accept command line arguments
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-f", "--file", type=str, help="name of json file", default="sample_blanket_ring.json")
-    parser.add_argument("-p", "--info", action="store_true")
-    args = parser.parse_args()
-
-    # File to look at
-    JSON_FILENAME = args.file
-elif __name__ == "__coreformcubit__":
-    # if this is cubit, reset first
-    cubit.cmd("reset")
-    JSON_FILENAME = "sample_morphology.json"
-
 class ComponentTracker:
     '''Adds components to cubit groups recursively'''
     # this counter is to ensure every component is named uniquely
@@ -101,9 +82,22 @@ def read_file(filename):
     raise CubismError("File not in readable format")
 
 if __name__ == '__coreformcubit__':
-    read_file(JSON_FILENAME)
+    cubit.cmd("reset")
+    read_file("sample_morphology.json")
 elif __name__ == "__main__":
-    universe = read_file(JSON_FILENAME)
+    # accept command line arguments
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-f", "--file", type=str, help="name of json file describing geometry", default="sample_blanket_ring.json")
+    parser.add_argument("-c", "--cubitpath", type=str, help="path of the cubit python library", default='/opt/Coreform-Cubit-2023.8/bin')
+    parser.add_argument("-p", "--info", action="store_true")
+    args = parser.parse_args()
+
+    # if this is run as a python file, import cubit
+    sys.path.append(args.cubitpath)
+    import cubit
+    cubit.init(['cubit', '-nojournal'])
+
+    universe = read_file(args.file)
     # track all components, materials, and boundaries as groups
     for component in universe:
         print(f"components being tracked in root {ComponentTracker(component).root_name}")
@@ -117,7 +111,6 @@ elif __name__ == "__main__":
     # print this information if cli flag used
     if args.info:
         MaterialsTracker().print_info()
-    pass
-#       cubit.cmd('volume all scheme auto')
-#       cubit.cmd('mesh volume all')
-#       cubit.cmd('export genesis "testblob.g"')
+#    cubit.cmd('volume all scheme auto')
+#    cubit.cmd('mesh volume all')
+#    cubit.cmd('export genesis "testblob.g"')
