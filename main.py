@@ -89,7 +89,7 @@ elif __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--file", type=str, help="name of json file describing geometry", default="sample_blanket_ring.json")
     parser.add_argument("-c", "--cubitpath", type=str, help="path of the cubit python library", default='/opt/Coreform-Cubit-2023.8/bin')
-    parser.add_argument("-p", "--info", action="store_true")
+    parser.add_argument("-i", "--info", action="store_true")
     args = parser.parse_args()
 
     # if this is run as a python file, import cubit
