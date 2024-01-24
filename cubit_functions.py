@@ -170,7 +170,6 @@ def from_everything_to_bodies(component_list: list):
 
 # unionise is in Assemblies.py as it needs to know about the ComplexComponent and Assembly classes
 
-
 def extract_data(filename):
     with open(filename) as jsonFile:
         data = jsonFile.read()
