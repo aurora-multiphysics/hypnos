@@ -15,16 +15,16 @@ class ExternalComponent(GenericCubitInstance):
 class ComplexComponent:
     # stores information about what materials exist. geometries can then be found from groups with the same name
     complexComponentMaterials = MaterialsTracker()
-    def __init__(self, geometry, classname, material, origin= Vertex(0, 0, 0)):
+    def __init__(self, classname, json_object: dict):
         self.subcomponents = []
         self.classname = classname
-        self.geometry = geometry
-        self.material = material
-        self.origin = origin
+        self.geometry = json_object["geometry"]
+        self.material = json_object["material"]
+        self.origin = json_object["origin"] if "origin" in json_object.keys() else Vertex(0)
 
         self.add_to_subcomponents(self.make_geometry())
-        if not origin == Vertex(0,0,0):
-            self.move(origin)
+        if not self.origin == Vertex(0,0,0):
+            self.move(self.origin)
         # add geometries to material tracker
         for subcomponent in self.subcomponents:
             self.complexComponentMaterials.add_geometry_to_material(subcomponent, self.material)
@@ -108,12 +108,12 @@ class ComplexComponent:
 
 class SurroundingWallsComponent(ComplexComponent):
     '''Surrounding walls, filled with air'''
-    def __init__(self, geometry: dict, material, air):
-        super().__init__(geometry, "surrounding_walls", material)
+    def __init__(self, json_object: dict):
+        super().__init__("surrounding_walls", json_object)
 
         # fill room with air
-        self.air_material = air
-        self.air = AirComponent(self.geometry, air) if air != "none" else False
+        self.air_material = json_object["air"]
+        self.air = AirComponent(self.geometry, self.air_material) if self.air_material != "none" else False
     
     def is_air(self):
         '''Does this room have air in it?'''
@@ -141,22 +141,22 @@ class SurroundingWallsComponent(ComplexComponent):
 
 class AirComponent(ComplexComponent):
     '''Air, stored as body'''
-    def __init__(self, geometry, material):
-        super().__init__(geometry, "air", material)
+    def __init__(self, json_object: dict):
+        super().__init__("air", json_object)
         # cubit subtract only keeps body ID invariant, so i will store air as a body
         self.as_bodies()
 
 class BreederComponent(ComplexComponent):
-    def __init__(self, geometry, material):
-        super().__init__(geometry, "breeder", material)
+    def __init__(self, json_object):
+        super().__init__("breeder", json_object)
 
 class StructureComponent(ComplexComponent):
-    def __init__(self, geometry, material):
-        super().__init__(geometry, "structure", material)
+    def __init__(self, json_object):
+        super().__init__("structure", json_object)
 
 class WallComponent(ComplexComponent):
-    def __init__(self, geometry, material):
-        super().__init__(geometry, "wall", material)
+    def __init__(self, json_object):
+        super().__init__("wall", json_object)
 
     def make_geometry(self):
         # get variables
@@ -202,8 +202,8 @@ class WallComponent(ComplexComponent):
         return GenericCubitInstance(wall.cid, wall.geometry_type)            
 
 class PinComponent(ComplexComponent):
-    def __init__(self, geometry, material):
-        super().__init__(geometry, "pin", material)
+    def __init__(self, json_object):
+        super().__init__("pin", json_object)
     
     def make_geometry(self):
         # get params
@@ -255,8 +255,8 @@ class PinComponent(ComplexComponent):
         return pin
     
 class PressureTubeComponent(ComplexComponent):
-    def __init__(self, geometry, material):
-        super().__init__(geometry, "pressure_tube", material)
+    def __init__(self, json_object):
+        super().__init__("pressure_tube", json_object)
     
     def make_geometry(self):
         length = self.geometry["length"]
@@ -274,8 +274,8 @@ class PressureTubeComponent(ComplexComponent):
         return tube
 
 class FilterDiskComponent(ComplexComponent):
-    def __init__(self, geometry, material):
-        super().__init__(geometry, "filter_disk", material)
+    def __init__(self, json_object):
+        super().__init__("filter_disk", json_object)
     
     def make_geometry(self):
         length = self.geometry["length"]
@@ -292,8 +292,8 @@ class FilterDiskComponent(ComplexComponent):
         return tube
 
 class MultiplierComponent(ComplexComponent):
-    def __init__(self, geometry, material):
-        super().__init__(geometry, "multiplier", material)
+    def __init__(self, json_object):
+        super().__init__("multiplier", json_object)
     
     def make_geometry(self):
         inner_radius = self.geometry["inner radius"]
@@ -318,8 +318,8 @@ class MultiplierComponent(ComplexComponent):
         return multiplier
 
 class BreederChamber(ComplexComponent):
-    def __init__(self, geometry, material):
-        super().__init__(geometry, "breeder", material)
+    def __init__(self, json_object):
+        super().__init__("breeder", json_object)
     
     def make_geometry(self):
         inner_radius = self.geometry["inner radius"]
@@ -351,8 +351,8 @@ class BreederChamber(ComplexComponent):
         return breeder
 
 class FirstWallComponent(ComplexComponent):
-    def __init__(self, geometry, material):
-        super().__init__(geometry, "first_wall", material)
+    def __init__(self, json_object):
+        super().__init__("first_wall", json_object)
     
     def make_geometry(self):
         geometry = self.geometry

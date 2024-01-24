@@ -127,19 +127,19 @@ class CreatedComponentAssembly(GenericComponentAssembly):
     Assembly to handle components created natively. Takes a list of required classnames to set up a specific assembly. 
     Instantiating will fail without at least one component of the given classnames.
     '''
-    def __init__(self, classname, component_list: list, required_classnames: list, origin=Vertex(0,0,0)):
+    def __init__(self, classname, required_classnames: list, json_object: dict):
         self.classname = classname
-        self.origin = origin
+        self.origin = json_object["origin"] if "origin" in json_object.keys() else Vertex(0)
         # this defines what components to require in every instance
         self.required_classnames = required_classnames
         self.components = []
-        self.component_list = delve(component_list)
+        self.component_list = delve(json_object["components"])
 
         # enforce given component_list based on required_classnames
         self.enforce_structure()
         # store instances
         self.setup_assembly()
-        self.move(origin)
+        self.move(self.origin)
 
     def enforce_structure(self):
         '''Make sure an instance of this class contains the required components. This looks at the classnames specified in the json file'''
@@ -152,7 +152,7 @@ class CreatedComponentAssembly(GenericComponentAssembly):
     def setup_assembly(self):
         '''Add components to attributes according to their class'''
         for component_json_dict in self.component_list:
-            self.components.append(json_object_reader(component_json_dict))
+            self.components.append(construct(component_json_dict))
     
     def rotate(self, angle, origin: Vertex, axis=Vertex(0,0,1)):
         '''Rotate about a point+axis (IN DEGREES)
@@ -188,10 +188,10 @@ class NeutronTestFacility(CreatedComponentAssembly):
     * Checks for any overlaps between components
 
     '''
-    def __init__(self, morphology: str, component_list: list):
-        super().__init__("NTF", component_list, NEUTRON_TEST_FACILITY_REQUIREMENTS)
+    def __init__(self, json_object):
+        super().__init__("NTF", NEUTRON_TEST_FACILITY_REQUIREMENTS, json_object)
         # this defines what morphology will be enforced later
-        self.morphology = morphology
+        self.morphology = json_object["morphology"]
         self.enforce_facility_morphology()
         self.apply_facility_morphology()
         self.validate_rooms_and_fix_air()
@@ -309,12 +309,13 @@ class NeutronTestFacility(CreatedComponentAssembly):
 # replace this at some point
 class BlanketAssembly(CreatedComponentAssembly):
     '''Assembly class that requires at least one breeder and structure. Additionally stores coolants separately'''
-    def __init__(self, component_list: list):
-        super().__init__("Blanket", component_list, BLANKET_REQUIREMENTS)
+    def __init__(self, json_object: dict):
+        super().__init__("Blanket", BLANKET_REQUIREMENTS, json_object)
 
 class RoomAssembly(CreatedComponentAssembly):
     '''Assembly class that requires surrounding walls and a blanket. Fills with air. Can add walls.'''
-    def __init__(self, component_list: list):
+    def __init__(self, json_object):
+        component_list = json_object["components"]
 
         # Take out any walls from component list
         json_walls = []
@@ -322,9 +323,10 @@ class RoomAssembly(CreatedComponentAssembly):
             if json_component["class"] == "wall":
                 json_walls.append(json_component)
                 component_list.remove(json_component)
+        json_object["components"] = component_list
 
         # set up rest of components
-        super().__init__("Room", component_list, ROOM_REQUIREMENTS)
+        super().__init__("Room", ROOM_REQUIREMENTS, json_object)
         self.setup_walls(json_walls)
 
     def setup_walls(self, json_walls):
@@ -336,11 +338,11 @@ class RoomAssembly(CreatedComponentAssembly):
                 wall_material = json_wall["material"] if "material" in json_wall.keys() else surrounding_walls.material
                 for wall_key in json_wall["geometry"].keys():
                     wall_geometry["wall " + wall_key] = json_wall["geometry"][wall_key]
-                self.components.append(WallComponent(wall_geometry, wall_material))
+                self.components.append(WallComponent({"geometry": wall_geometry, "material": wall_material}))
                 # remove air
                 for air in surrounding_walls.get_air_subcomponents():
-                    temp_wall = WallComponent(wall_geometry, wall_material)
-                    for t_w in temp_wall.subcomponents:
+                    temp_wall = WallComponent({"geometry": wall_geometry, "material": wall_material})
+                    for t_w in temp_wall.get_subcomponents():
                         cubit.cmd(f"subtract {t_w.geometry_type} {t_w.cid} from {air.geometry_type} {air.cid}")
 
 class ExternalComponentAssembly(GenericComponentAssembly):
@@ -351,11 +353,11 @@ class ExternalComponentAssembly(GenericComponentAssembly):
     - external_groupname: name of group to add external components to
     - manufacturer
     '''
-    def __init__(self, external_filepath: str, external_groupname: str, manufacturer: str):
+    def __init__(self, json_object: dict):
         super().__init__(classname="ExternalAssembly")
-        self.group = external_groupname
-        self.filepath = external_filepath
-        self.manufacturer = manufacturer
+        self.group = json_object["group"]
+        self.filepath = json_object["filepath"]
+        self.manufacturer = json_object["manufacturer"]
         self.import_file()
         self.group_id = self.get_group_id()
         self.add_volumes_and_bodies()
@@ -398,18 +400,18 @@ class ExternalComponentAssembly(GenericComponentAssembly):
 # in case we need to do source-specific actions at some point
 class SourceAssembly(ExternalComponentAssembly):
     '''Assembly of external components, created when a json object has class= source'''
-    def __init__(self, external_filepath: str, external_groupname: str, manufacturer: str):
-        super().__init__(external_filepath, external_groupname, manufacturer)
+    def __init__(self, json_object: dict):
+        super().__init__(json_object)
 
 # more detailed components
 class BreederUnitAssembly(CreatedComponentAssembly):
     '''Pin filled with breeder capped by a filter disc. Enclosed in a pressure surrounded by a hexagonal prism of multiplier'''
-    def __init__(self, materials_dict: dict, geometry_dict: dict, origin=Vertex(0,0,0)):
+    def __init__(self, json_object: dict):
         self.components = []
         self.classname = "breeder_unit"
-        self.materials = materials_dict
-        self.geometry = geometry_dict
-        self.origin = origin
+        self.materials = json_object["materials"]
+        self.geometry = json_object["geometry"]
+        self.origin = json_object["origin"] if "origin" in json_object.keys() else Vertex(0)
         self.setup_assembly()
         self.move(self.origin)
     
@@ -432,11 +434,11 @@ class BreederUnitAssembly(CreatedComponentAssembly):
         chamber_spacing = breeder_geometry["chamber offset"] + pressure_tube_gap
         filter_disk_spacing = pressure_tube_gap + self.geometry["offset"] + self.geometry["outer length"] - filter_disk_geometry["length"]
 
-        pin = PinComponent(pin_geometry, self.materials["pin"])
-        pressure_tube = PressureTubeComponent(pressure_tube_geometry, self.materials["pressure tube"])
-        multiplier = MultiplierComponent(multiplier_geometry, self.materials["multiplier"])
-        breeder = BreederChamber(breeder_geometry, self.materials["breeder"])
-        filter_disk = FilterDiskComponent(filter_disk_geometry, self.materials["filter disk"])
+        pin = PinComponent({"geometry":pin_geometry, "material":self.materials["pin"]})
+        pressure_tube = PressureTubeComponent({"geometry":pressure_tube_geometry, "material":self.materials["pressure tube"]})
+        multiplier = MultiplierComponent({"geometry":multiplier_geometry, "material":self.materials["multiplier"]})
+        breeder = BreederChamber({"geometry":breeder_geometry, "material":self.materials["breeder"]})
+        filter_disk = FilterDiskComponent({"geometry": filter_disk_geometry, "material": self.materials["filter disk"]})
 
         cubit.move(pin.get_subcomponents()[0].cubitInstance, [pressure_tube_gap, 0, 0])
         cubit.move(breeder.get_subcomponents()[0].cubitInstance, [chamber_spacing, 0, 0])
@@ -497,15 +499,15 @@ class BreederUnitAssembly(CreatedComponentAssembly):
 
 class BlanketShellAssembly(CreatedComponentAssembly):
     '''First wall with tiled breeder units'''
-    def __init__(self, component_list: list, geometry: dict, origin=Vertex(0,0,0)):
-        self.geometry = geometry
-        super().__init__("blanket_shell", component_list, ["first wall", "breeder unit"], origin)
+    def __init__(self, json_object):
+        self.geometry = json_object["geometry"]
+        super().__init__("blanket_shell", ["first wall", "breeder unit"], json_object)
     
     def setup_assembly(self):
         for component in self.component_list:
             if component["class"] == "first wall":
-                first_wall_geometry = component["geometry"]
-                first_wall_material = component["material"]
+                first_wall_object = component
+                first_wall_geometry = first_wall_object["geometry"]
             elif component["class"] == "breeder unit":
                 breeder_materials = component["materials"]
                 breeder_geometry = component["geometry"]
@@ -539,23 +541,24 @@ class BlanketShellAssembly(CreatedComponentAssembly):
             for i in range(row_pins):
                 # stop tiling if we overshoot the number of column pins (each column index corresponds to 2 column pins)
                 if (j*2)+1 + (i%2) <= distinct_pin_heights:
-                    self.components.append(BreederUnitAssembly(breeder_materials, breeder_geometry, pin_pos))
+                    self.components.append(BreederUnitAssembly({"materials":breeder_materials, "geometry":breeder_geometry, "origin":pin_pos}))
                 pin_pos = pin_pos + Vertex(pin_spacing).rotate(((-1)**(i+1))*np.pi/6)
             
-        self.components.append(FirstWallComponent(first_wall_geometry, first_wall_material))
+        self.components.append(FirstWallComponent(first_wall_object))
 
 class BlanketRingAssembly(CreatedComponentAssembly):
     '''Makes a ring of blanket shells'''
-    def __init__(self, component_list: list, geometry: dict):
-        self.geometry = geometry
-        super().__init__("blanket_ring", component_list, ["blanket shell"])
+    def __init__(self, json_object: dict):
+        self.geometry = json_object["geometry"]
+        super().__init__("blanket_ring", ["blanket shell"], json_object)
     
     def setup_assembly(self):
         blanket_shell, min_radius, blanket_segment, blanket_length, ring_thickness = self.__get_data()
         radius = self.__tweak_radius(blanket_segment, min_radius)
         midpoint_vertices, angle_subtended = self.__get_segment_midpoints(radius, blanket_segment, blanket_length)
         for i in range(len(midpoint_vertices)):
-            blanket = BlanketShellAssembly(*blanket_shell, origin=midpoint_vertices[i]+Vertex(0, -blanket_segment/2))
+            blanket_shell["origin"] = midpoint_vertices[i]+Vertex(0, -blanket_segment/2)
+            blanket = BlanketShellAssembly(blanket_shell)
             blanket.rotate(-90, "origin", Vertex(0, 1, 0))
             blanket.rotate(180*(angle_subtended*i)/np.pi, midpoint_vertices[i])
             self.components.append(blanket)
@@ -573,17 +576,18 @@ class BlanketRingAssembly(CreatedComponentAssembly):
     def __get_data(self):
         geometry = self.geometry
         min_radius = geometry["minimum radius"]
+        blanket_shell = {}
         for component in self.component_list:
             if component["class"] == "blanket shell":
-                blanket_shell_geometry = component["geometry"]
-                blanket_shell_components = delve(component["components"])
-                for subcomponent in blanket_shell_components:
+                blanket_shell["geometry"] = component["geometry"]
+                blanket_shell["components"] = delve(component["components"])
+                for subcomponent in blanket_shell["components"]:
                     if subcomponent["class"] == "first wall":
                         sub_geometry = subcomponent["geometry"]
                         blanket_segment = sub_geometry["height"]
                         blanket_length = sub_geometry["length"]
                         ring_thickness = sub_geometry["inner width"]
-        return [blanket_shell_components, blanket_shell_geometry], min_radius, blanket_segment, blanket_length, ring_thickness
+        return blanket_shell, min_radius, blanket_segment, blanket_length, ring_thickness
 
     def __get_segment_midpoints(self, radius, blanket_segment, blanket_length):
         angle_subtended = 2*np.arcsin(blanket_segment/(2*radius))
@@ -643,80 +647,6 @@ def unionise(component_list: list):
     else:
         raise CubismError("Something unknowable was created in this union. Or worse, a surface.")
 
-def get_constructor_from_name(classname: str):
-    '''Get component constructor using it's json class name
-
-    :param classname: json class name
-    :type classname: str
-    :return: constructor for component
-    '''
-    return globals()[CLASS_MAPPING[classname]]
-
-# map classnames to instances - there should be a better way to do this?
-def json_object_reader(json_object: dict):
-    '''parse json representation of a component and set up class instance
-
-    :param json_object: json representation of a component. 
-    :type json_object: dict
-    :return: Instance of a native class, chosen according to the 'class' value provided
-    :rtype: various native classes
-    '''
-
-    constructor = get_constructor_from_name(json_object["class"])
-    if json_object["class"] == "complex":
-        return constructor(
-            geometry = json_object["geometry"],
-            classname = "complex",
-            material = json_object["material"]
-        )
-    elif json_object["class"] == "external":
-        return constructor(
-            external_filepath= json_object["filepath"],
-            external_groupname= json_object["group"],
-            manufacturer = json_object["manufacturer"],
-        )
-    elif json_object["class"] == "source":
-        return constructor(
-            external_filepath= json_object["filepath"],
-            external_groupname= json_object["group"],
-            manufacturer = json_object["manufacturer"],
-        )
-    elif json_object["class"] == "neutron test facility":
-        return constructor(
-            morphology= json_object["morphology"],
-            component_list= list(json_object["components"])
-        )
-    elif json_object["class"] == "blanket":
-        return constructor(
-            component_list= json_object["components"]
-        )
-    elif json_object["class"] == "room":
-        return constructor(
-            component_list= json_object["components"]
-        )
-    elif json_object["class"] == "surrounding_walls":
-        return constructor(
-            geometry= json_object["geometry"],
-            material= json_object["material"],
-            air= json_object["air"]
-        )
-    elif json_object["class"] in STANDARD_COMPONENTS:
-        return constructor(
-            geometry= json_object["geometry"],
-            material= json_object["material"]
-        )
-    elif json_object["class"] == "breeder unit":
-        return constructor(
-            materials_dict = json_object["materials"],
-            geometry_dict = json_object["geometry"]
-        )
-    elif json_object["class"] == "blanket shell":
-        return constructor(
-            geometry= json_object["geometry"],
-            component_list= json_object["components"]
-        )
-    elif json_object["class"] == "blanket ring":
-        return constructor(
-            geometry= json_object["geometry"],
-            component_list= json_object["components"]
-        )
+def construct(json_object):
+    constructor = globals()[CLASS_MAPPING[json_object["class"]]]
+    return constructor(json_object)

@@ -13,10 +13,10 @@ def read_file(filename):
     universe = []
     if type(objects) == list:
         for json_object in objects:
-            universe.append(json_object_reader(json_object))
+            universe.append(construct(json_object))
         return universe
     elif type(objects) == dict:
-        universe.append(json_object_reader(objects))
+        universe.append(construct(objects))
         return universe
     raise CubismError("File not in readable format")
 
