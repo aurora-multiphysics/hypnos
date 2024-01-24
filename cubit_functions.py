@@ -1,6 +1,12 @@
 from generic_classes import *
 import json
 
+def initialise_cubit():
+    cubit.init(['cubit', '-nojournal'])
+
+def reset_cubit():
+    cubit.cmd("reset")
+
 def get_last_geometry(geometry_type: str):
     '''Get last geometry of given type
 
