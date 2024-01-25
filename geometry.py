@@ -1,4 +1,4 @@
-from generic_classes import GenericCubitInstance, CubismError
+from generic_classes import GenericCubitInstance, CubismError, cmd
 from cubit_functions import cubit_cmd_check, get_id_string
 import numpy as np
 import cubit
@@ -74,9 +74,9 @@ def make_cylinder_along(radius: int, length: int, axis: str):
     '''
     cylinder = cubit_cmd_check(f"create cylinder radius {radius} height {length}", "volume")
     if axis == "x":
-        cubit.cmd(f"rotate volume {cylinder.cid} about Y angle -90")
+        cmd(f"rotate volume {cylinder.cid} about Y angle -90")
     elif axis == "y":
-        cubit.cmd(f"rotate volume {cylinder.cid} about X angle -90")
+        cmd(f"rotate volume {cylinder.cid} about X angle -90")
     return cylinder
 
 def make_loop(vertices: list[GenericCubitInstance], tangent_indices: list[int]):

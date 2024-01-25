@@ -5,7 +5,7 @@ def initialise_cubit():
     cubit.init(['cubit', '-nojournal'])
 
 def reset_cubit():
-    cubit.cmd("reset")
+    cmd("reset")
 
 def get_last_geometry(geometry_type: str):
     '''Get last geometry of given type
@@ -30,7 +30,7 @@ def cubit_cmd_check(cmd: str, id_type: str):
     :rtype: GenericCubitInstance/ int/ bool
     '''
     pre_id = cubit.get_last_id(id_type)
-    cubit.cmd(cmd)
+    cmd(cmd)
     post_id = cubit.get_last_id(id_type)
     if pre_id == post_id:
         if not id_type == "group":
@@ -112,7 +112,7 @@ def remove_overlaps_between_generic_cubit_instance_lists(from_list: list, tool_l
             if isinstance(from_volume, GenericCubitInstance) & isinstance(tool_volume, GenericCubitInstance):
                 if not (cubit.get_overlapping_volumes([from_volume.cid, tool_volume.cid]) == ()):
                     # i have given up on my python api dreams. we all return to cubit ccl in the end.
-                    cubit.cmd(f"remove overlap volume {tool_volume.cid} {from_volume.cid} modify volume {from_volume.cid}")
+                    cmd(f"remove overlap volume {tool_volume.cid} {from_volume.cid} modify volume {from_volume.cid}")
 
 def from_bodies_to_volumes(component_list: list):
     '''

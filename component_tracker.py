@@ -41,7 +41,7 @@ class ComponentTracker:
         :rtype: str
         '''
         groupname = f"{classname}{self.counter}"
-        cubit.cmd(f'create group "{groupname}"')
+        cmd(f'create group "{groupname}"')
         self.counter += 1
         return groupname
     
@@ -54,6 +54,6 @@ class ComponentTracker:
         :type thing_to_add: GenericCubitInstance or str
         '''
         if type(thing_to_add) == str:
-            cubit.cmd(f'group {group} add group {thing_to_add}')
+            cmd(f'group {group} add group {thing_to_add}')
         elif isinstance(thing_to_add, GenericCubitInstance):
-            cubit.cmd(f'group {group} add {thing_to_add.geometry_type} {thing_to_add.cid}')
+            cmd(f'group {group} add {thing_to_add.geometry_type} {thing_to_add.cid}')

@@ -52,7 +52,7 @@ class MaterialsTracker:
         :type material_name: str
         :return: True or raises error
         '''
-        cubit.cmd(f'group "{material_name}" add {geometry.geometry_type} {geometry.cid}')
+        cmd(f'group "{material_name}" add {geometry.geometry_type} {geometry.cid}')
         group_id = cubit.get_id_from_name(material_name)
         self.make_material(material_name, group_id)
 
@@ -134,7 +134,7 @@ class MaterialsTracker:
         # track material-air boundaries
 
         # collect every unmerged surface because only these are in contact with air?
-        cubit.cmd('group "unmerged_surfaces" add surface with is_merged=0')
+        cmd('group "unmerged_surfaces" add surface with is_merged=0')
         unmerged_group_id = cubit.get_id_from_name("unmerged_surfaces")
         all_unmerged_surfaces = cubit.get_group_surfaces(unmerged_group_id)
         # look at every collected material
@@ -148,10 +148,10 @@ class MaterialsTracker:
             # if this surface is unmerged, it is in contact with air so add it to the boundary
             for material_surface_id in material_surface_ids:
                 if material_surface_id in all_unmerged_surfaces:
-                    cubit.cmd(f'group "{boundary_name}" add surface {material_surface_id}')
+                    cmd(f'group "{boundary_name}" add surface {material_surface_id}')
                     self.add_geometry_to_boundary(GenericCubitInstance(material_surface_id, "surface"), boundary_name)
                     
-        cubit.cmd(f'delete group {unmerged_group_id}')
+        cmd(f'delete group {unmerged_group_id}')
 
     def __merge_and_track_between(self, material1: Material, material2: Material):
         group_id_1 = material1.group_id
@@ -163,7 +163,7 @@ class MaterialsTracker:
 
         # if a new group is created, track the material boundary it corresponds to
         if group_id:
-            cubit.cmd(f'group {group_id} rename "{group_name}"')
+            cmd(f'group {group_id} rename "{group_name}"')
             self.__track_as_boundary(group_name, group_id)
 
     def __track_as_boundary(self, group_name: str, group_id: int):
@@ -176,20 +176,20 @@ class MaterialsTracker:
         '''create groups for material groups and boundary groups in cubit'''
 
         # create material groups group
-        cubit.cmd('create group "materials"')
+        cmd('create group "materials"')
         material_group_id = cubit.get_last_id("group") # in case i need to do something similar to boundaries later
         for material in self.materials:
-            cubit.cmd(f'group "materials" add group {material.group_id}')
+            cmd(f'group "materials" add group {material.group_id}')
 
         # create boundary group groups
-        cubit.cmd('create group "boundaries"')
+        cmd('create group "boundaries"')
         boundaries_group_id = cubit.get_last_id("group")
         for boundary in self.boundaries:
-            cubit.cmd(f'group "boundaries" add group {boundary.group_id}')
+            cmd(f'group "boundaries" add group {boundary.group_id}')
         # delete empty boundaries
         for group_id in cubit.get_group_groups(boundaries_group_id):
             if cubit.get_group_surfaces(group_id) == ():
-                cubit.cmd(f"delete group {group_id}")
+                cmd(f"delete group {group_id}")
 
     def print_info(self):
         '''print cubit IDs of volumes in materials and surfaces in boundaries'''
@@ -218,8 +218,8 @@ class MaterialsTracker:
                         material.geometries.remove(geometry)
                         material.geometries.append(GenericCubitInstance(new_geometry.cid, new_geometry.geometry_type))
                         # update cubitside
-                        cubit.cmd(f'group {material_name} remove {old_geometry.geometry_type} {old_geometry.cid}')
-                        cubit.cmd(f'group {material_name} add {new_geometry.geometry_type} {new_geometry.cid}')
+                        cmd(f'group {material_name} remove {old_geometry.geometry_type} {old_geometry.cid}')
+                        cmd(f'group {material_name} add {new_geometry.geometry_type} {new_geometry.cid}')
 
     def update_tracking_list(self, old_instances: list, new_instances: list, material_name: str):
         '''remove and adds references to specified GenericCubitInstances in a given material
@@ -238,11 +238,11 @@ class MaterialsTracker:
                         if isinstance(generic_cubit_instance, GenericCubitInstance):
                             if (geometry.geometry_type == generic_cubit_instance.geometry_type) and (geometry.cid == generic_cubit_instance.cid):
                                 material.geometries.remove(geometry)
-                                cubit.cmd(f'group {material_name} remove {generic_cubit_instance.geometry_type} {generic_cubit_instance.cid}')
+                                cmd(f'group {material_name} remove {generic_cubit_instance.geometry_type} {generic_cubit_instance.cid}')
                 for generic_cubit_instance in new_instances:
                     if isinstance(generic_cubit_instance, GenericCubitInstance):
                         material.geometries.append(generic_cubit_instance)
-                        cubit.cmd(f'group {material_name} add {generic_cubit_instance.geometry_type} {generic_cubit_instance.cid}')
+                        cmd(f'group {material_name} add {generic_cubit_instance.geometry_type} {generic_cubit_instance.cid}')
 
     def stop_tracking_in_material(self, generic_cubit_instance: GenericCubitInstance, material_name: str):
         '''stop tracking a currently tracked geometry
@@ -257,10 +257,10 @@ class MaterialsTracker:
                 for geometry in material.geometries:
                     if (geometry.geometry_type == generic_cubit_instance.geometry_type) and (geometry.cid == generic_cubit_instance.cid):
                         material.geometries.remove(geometry)
-                        cubit.cmd(f'group {material_name} remove {generic_cubit_instance.geometry_type} {generic_cubit_instance.cid}')
+                        cmd(f'group {material_name} remove {generic_cubit_instance.geometry_type} {generic_cubit_instance.cid}')
 
     def add_boundaries_to_sidesets(self):
         '''Add boundaries to cubit sidesets'''
         for boundary in self.boundaries:
-            cubit.cmd(f"sideset {boundary.group_id} add surface {boundary.get_surface_ids()}")
-            cubit.cmd(f'sideset {boundary.group_id} name "{boundary.name}"')
+            cmd(f"sideset {boundary.group_id} add surface {boundary.get_surface_ids()}")
+            cmd(f'sideset {boundary.group_id} name "{boundary.name}"')

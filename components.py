@@ -71,7 +71,7 @@ class ComplexComponent:
         axis_list = ['y', 'x', 'y']
         for i in range(3): # hard-coding in 3D?
             if not euler_angles[i] == 0:
-                cubit.cmd(f'rotate volume {cid} angle {euler_angles[i]} about {axis_list[i]}')
+                cmd(f'rotate volume {cid} angle {euler_angles[i]} about {axis_list[i]}')
         # move to specified position
         cubit.move(blob, pos)
         # return instance for further manipulation
@@ -104,7 +104,7 @@ class ComplexComponent:
     
     def move(self, vector: Vertex):
         for subcomponent in self.subcomponents:
-            cubit.cmd(f"{subcomponent.geometry_type} {subcomponent.cid} move {str(vector)}")
+            cmd(f"{subcomponent.geometry_type} {subcomponent.cid} move {str(vector)}")
 
 class SurroundingWallsComponent(ComplexComponent):
     '''Surrounding walls, filled with air'''
@@ -174,30 +174,30 @@ class WallComponent(ComplexComponent):
         wall_dims = [room_dims[i]-2*room_thickness[i] for i in range(3)]
 
         # volume to subtract to create a hole
-        cubit.cmd(f"create cylinder height {thickness} radius {hole_radius}")
+        cmd(f"create cylinder height {thickness} radius {hole_radius}")
         subtract_vol = GenericCubitInstance(cubit.get_last_id("volume"), "volume")
 
         # depending on what plane the wall needs to be in, create wall + make hole at right place
         if plane == "x":
             cubit.brick(thickness, wall_dims[1], wall_dims[2])
             wall = GenericCubitInstance(cubit.get_last_id("volume"), "volume")
-            cubit.cmd(f"rotate volume {subtract_vol.cid} angle 90 about Y")
-            cubit.cmd(f"move volume {subtract_vol.cid} y {hole_pos[1]} z {hole_pos[0]}")
+            cmd(f"rotate volume {subtract_vol.cid} angle 90 about Y")
+            cmd(f"move volume {subtract_vol.cid} y {hole_pos[1]} z {hole_pos[0]}")
         elif plane == "y":
             cubit.brick( wall_dims[0], thickness, wall_dims[2])
             wall = GenericCubitInstance(cubit.get_last_id("volume"), "volume")
-            cubit.cmd(f"rotate volume {subtract_vol.cid} angle 90 about X")
-            cubit.cmd(f"move volume {subtract_vol.cid} x {hole_pos[0]} z {hole_pos[1]}")
+            cmd(f"rotate volume {subtract_vol.cid} angle 90 about X")
+            cmd(f"move volume {subtract_vol.cid} x {hole_pos[0]} z {hole_pos[1]}")
         elif plane == "z":
             cubit.brick( wall_dims[0], wall_dims[1], thickness)
             wall = GenericCubitInstance(cubit.get_last_id("volume"), "volume")
-            cubit.cmd(f"move volume {subtract_vol.cid} x {hole_pos[0]} y {hole_pos[1]}")
+            cmd(f"move volume {subtract_vol.cid} x {hole_pos[0]} y {hole_pos[1]}")
         else:
             raise CubismError("unrecognised plane specified")
         
-        cubit.cmd(f"subtract volume {subtract_vol.cid} from volume {wall.cid}")
+        cmd(f"subtract volume {subtract_vol.cid} from volume {wall.cid}")
         # move wall
-        cubit.cmd(f"move volume {wall.cid} {plane} {pos}")
+        cmd(f"move volume {wall.cid} {plane} {pos}")
         
         return GenericCubitInstance(wall.cid, wall.geometry_type)            
 
@@ -248,7 +248,7 @@ class PinComponent(ComplexComponent):
         pin_vertices = [vertex.create() for vertex in pin_vertices]
         pin_curves = make_loop(pin_vertices, [2, 4, 8, 10])                
         surface_to_sweep = make_surface_from_curves(pin_curves)
-        cubit.cmd(f"sweep surface {surface_to_sweep.cid} axis 0 {-coolant_inlet_radius} 0 1 0 0 angle 360")
+        cmd(f"sweep surface {surface_to_sweep.cid} axis 0 {-coolant_inlet_radius} 0 1 0 0 angle 360")
         pin = get_last_geometry("volume")
         # realign with origin
         cubit.move(pin.cubitInstance, [inner_length, coolant_inlet_radius, 0])
@@ -264,13 +264,13 @@ class PressureTubeComponent(ComplexComponent):
         thickness = self.geometry["thickness"]
 
         subtract_vol = cubit_cmd_check(f"create cylinder height {length-thickness} radius {outer_radius-thickness}", "volume")
-        cubit.cmd(f"volume {subtract_vol.cid} move 0 0 {-thickness/2}")
+        cmd(f"volume {subtract_vol.cid} move 0 0 {-thickness/2}")
         cylinder = cubit_cmd_check(f"create cylinder height {length} radius {outer_radius}", "volume")
 
-        cubit.cmd(f"subtract volume {subtract_vol.cid} from volume {cylinder.cid}")
+        cmd(f"subtract volume {subtract_vol.cid} from volume {cylinder.cid}")
         tube = get_last_geometry("volume")
-        cubit.cmd(f"rotate volume {tube.cid} about Y angle -90")
-        cubit.cmd(f"volume {tube.cid} move {length/2} 0 0")
+        cmd(f"rotate volume {tube.cid} about Y angle -90")
+        cmd(f"volume {tube.cid} move {length/2} 0 0")
         return tube
 
 class FilterDiskComponent(ComplexComponent):
@@ -285,10 +285,10 @@ class FilterDiskComponent(ComplexComponent):
         subtract_vol = cubit_cmd_check(f"create cylinder height {length} radius {outer_radius-thickness}", "volume")
         cylinder = cubit_cmd_check(f"create cylinder height {length} radius {outer_radius}", "volume")
 
-        cubit.cmd(f"subtract volume {subtract_vol.cid} from volume {cylinder.cid}")
+        cmd(f"subtract volume {subtract_vol.cid} from volume {cylinder.cid}")
         tube = get_last_geometry("volume")
-        cubit.cmd(f"rotate volume {tube.cid} about Y angle -90")
-        cubit.cmd(f"volume {tube.cid} move {length/2} 0 0")
+        cmd(f"rotate volume {tube.cid} about Y angle -90")
+        cmd(f"volume {tube.cid} move {length/2} 0 0")
         return tube
 
 class MultiplierComponent(ComplexComponent):
@@ -301,19 +301,19 @@ class MultiplierComponent(ComplexComponent):
         side_length = self.geometry["side"]
 
         subtract_vol = make_cylinder_along(inner_radius, length, "z")
-        cubit.cmd(f"volume {subtract_vol.cid} move 0 0 {length/2}")
+        cmd(f"volume {subtract_vol.cid} move 0 0 {length/2}")
 
         # hexagonal face
         face_vertex_positions= [Vertex(side_length).rotate(i*np.pi/3) for i in range(6)]
         face_vertices = [vertex.create() for vertex in face_vertex_positions]
         face_curves = make_loop(face_vertices, [])
         face = make_surface_from_curves(face_curves)
-        cubit.cmd(f"sweep surface {face.cid} vector 0 0 1 distance {length}")
+        cmd(f"sweep surface {face.cid} vector 0 0 1 distance {length}")
         hex_prism = get_last_geometry("volume")
 
-        cubit.cmd(f"subtract volume {subtract_vol.cid} from volume {hex_prism.cid}")
+        cmd(f"subtract volume {subtract_vol.cid} from volume {hex_prism.cid}")
         multiplier = get_last_geometry("volume")
-        cubit.cmd(f"rotate volume {multiplier.cid} about Y angle 90")
+        cmd(f"rotate volume {multiplier.cid} about Y angle 90")
 
         return multiplier
 
@@ -344,7 +344,7 @@ class BreederChamber(ComplexComponent):
         breeder_vertices = [vertex.create() for vertex in breeder_vertices]
         breeder_curves = make_loop(breeder_vertices, [1, 3])
         surface_to_sweep = make_surface_from_curves(breeder_curves)
-        cubit.cmd(f"sweep surface {surface_to_sweep.cid} axis 0 {-inner_radius} 0 1 0 0 angle 360")
+        cmd(f"sweep surface {surface_to_sweep.cid} axis 0 {-inner_radius} 0 1 0 0 angle 360")
         breeder = get_last_geometry("volume")
         cubit.move(breeder.cubitInstance, [0, inner_radius, 0])
 
@@ -413,10 +413,10 @@ class FirstWallComponent(ComplexComponent):
             face_to_sweep = make_surface_from_curves(make_loop(vertices, [1, 3, 7, 9]))
         
         # line up sweep direction along y axis
-        cubit.cmd(f"surface {face_to_sweep.cid} move -{outer_width/2} 0 0")
-        cubit.cmd(f"surface {face_to_sweep.cid} rotate 90 about x")
+        cmd(f"surface {face_to_sweep.cid} move -{outer_width/2} 0 0")
+        cmd(f"surface {face_to_sweep.cid} rotate 90 about x")
 
-        cubit.cmd(f"sweep surface {face_to_sweep.cid} vector 0 1 0 distance {height}")
+        cmd(f"sweep surface {face_to_sweep.cid} vector 0 1 0 distance {height}")
         first_wall = get_last_geometry("volume")
         return first_wall
 

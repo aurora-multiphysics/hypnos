@@ -172,7 +172,7 @@ class CreatedComponentAssembly(GenericComponentAssembly):
                 component.rotate(angle, origin, axis)
             elif isinstance(component, ComplexComponent):
                 for subcomponent in component.get_subcomponents():
-                    cubit.cmd(f"rotate {subcomponent.geometry_type} {subcomponent.cid} about origin {str(origin)} direction {str(axis)} angle {angle}")
+                    cmd(f"rotate {subcomponent.geometry_type} {subcomponent.cid} about origin {str(origin)} direction {str(axis)} angle {angle}")
 
 class NeutronTestFacility(CreatedComponentAssembly):
     '''
@@ -250,7 +250,7 @@ class NeutronTestFacility(CreatedComponentAssembly):
                     if isinstance(source_volume, GenericCubitInstance) and isinstance(blanket_volume, GenericCubitInstance):
                         if not (cubit.get_overlapping_volumes([source_volume.cid, blanket_volume.cid]) == ()):
                             # i have given up on my python api dreams. we all return to cubit ccl in the end.
-                            cubit.cmd(f"remove overlap volume {source_volume.cid} {blanket_volume.cid} modify volume {blanket_volume.cid}")
+                            cmd(f"remove overlap volume {source_volume.cid} {blanket_volume.cid} modify volume {blanket_volume.cid}")
             print(f"{self.morphology} morphology applied")
 
     def check_for_overlaps(self):
@@ -296,7 +296,7 @@ class NeutronTestFacility(CreatedComponentAssembly):
             if surrounding_walls.is_air():
                 for air in surrounding_walls.get_air_subcomponents():
                     all_geometries_copy = all_geometries.copy_cubit_instance()
-                    cubit.cmd(f'subtract {all_geometries_copy.geometry_type} {all_geometries_copy.cid} from {air.geometry_type} {air.cid}')
+                    cmd(f'subtract {all_geometries_copy.geometry_type} {all_geometries_copy.cid} from {air.geometry_type} {air.cid}')
         # cleanup
         all_geometries.destroy_cubit_instance()
 
@@ -343,7 +343,7 @@ class RoomAssembly(CreatedComponentAssembly):
                 for air in surrounding_walls.get_air_subcomponents():
                     temp_wall = WallComponent({"geometry": wall_geometry, "material": wall_material})
                     for t_w in temp_wall.get_subcomponents():
-                        cubit.cmd(f"subtract {t_w.geometry_type} {t_w.cid} from {air.geometry_type} {air.cid}")
+                        cmd(f"subtract {t_w.geometry_type} {t_w.cid} from {air.geometry_type} {air.cid}")
 
 class ExternalComponentAssembly(GenericComponentAssembly):
     '''
@@ -369,17 +369,17 @@ class ExternalComponentAssembly(GenericComponentAssembly):
         # import the bodies in a temporary group
         temp_group_name = str(self.group) + "_temp"
         print(f'import "{self.filepath}" heal group "{temp_group_name}"')
-        cubit.cmd(f'import "{self.filepath}" heal group "{temp_group_name}"')
+        cmd(f'import "{self.filepath}" heal group "{temp_group_name}"')
         temp_group_id = cubit.get_id_from_name(temp_group_name)
 
         # convert everything to volumes
         volumes_list = from_bodies_to_volumes(get_bodies_and_volumes_from_group(temp_group_id))
         for volume in volumes_list:
-            cubit.cmd(f'group "{self.group}" add {volume.geometry_type} {volume.cid}')
+            cmd(f'group "{self.group}" add {volume.geometry_type} {volume.cid}')
         print(f"volumes imported in group {self.group}")
 
         # cleanup
-        cubit.cmd(f"delete group {temp_group_id}")
+        cmd(f"delete group {temp_group_id}")
 
     def get_group_id(self):
         '''get ID of group (group needs to exist first)'''

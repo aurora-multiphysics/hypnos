@@ -3,6 +3,9 @@ sys.path.append('/opt/Coreform-Cubit-2023.8/bin')
 import cubit
 from constants import *
 
+def cmd(command: str):
+    cubit.silent_cmd(command)
+
 # everything in cubit will need to be referenced by a geometry type and id
 class GenericCubitInstance:
     '''
@@ -20,11 +23,11 @@ class GenericCubitInstance:
 
     def destroy_cubit_instance(self):
         '''delete cubitside instance'''
-        cubit.cmd(f"delete {self.geometry_type} {self.cid}")
+        cmd(f"delete {self.geometry_type} {self.cid}")
     
     def copy_cubit_instance(self):
         '''create a copy, both of this GenericCubitInstance and the cubitside instance'''
-        cubit.cmd(f"{self.geometry_type} {self.cid} copy")
+        cmd(f"{self.geometry_type} {self.cid} copy")
         copied_id = cubit.get_last_id(self.geometry_type)
         return GenericCubitInstance(copied_id, self.geometry_type)
     
