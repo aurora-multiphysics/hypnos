@@ -18,7 +18,7 @@ def get_last_geometry(geometry_type: str):
     geom_id = cubit.get_last_id(geometry_type)
     return GenericCubitInstance(geom_id, geometry_type)
 
-def cubit_cmd_check(cmd: str, id_type: str):
+def cubit_cmd_check(command: str, id_type: str):
     '''Perform cubit command and check whether a new entity has been created.
     If this is a geometry return GenericCubitInstance, if a group then the group id.
 
@@ -30,7 +30,7 @@ def cubit_cmd_check(cmd: str, id_type: str):
     :rtype: GenericCubitInstance/ int/ bool
     '''
     pre_id = cubit.get_last_id(id_type)
-    cmd(cmd)
+    cmd(command)
     post_id = cubit.get_last_id(id_type)
     if pre_id == post_id:
         if not id_type == "group":
@@ -115,10 +115,12 @@ def remove_overlaps_between_generic_cubit_instance_lists(from_list: list, tool_l
                     cmd(f"remove overlap volume {tool_volume.cid} {from_volume.cid} modify volume {from_volume.cid}")
 
 def from_bodies_to_volumes(component_list: list):
-    '''
-    Turns references to bodies into references to their children volumes.
-    Accepts list of GenericCubitInstances.
-    Returns list of GenericCubitInstances.
+    '''Turns references to bodies into references to their children volumes.
+
+    :param component_list: List of geometries
+    :type component_list: list[GenericCubitInstance]
+    :return: List of converted geometries
+    :rtype: list[GenericCubitInstance]
     '''
     all_volumes_that_exist= cubit.get_entities("volume")
     return_list= []
@@ -134,11 +136,13 @@ def from_bodies_to_volumes(component_list: list):
             return_list.append(component)
     return return_list
 
-def from_bodies_and_volumes_to_surfaces(component_list: list):
-    '''
-    Turns references to bodies and volumes into references to their children surfaces.
-    Accepts list of GenericCubitInstances.
-    Returns list of GenericCubitInstances.
+def from_bodies_and_volumes_to_surfaces(component_list: list[GenericCubitInstance]):
+    '''Turns references to bodies and volumes into references to their children surfaces.
+
+    :param component_list: List of geometries
+    :type component_list: list[GenericCubitInstance]
+    :return: List of converted geometries
+    :rtype: list[GenericCubitInstance]
     '''
     all_surfaces_that_exist = cubit.get_entities("surface")
     volumes_list= from_bodies_to_volumes(component_list)
@@ -155,7 +159,14 @@ def from_bodies_and_volumes_to_surfaces(component_list: list):
             return_list.append(component)
     return return_list
 
-def from_everything_to_bodies(component_list: list):
+def from_everything_to_bodies(component_list: list) -> list[GenericCubitInstance]:
+    '''Turns references to entities into references to their parent bodies.
+
+    :param component_list: List of geometries
+    :type component_list: list[GenericCubitInstance]
+    :return: List of converted geometries
+    :rtype: list[GenericCubitInstance]
+    '''
     bodies_list = []
     for component in component_list:
         if isinstance(component, GenericCubitInstance):
@@ -169,15 +180,3 @@ def from_everything_to_bodies(component_list: list):
     return bodies_list
 
 # unionise is in Assemblies.py as it needs to know about the ComplexComponent and Assembly classes
-
-def extract_data(filename):
-    with open(filename) as jsonFile:
-        data = jsonFile.read()
-        objects = json.loads(data)
-    return objects
-
-def delve(component_list):
-    for i in range(len(component_list)):
-        if type(component_list[i]) == str:
-            component_list[i] = extract_data(component_list[i])
-    return component_list

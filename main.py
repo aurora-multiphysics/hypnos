@@ -1,7 +1,8 @@
 import argparse
 from component_tracker import ComponentTracker
 from assemblies import *
-from cubit_functions import extract_data, initialise_cubit, reset_cubit
+from cubit_functions import initialise_cubit, reset_cubit
+from parsing import extract_data
 
 def read_file(filename):
     '''Read in json file, construct all specified components

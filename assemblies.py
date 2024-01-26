@@ -1,6 +1,7 @@
 from generic_classes import *
 from components import *
-from cubit_functions import from_bodies_to_volumes, get_bodies_and_volumes_from_group, delve
+from cubit_functions import from_bodies_to_volumes, get_bodies_and_volumes_from_group
+from parsing import delve
 from constants import STANDARD_COMPONENTS
 
 class GenericComponentAssembly:
@@ -596,7 +597,7 @@ class BlanketRingAssembly(CreatedComponentAssembly):
         midpoint_vertices = [midpoint_vertex.rotate(angle_subtended*i) for i in range(segments_needed)]
         return midpoint_vertices, angle_subtended
 
-def get_all_geometries_from_components(component_list):
+def get_all_geometries_from_components(component_list) -> list[GenericCubitInstance]:
     instances = []
     for component in component_list:
         if isinstance(component, GenericCubitInstance):
@@ -647,6 +648,6 @@ def unionise(component_list: list):
     else:
         raise CubismError("Something unknowable was created in this union. Or worse, a surface.")
 
-def construct(json_object):
+def construct(json_object: dict):
     constructor = globals()[CLASS_MAPPING[json_object["class"]]]
     return constructor(json_object)
