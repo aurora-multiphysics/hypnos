@@ -1,7 +1,7 @@
 from generic_classes import *
-import json
 
 def initialise_cubit():
+    '''Wrapper for initialising cubit'''
     cubit.init(['cubit', '-nojournal'])
 
 def reset_cubit():
@@ -55,34 +55,47 @@ def get_id_string(geometry_list: list[GenericCubitInstance]):
         id_string += f"{geometry.cid} "
     return id_string
 
-# functions to delete and copy lists of GenericCubitInstances
+# functions to delete and copy lists
 def delete_instances(component_list: list):
-    '''Deletes cubit instances of all GenericCubitInstance objects in list'''
+    '''Deletes cubit instances of all geometries
+
+    :param component_list: List of geometries
+    :type component_list: list[GenericCubitInstance]
+    '''
     for component in component_list:
         if isinstance(component, GenericCubitInstance):
             component.destroy_cubit_instance()
 
-def copy_instances(component_list: list):
-    '''Returns a list of copied GenericCubitInstances'''
+def copy_geometries(geometry_list: list):
+    '''Copy geometries
+
+    :param component_list: List of geometries
+    :type component_list: list[GenericCubitInstance]
+    :raises CubismError: All items in list are not geometries
+    '''
     copied_list = []
-    for component in component_list:
+    for component in geometry_list:
         if isinstance(component, GenericCubitInstance):
             copied_list.append(component.copy_cubit_instance())
         else:
-            raise CubismError("All components are not instances :(")
+            raise CubismError("All items in list are not geometries :(")
+    return copied_list
 
 # THIS IS VERY SILLY WHY DO I HAVE TO DO THIS
 
-def to_owning_body(component: GenericCubitInstance):
+def to_owning_body(geometry: GenericCubitInstance):
+    '''Convert entity reference to a reference to it's parent body
+
+    :param geometry: Physical entity to convert
+    :type component: GenericCubitInstance
+    :return: Parent body entity
+    :rtype: GenericCubitInstance
     '''
-    accepts GenericCubitInstance and returns GenericCubitInstance of owning body
-    '''
-    if isinstance(component, GenericCubitInstance):
-        if component.cid == "body":
-            return component
-        else:
-            return GenericCubitInstance(cubit.get_owning_body(component.geometry_type, component.cid), "body")
-    raise CubismError("Did not recieve a GenericCubicInstance")
+    assert isinstance(geometry, GenericCubitInstance)
+    if geometry.cid == "body":
+        return geometry
+    else:
+        return GenericCubitInstance(cubit.get_owning_body(geometry.geometry_type, geometry.cid), "body")
 
 def get_bodies_and_volumes_from_group(group_id: int):
     '''Find bodies and volumes at the top-level of a group.
@@ -101,8 +114,14 @@ def get_bodies_and_volumes_from_group(group_id: int):
         instance_list.append(GenericCubitInstance(volume_id, "volume"))
     return instance_list
 
-def remove_overlaps_between_generic_cubit_instance_lists(from_list: list, tool_list: list):
-    '''Remove overlaps between cubit instances of two lists of components'''
+def remove_overlaps_between_generic_cubit_instance_lists(from_list: list[GenericCubitInstance], tool_list: list[GenericCubitInstance]):
+    '''Remove overlaps between geometries
+
+    :param from_list: List of geometries from which the overlap will be subtracted
+    :type from_list: list[GenericCubitInstance]
+    :param tool_list: List of geometries kept as is
+    :type tool_list: list[GenericCubitInstance]
+    '''
     from_volumes = from_bodies_to_volumes(from_list)
     tool_volumes = from_bodies_to_volumes(tool_list)
     # check each pair
@@ -111,7 +130,7 @@ def remove_overlaps_between_generic_cubit_instance_lists(from_list: list, tool_l
             # if there is an overlap, remove it
             if isinstance(from_volume, GenericCubitInstance) & isinstance(tool_volume, GenericCubitInstance):
                 if not (cubit.get_overlapping_volumes([from_volume.cid, tool_volume.cid]) == ()):
-                    # i have given up on my python api dreams. we all return to cubit ccl in the end.
+                    # i have given up on my python api dreams. we all return to cubit cl in the end.
                     cmd(f"remove overlap volume {tool_volume.cid} {from_volume.cid} modify volume {from_volume.cid}")
 
 def from_bodies_to_volumes(component_list: list):

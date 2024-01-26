@@ -45,15 +45,15 @@ class ComponentTracker:
         self.counter += 1
         return groupname
     
-    def __add_to_group(self, group: str, thing_to_add):
-        '''Add thing to group
+    def __add_to_group(self, group: str, entity):
+        '''Add entity to group
 
-        :param group: _description_
+        :param group: entity to add
         :type group: str
-        :param thing_to_add: geometry or name of group
-        :type thing_to_add: GenericCubitInstance or str
+        :param entity: geometry or name of group
+        :type entity: GenericCubitInstance or str
         '''
-        if type(thing_to_add) == str:
-            cmd(f'group {group} add group {thing_to_add}')
-        elif isinstance(thing_to_add, GenericCubitInstance):
-            cmd(f'group {group} add {thing_to_add.geometry_type} {thing_to_add.cid}')
+        if type(entity) == str:
+            cmd(f'group {group} add group {entity}')
+        elif isinstance(entity, GenericCubitInstance):
+            cmd(f'group {group} add {entity.geometry_type} {entity.cid}')
