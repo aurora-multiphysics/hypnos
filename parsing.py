@@ -45,6 +45,9 @@ class ParameterFiller():
             else:
                 dict_to_fill[default_value] = default_value
                 self.add_log(f"{key} set to default: {default_value}")
+        for key in dict_to_fill.keys():
+            if key not in default_dict:
+                print(f"Key not recognised: {key}")
         return dict_to_fill
 
     def process_defaults(self, json_object: dict):
