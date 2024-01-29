@@ -253,7 +253,53 @@ class PinComponent(ComplexComponent):
         # realign with origin
         cubit.move(pin.cubitInstance, [inner_length, coolant_inlet_radius, 0])
         return pin
+
+class BreederUnitCoolant(ComplexComponent):
+    def __init__(self, json_object: dict):
+        super().__init__("coolant", json_object)
     
+    def make_geometry(self):
+        geometry=self.geometry
+        inner_length = geometry["inner length"]
+        bluntness = geometry["bluntness"]
+        offset = geometry["offset"]
+        pressure_tube_length = geometry["pressure tube length"]
+        pressure_tube_radius = geometry["pressure tube radius"]
+        pressure_tube_gap = geometry["pressure tube gap"]
+        pin_thickness = geometry["pin thickness"]
+        inlet_radius = geometry["coolant inlet radius"]
+
+        slope_angle = np.arctan(pin_thickness / offset)
+
+        coolant_vertices = list(np.zeros(10))
+
+        coolant_vertices[0] = Vertex(0)
+        coolant_vertices[1] = Vertex(0, inlet_radius)
+
+        inner_cladding_ref1 = Vertex(-inner_length, inlet_radius)
+        coolant_vertices[2] = inner_cladding_ref1 + Vertex(bluntness)
+        coolant_vertices[3] = inner_cladding_ref1 + Vertex(bluntness).rotate(slope_angle)
+
+        outer_cladding_ref1 = inner_cladding_ref1 + Vertex(offset, pin_thickness)
+        coolant_vertices[4] = outer_cladding_ref1 + Vertex(bluntness).rotate(slope_angle-np.pi)
+        coolant_vertices[5] = outer_cladding_ref1 + Vertex(bluntness)
+
+        coolant_vertices[6] = outer_cladding_ref1 + Vertex(pressure_tube_length)
+
+        coolant_vertices[7] = coolant_vertices[0] + Vertex(-(inner_length+pressure_tube_gap))
+        coolant_vertices[8] = coolant_vertices[7] + Vertex(0, pressure_tube_radius)
+        coolant_vertices[9] = coolant_vertices[8] + Vertex(pressure_tube_length)
+
+        coolant_vertices = [vertex.create() for vertex in coolant_vertices]
+        coolant_curves = make_loop(coolant_vertices, [3, 5])
+        surface_to_sweep = make_surface_from_curves(coolant_curves)
+        cmd(f"sweep surface {surface_to_sweep.cid} axis 0 0 0 1 0 0 angle 360")
+        coolant = get_last_geometry("volume")
+        # realign with origin
+        cubit.move(coolant.cubitInstance, [inner_length, 0, 0])
+        return coolant
+
+
 class PressureTubeComponent(ComplexComponent):
     def __init__(self, json_object):
         super().__init__("pressure_tube", json_object)

@@ -430,7 +430,9 @@ class BreederUnitAssembly(CreatedComponentAssembly):
         })
         breeder_geometry = self.__get_breeder_parameters()
         filter_disk_geometry = self.__get_filter_disk_parameters()
+        coolant_geometry = self.__get_coolant_parameters()
 
+        pressure_tube_thickness = self.geometry["pressure tube thickness"]
         pressure_tube_gap = self.geometry["pressure tube gap"]
         chamber_spacing = breeder_geometry["chamber offset"] + pressure_tube_gap
         filter_disk_spacing = pressure_tube_gap + self.geometry["offset"] + self.geometry["outer length"] - filter_disk_geometry["length"]
@@ -440,11 +442,13 @@ class BreederUnitAssembly(CreatedComponentAssembly):
         multiplier = MultiplierComponent({"geometry":multiplier_geometry, "material":self.materials["multiplier"]})
         breeder = BreederChamber({"geometry":breeder_geometry, "material":self.materials["breeder"]})
         filter_disk = FilterDiskComponent({"geometry": filter_disk_geometry, "material": self.materials["filter disk"]})
+        coolant = BreederUnitCoolant({"geometry": coolant_geometry, "material": self.materials["coolant"]})
 
+        cubit.move(coolant.get_subcomponents()[0].cubitInstance, [pressure_tube_thickness, 0, 0])
         cubit.move(pin.get_subcomponents()[0].cubitInstance, [pressure_tube_gap, 0, 0])
         cubit.move(breeder.get_subcomponents()[0].cubitInstance, [chamber_spacing, 0, 0])
         cubit.move(filter_disk.get_subcomponents()[0].cubitInstance, [filter_disk_spacing, 0, 0])
-        self.components.extend([pin, pressure_tube, multiplier, breeder, filter_disk])
+        self.components.extend([pin, pressure_tube, multiplier, breeder, filter_disk, coolant])
         # align with z-axis properly
         self.rotate(90, Vertex(0, 0, 0), Vertex(0, 1, 0))
         #self.rotate(30, Vertex(0, 0, 0), Vertex(0, 0, 1))
@@ -497,6 +501,22 @@ class BreederUnitAssembly(CreatedComponentAssembly):
         parameters["outer radius"] = coolant_inlet_radius + inner_cladding + breeder_chamber_thickness
 
         return parameters
+
+    def __get_coolant_parameters(self):
+        geometry = self.geometry
+        pressure_tube_gap = geometry["pressure tube gap"]
+        pressure_tube_thickness = geometry["pressure tube thickness"]
+        pressure_tube_length = geometry["pressure tube length"]
+        pressure_tube_outer_radius = geometry["pressure tube outer radius"]
+
+        parameters = self.__extract_parameters(["coolant inlet radius", "inner length", "offset", "bluntness"])
+        parameters["pressure tube length"] = pressure_tube_length - pressure_tube_thickness
+        parameters["pressure tube gap"] = pressure_tube_gap - pressure_tube_thickness
+        parameters["pressure tube radius"] = pressure_tube_outer_radius - pressure_tube_thickness
+        parameters["pin thickness"] = geometry["inner cladding"] + geometry["breeder chamber thickness"] + geometry["outer cladding"]
+
+        return parameters
+
 
 class BlanketShellAssembly(CreatedComponentAssembly):
     '''First wall with tiled breeder units'''
