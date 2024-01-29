@@ -1,5 +1,5 @@
 {
-    "class": "blanket shell",
+    "class": "blanket_shell",
     "geometry": {
         "pin spacing": 135,
         "vertical offset": 0,
@@ -7,7 +7,7 @@
     },
     "components": [
         {
-            "class": "first wall",
+            "class": "first_wall",
             "material": "Tungsten",
             "geometry": {
                 "inner width": 480,
@@ -19,7 +19,7 @@
             }
         },
         {
-            "class": "breeder unit",
+            "class": "breeder_unit",
             "materials": {
                 "pin": "Steel",
                 "pressure tube": "Steel",

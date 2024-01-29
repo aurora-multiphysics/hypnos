@@ -3,6 +3,8 @@ from component_tracker import ComponentTracker
 from assemblies import *
 from cubit_functions import initialise_cubit, reset_cubit
 from parsing import extract_data, ParameterFiller
+from default_params import DEFAULTS
+import pprint
 
 def make_everything(json_object):
     '''Construct all specified components
@@ -26,10 +28,24 @@ if __name__ == '__coreformcubit__':
 elif __name__ == "__main__":
     # accept command line arguments
     parser = argparse.ArgumentParser()
-    parser.add_argument("-f", "--file", type=str, help="name of json file describing geometry", default="sample_blanket.json")
-    parser.add_argument("-i", "--info", action="store_true")
+    parser.add_argument("-f", "--file", type=str, help="Name of json file describing geometry", default="sample_blanket.json")
+    parser.add_argument("-i", "--info", type=str, help="Print cubit IDs of volumes in materials and surfaces in boundaries", default='false')
+    parser.add_argument("-c", "--classname", type=str, help="Get available classes", default='none')
     args = parser.parse_args()
 
+    if args.classname != 'none':
+        if args.classname not in [default_class["class"] for default_class in DEFAULTS]:
+            print("The available classes are:")
+            for default_class in DEFAULTS:
+                print(default_class["class"])
+        for default_class in DEFAULTS:
+            if default_class["class"] == args.classname:
+                print(f"The parameters and defaults for class {args.classname} are: ")
+                pp = pprint.PrettyPrinter(indent=4)
+                pp.pprint(default_class)
+        exit(0)
+
+    
     initialise_cubit()
 
     json_object = extract_data(args.file)
@@ -47,7 +63,7 @@ elif __name__ == "__main__":
 
     cmd('export cubit "please_work.cub5')
     # print this information if cli flag used
-    if args.info:
+    if args.info == 'true':
         MaterialsTracker().print_info()
 #    cmd('volume all scheme auto')
 #    cmd('mesh volume all')

@@ -19,19 +19,19 @@ CLASS_MAPPING = {
     "complex": "ComplexComponent",
     "external": "ExternalComponentAssembly",
     "source": "SourceAssembly",
-    "neutron test facility": "NeutronTestFacility",
+    "neutron_test_facility": "NeutronTestFacility",
     "blanket": "BlanketAssembly",
     "room": "RoomAssembly",
     "surrounding_walls": "SurroundingWallsComponent",
     "breeder": "BreederComponent",
     "structure": "StructureComponent",
-    "breeder unit": "BreederUnitAssembly",
+    "breeder_unit": "BreederUnitAssembly",
     "pin": "PinComponent",
-    "pressure tube": "PressureTubeComponent",
+    "pressure_tube": "PressureTubeComponent",
     "multiplier": "MultiplierComponent",
-    "first wall": "FirstWallComponent",
-    "blanket shell": "BlanketShellAssembly",
-    "blanket ring": "BlanketRingAssembly"
+    "first_wall": "FirstWallComponent",
+    "blanket_shell": "BlanketShellAssembly",
+    "blanket_ring": "BlanketRingAssembly"
 }
 
 # components requiring only geometry and material parameters

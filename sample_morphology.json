@@ -1,6 +1,6 @@
 [
     {
-        "class": "neutron test facility",
+        "class": "neutron_test_facility",
         "morphology": "overlap",
         "components": [
             {

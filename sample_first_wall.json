@@ -1,5 +1,5 @@
 {
-    "class": "first wall",
+    "class": "first_wall",
     "material": "Tungsten",
     "geometry": {
         "inner width": 1480,

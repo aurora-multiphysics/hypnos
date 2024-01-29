@@ -3,7 +3,7 @@
 cubitpath='/opt/Coreform-Cubit-2023.8/bin'
 filename='sample_blanket.json'
 printinfo='false'
-runprogram='true'
+runprogram='false'
 
 usage() {
     echo "Usage:"
@@ -11,26 +11,33 @@ usage() {
     echo " -h,       Display this message"
     echo " -i,       Print cubit IDs of volumes in materials and surfaces in boundaries"
     echo " -f,       FILE Specify an input file"
-    echo " -c,       PATH Add cubit library to python path"
+    echo " -p,       PATH Add cubit library to python path"
+    echo " -c,       CLASS Get info on classes"
 }
 
 while getopts "hif:c:" opt; do
     case $opt in
         h)
             usage
-            runprogram='false'
+            exit 0
             ;;
         i)
             printinfo='true'
             ;;
         f)
             filename=$OPTARG
+            runprogram='true'
+            ;;
+        p)
+            cubitpath=$OPTARG
             ;;
         c)
-            cubitpath=$OPTARG
+            python3 main.py -c $OPTARG
+            exit 0
             ;;
         /?)
             echo "Invalid option: -$OPTARG" >&2
+            usage
             exit 1
             ;;
         :)
@@ -40,12 +47,10 @@ while getopts "hif:c:" opt; do
     esac
 done
 
-PYTHONPATH=$PYTHONPATH:$cubitpath
-
 if [ $runprogram = 'true' ]; then
-    if [ $printinfo = 'true' ]; then
-        python3 main.py -i -f $filename
-    else
-        python3 main.py -f $filename
-    fi
+    PYTHONPATH=$PYTHONPATH:$cubitpath
+    python3 main.py -i $printinfo -f $filename
+    exit 0
 fi
+
+exit 0

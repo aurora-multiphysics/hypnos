@@ -1,5 +1,5 @@
 {
-    "class": "breeder unit",
+    "class": "breeder_unit",
     "materials": {
         "pin": "Steel",
         "pressure tube": "Steel",

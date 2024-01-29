@@ -1,5 +1,5 @@
 BREEDER_UNIT = {
-    "class": "breeder unit",
+    "class": "breeder_unit",
     "materials": {
         "pin": "Steel",
         "pressure tube": "Steel",
@@ -28,7 +28,7 @@ BREEDER_UNIT = {
 }
 
 FIRST_WALL = {
-    "class": "first wall",
+    "class": "first_wall",
     "material": "Tungsten",
     "geometry": {
         "inner width": 1480,
@@ -41,7 +41,7 @@ FIRST_WALL = {
 }
 
 BLANKET_SHELL = {
-    "class": "blanket shell",
+    "class": "blanket_shell",
     "geometry": {
         "pin spacing": 135,
         "vertical offset": 0,
@@ -54,13 +54,13 @@ BLANKET_SHELL = {
 }
 
 BLANKET_RING = {
-    "class": "blanket ring",
+    "class": "blanket_ring",
     "geometry": {
         "minimum radius": 580
     },
     "components": [
         {
-    "class": "blanket shell",
+    "class": "blanket_shell",
     "geometry": {
         "pin spacing": 135,
         "vertical offset": 0,
@@ -68,7 +68,7 @@ BLANKET_RING = {
     },
     "components": [
         {
-            "class": "first wall",
+            "class": "first_wall",
             "material": "Tungsten",
             "geometry": {
                 "inner width": 480,
@@ -80,7 +80,7 @@ BLANKET_RING = {
             }
         },
         {
-            "class": "breeder unit",
+            "class": "breeder_unit",
             "materials": {
                 "pin": "Steel",
                 "pressure tube": "Steel",
