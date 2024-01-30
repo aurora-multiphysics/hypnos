@@ -284,19 +284,19 @@ class BreederUnitCoolant(ComplexComponent):
         coolant_vertices[4] = outer_cladding_ref1 + Vertex(bluntness).rotate(slope_angle-np.pi)
         coolant_vertices[5] = outer_cladding_ref1 + Vertex(bluntness)
 
-        coolant_vertices[6] = outer_cladding_ref1 + Vertex(pressure_tube_length)
+        coolant_vertices[6] = outer_cladding_ref1 + Vertex(pressure_tube_length-(offset+pressure_tube_gap))
 
-        coolant_vertices[7] = coolant_vertices[0] + Vertex(-(inner_length+pressure_tube_gap))
-        coolant_vertices[8] = coolant_vertices[7] + Vertex(0, pressure_tube_radius)
-        coolant_vertices[9] = coolant_vertices[8] + Vertex(pressure_tube_length)
+        coolant_vertices[9] = coolant_vertices[0] + Vertex(-(inner_length+pressure_tube_gap))
+        coolant_vertices[8] = coolant_vertices[9] + Vertex(0, pressure_tube_radius)
+        coolant_vertices[7] = coolant_vertices[8] + Vertex(pressure_tube_length)
 
         coolant_vertices = [vertex.create() for vertex in coolant_vertices]
-        coolant_curves = make_loop(coolant_vertices, [3, 5])
+        coolant_curves = make_loop(coolant_vertices, [2, 4])
         surface_to_sweep = make_surface_from_curves(coolant_curves)
         cmd(f"sweep surface {surface_to_sweep.cid} axis 0 0 0 1 0 0 angle 360")
         coolant = get_last_geometry("volume")
         # realign with origin
-        cubit.move(coolant.cubitInstance, [inner_length, 0, 0])
+        cubit.move(coolant.cubitInstance, [inner_length+pressure_tube_gap, 0, 0])
         return coolant
 
 
