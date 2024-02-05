@@ -23,7 +23,7 @@ class ComplexComponent:
         self.origin = json_object["origin"] if "origin" in json_object.keys() else Vertex(0)
 
         self.add_to_subcomponents(self.make_geometry())
-        if not self.origin == Vertex(0,0,0):
+        if not self.origin == Vertex(0):
             self.move(self.origin)
         # add geometries to material tracker
         for subcomponent in self.subcomponents:
@@ -211,7 +211,12 @@ class PinComponent(ComplexComponent):
         outer_length = geometry["outer length"]
         inner_length = geometry["inner length"]
         offset = geometry["offset"]
-        bluntness = geometry["bluntness"]
+        if "bluntness" in geometry.keys():
+            inner_bluntness = geometry["bluntness"]
+            outer_bluntness = geometry["bluntness"]
+        else:
+            inner_bluntness = geometry["inner bluntness"]
+            outer_bluntness = geometry["outer bluntness"]
         coolant_inlet_radius = geometry["coolant inlet radius"]
         inner_cladding = geometry["inner cladding"]
         breeder_chamber_thickness = geometry["breeder chamber thickness"]
@@ -227,23 +232,23 @@ class PinComponent(ComplexComponent):
         pin_vertices[1] = Vertex(0)
 
         inner_cladding_ref1 = Vertex(-inner_length)
-        pin_vertices[2] = inner_cladding_ref1 + Vertex(bluntness)
-        pin_vertices[3] = inner_cladding_ref1 + Vertex(bluntness).rotate(slope_angle)
+        pin_vertices[2] = inner_cladding_ref1 + Vertex(inner_bluntness)
+        pin_vertices[3] = inner_cladding_ref1 + Vertex(inner_bluntness).rotate(slope_angle)
 
         outer_cladding_ref1 = inner_cladding_ref1 + Vertex(offset, net_thickness)
-        pin_vertices[4] = outer_cladding_ref1 + Vertex(bluntness).rotate(slope_angle-np.pi)
-        pin_vertices[5] = outer_cladding_ref1 + Vertex(bluntness)
+        pin_vertices[4] = outer_cladding_ref1 + Vertex(outer_bluntness).rotate(slope_angle-np.pi)
+        pin_vertices[5] = outer_cladding_ref1 + Vertex(outer_bluntness)
 
         pin_vertices[6] = outer_cladding_ref1 + Vertex(outer_length)
         pin_vertices[7] = outer_cladding_ref1 + Vertex(outer_length, -outer_cladding)
 
         outer_cladding_ref2 = outer_cladding_ref1 + Vertex(outer_cladding * np.tan(slope_angle/2), -outer_cladding)
-        pin_vertices[8] = outer_cladding_ref2 + Vertex(bluntness)
-        pin_vertices[9] = outer_cladding_ref2 + Vertex(bluntness).rotate(slope_angle-np.pi)
+        pin_vertices[8] = outer_cladding_ref2 + Vertex(outer_bluntness)
+        pin_vertices[9] = outer_cladding_ref2 + Vertex(outer_bluntness).rotate(slope_angle-np.pi)
 
         inner_cladding_ref2 = inner_cladding_ref1 + Vertex(inner_cladding/np.tan(slope_angle) + outer_cladding/np.sin(slope_angle), inner_cladding)
-        pin_vertices[10] = inner_cladding_ref2 + Vertex(bluntness).rotate(slope_angle)
-        pin_vertices[11] = inner_cladding_ref2 + Vertex(bluntness)
+        pin_vertices[10] = inner_cladding_ref2 + Vertex(inner_bluntness).rotate(slope_angle)
+        pin_vertices[11] = inner_cladding_ref2 + Vertex(inner_bluntness)
 
         pin_vertices = [vertex.create() for vertex in pin_vertices]
         pin_curves = make_loop(pin_vertices, [2, 4, 8, 10])                
@@ -261,7 +266,12 @@ class BreederUnitCoolant(ComplexComponent):
     def make_geometry(self):
         geometry=self.geometry
         inner_length = geometry["inner length"]
-        bluntness = geometry["bluntness"]
+        if "bluntness" in geometry.keys():
+            inner_bluntness = geometry["bluntness"]
+            outer_bluntness = geometry["bluntness"]
+        else:
+            inner_bluntness = geometry["inner bluntness"]
+            outer_bluntness = geometry["outer bluntness"]
         offset = geometry["offset"]
         pressure_tube_length = geometry["pressure tube length"]
         pressure_tube_radius = geometry["pressure tube radius"]
@@ -277,13 +287,12 @@ class BreederUnitCoolant(ComplexComponent):
         coolant_vertices[1] = Vertex(0, inlet_radius)
 
         inner_cladding_ref1 = Vertex(-inner_length, inlet_radius)
-        coolant_vertices[2] = inner_cladding_ref1 + Vertex(bluntness)
-        coolant_vertices[3] = inner_cladding_ref1 + Vertex(bluntness).rotate(slope_angle)
+        coolant_vertices[2] = inner_cladding_ref1 + Vertex(inner_bluntness)
+        coolant_vertices[3] = inner_cladding_ref1 + Vertex(inner_bluntness).rotate(slope_angle)
 
         outer_cladding_ref1 = inner_cladding_ref1 + Vertex(offset, pin_thickness)
-        coolant_vertices[4] = outer_cladding_ref1 + Vertex(bluntness).rotate(slope_angle-np.pi)
-        coolant_vertices[5] = outer_cladding_ref1 + Vertex(bluntness)
-
+        coolant_vertices[4] = outer_cladding_ref1 + Vertex(outer_bluntness).rotate(slope_angle-np.pi)
+        coolant_vertices[5] = outer_cladding_ref1 + Vertex(outer_bluntness)
         coolant_vertices[6] = outer_cladding_ref1 + Vertex(pressure_tube_length-(offset+pressure_tube_gap))
 
         coolant_vertices[9] = coolant_vertices[0] + Vertex(-(inner_length+pressure_tube_gap))
@@ -298,7 +307,6 @@ class BreederUnitCoolant(ComplexComponent):
         # realign with origin
         cubit.move(coolant.cubitInstance, [inner_length+pressure_tube_gap, 0, 0])
         return coolant
-
 
 class PressureTubeComponent(ComplexComponent):
     def __init__(self, json_object):
@@ -368,9 +376,15 @@ class BreederChamber(ComplexComponent):
         super().__init__("breeder", json_object)
     
     def make_geometry(self):
-        inner_radius = self.geometry["inner radius"]
-        outer_radius = self.geometry["outer radius"]
-        bluntness = self.geometry["bluntness"]
+        geometry = self.geometry
+        inner_radius = geometry["inner radius"]
+        outer_radius = geometry["outer radius"]
+        if "bluntness" in geometry.keys():
+            inner_bluntness = geometry["bluntness"]
+            outer_bluntness = geometry["bluntness"]
+        else:
+            inner_bluntness = geometry["inner bluntness"]
+            outer_bluntness = geometry["outer bluntness"]
         length = self.geometry["length"]
         offset = self.geometry["offset"]
 
@@ -379,12 +393,12 @@ class BreederChamber(ComplexComponent):
         
         breeder_vertices = list(np.zeros(6))
         breeder_vertices[0] = Vertex(length)
-        breeder_vertices[1] = Vertex(bluntness)
-        breeder_vertices[2] = Vertex(bluntness).rotate(slope_angle)
+        breeder_vertices[1] = Vertex(inner_bluntness)
+        breeder_vertices[2] = Vertex(inner_bluntness).rotate(slope_angle)
 
         outer_ref = Vertex(offset, thickness)
-        breeder_vertices[3] = outer_ref + Vertex(bluntness).rotate(slope_angle-np.pi)
-        breeder_vertices[4] = outer_ref + Vertex(bluntness)
+        breeder_vertices[3] = outer_ref + Vertex(outer_bluntness).rotate(slope_angle-np.pi)
+        breeder_vertices[4] = outer_ref + Vertex(outer_bluntness)
         breeder_vertices[5] = Vertex(length, thickness)
 
         breeder_vertices = [vertex.create() for vertex in breeder_vertices]
@@ -465,4 +479,5 @@ class FirstWallComponent(ComplexComponent):
         cmd(f"sweep surface {face_to_sweep.cid} vector 0 1 0 distance {height}")
         first_wall = get_last_geometry("volume")
         return first_wall
+
 
