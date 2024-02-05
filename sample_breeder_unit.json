@@ -21,8 +21,8 @@
         "pressure tube gap": 20,
         "pressure tube outer radius": 40,
         "pressure tube thickness": 1,
-        "pressure tube length": 420,
-        "multiplier length": 420,
+        "pressure tube length": 400,
+        "multiplier length": 385,
         "multiplier side": 72
     }
 }

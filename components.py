@@ -437,9 +437,8 @@ class FirstWallComponent(ComplexComponent):
             vertices[3] = vertices[0] + Vertex(outer_width)
             vertices[4] = vertices[3] + Vertex(-thickness)
 
-            vertices[5] = vertices[2] + Vertex(-thickness) + Vertex(thickness).rotate(-slope_angle)
-            vertices[6] = vertices[1] + Vertex(thickness) + Vertex(thickness).rotate(slope_angle-np.pi)
-
+            vertices[5] = vertices[2] + Vertex(-thickness, -thickness)
+            vertices[6] = vertices[1] + Vertex(thickness, -thickness)
             vertices[7] = vertices[0] + Vertex(thickness)
 
             vertices = [vertex.create() for vertex in vertices]
@@ -478,6 +477,38 @@ class FirstWallComponent(ComplexComponent):
 
         cmd(f"sweep surface {face_to_sweep.cid} vector 0 1 0 distance {height}")
         first_wall = get_last_geometry("volume")
+        #cubit.move(first_wall.cubitInstance, [0,0,length])
         return first_wall
 
+class BZBackplate(ComplexComponent):
+    def __init__(self, json_object: dict, pin_positions):
+        self.pin_pos = pin_positions
+        super().__init__("bz_backplate", json_object)
 
+    def make_geometry(self):
+        geometry = self.geometry
+        thickness = geometry["thickness"]
+        hole_radius = geometry["hole radius"]
+        front_length = geometry["front length"]
+        back_length = geometry["back length"]
+        height = geometry["height"]
+        
+        plate_vertices = [Vertex(0) for i in range(4)]
+
+        plate_vertices[0] = Vertex(-front_length/2)
+        plate_vertices[1] = Vertex(front_length/2)
+        plate_vertices[2] = Vertex(back_length/2, thickness)
+        plate_vertices[3] = Vertex(-back_length/2, thickness)
+
+        plate_vertices = [vertex.create() for vertex in plate_vertices]
+        face_to_sweep = make_surface_from_curves(make_loop(plate_vertices, []))
+        cmd(f"sweep surface {face_to_sweep.cid} vector 0 1 0 distance {height}")
+
+        backplate = get_last_geometry("body")
+        for position in self.pin_pos:
+            hole_to_be = cubit_cmd_check(f"create cylinder radius {hole_radius} height {thickness*2}", "volume")
+            cmd(f"{hole_to_be.geometry_type} {hole_to_be.cid} move {str(position)}")
+            print(f"subtract {hole_to_be.geometry_type} {hole_to_be.cid} from {backplate.geometry_type} {backplate.cid}")
+            cmd(f"subtract {hole_to_be.geometry_type} {hole_to_be.cid} from {backplate.geometry_type} {backplate.cid}")
+        self.add_to_subcomponents(backplate)
+        self.as_volumes()

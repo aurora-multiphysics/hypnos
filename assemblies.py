@@ -398,7 +398,7 @@ class ExternalComponentAssembly(GenericComponentAssembly):
         for body_id in source_body_ids:
             self.components.append(ExternalComponent(body_id, "body"))
 
-# in case we need to do source-specific actions at some point
+# in case we need to do source-specific actions
 class SourceAssembly(ExternalComponentAssembly):
     '''Assembly of external components, created when a json object has class= source'''
     def __init__(self, json_object: dict):
@@ -437,17 +437,13 @@ class BreederUnitAssembly(CreatedComponentAssembly):
         chamber_spacing = breeder_geometry["chamber offset"] + pressure_tube_gap
         filter_disk_spacing = pressure_tube_gap + self.geometry["offset"] + self.geometry["outer length"] - filter_disk_geometry["length"]
 
-        pin = PinComponent({"geometry":pin_geometry, "material":self.materials["pin"]})
+        pin = PinComponent({"geometry":pin_geometry, "material":self.materials["pin"], "origin": Vertex(pressure_tube_gap)})
         pressure_tube = PressureTubeComponent({"geometry":pressure_tube_geometry, "material":self.materials["pressure tube"]})
-        multiplier = MultiplierComponent({"geometry":multiplier_geometry, "material":self.materials["multiplier"]})
-        breeder = BreederChamber({"geometry":breeder_geometry, "material":self.materials["breeder"]})
-        filter_disk = FilterDiskComponent({"geometry": filter_disk_geometry, "material": self.materials["filter disk"]})
-        coolant = BreederUnitCoolant({"geometry": coolant_geometry, "material": self.materials["coolant"]})
+        multiplier = MultiplierComponent({"geometry":multiplier_geometry, "material":self.materials["multiplier"], })
+        breeder = BreederChamber({"geometry":breeder_geometry, "material":self.materials["breeder"], "origin":Vertex(chamber_spacing)})
+        filter_disk = FilterDiskComponent({"geometry": filter_disk_geometry, "material": self.materials["filter disk"], "origin":Vertex(filter_disk_spacing, 0, 0)})
+        coolant = BreederUnitCoolant({"geometry": coolant_geometry, "material": self.materials["coolant"], "origin": Vertex(pressure_tube_thickness, 0, 0)})
 
-        cubit.move(coolant.get_subcomponents()[0].cubitInstance, [pressure_tube_thickness, 0, 0])
-        cubit.move(pin.get_subcomponents()[0].cubitInstance, [pressure_tube_gap, 0, 0])
-        cubit.move(breeder.get_subcomponents()[0].cubitInstance, [chamber_spacing, 0, 0])
-        cubit.move(filter_disk.get_subcomponents()[0].cubitInstance, [filter_disk_spacing, 0, 0])
         self.components.extend([pin, pressure_tube, multiplier, breeder, filter_disk, coolant])
         # align with z-axis properly
         self.rotate(90, Vertex(0, 0, 0), Vertex(0, 1, 0))
@@ -517,19 +513,18 @@ class BreederUnitAssembly(CreatedComponentAssembly):
 
         return parameters
 
-
 class BlanketShellAssembly(CreatedComponentAssembly):
     '''First wall with tiled breeder units'''
     def __init__(self, json_object):
         self.geometry = json_object["geometry"]
-        super().__init__("blanket_shell", ["first wall", "breeder unit"], json_object)
+        super().__init__("blanket_shell", HCPB_BLANKET_REQUIREMENTS, json_object)
     
     def setup_assembly(self):
         for component in self.component_list:
-            if component["class"] == "first wall":
+            if component["class"] == "first_wall":
                 first_wall_object = component
                 first_wall_geometry = first_wall_object["geometry"]
-            elif component["class"] == "breeder unit":
+            elif component["class"] == "breeder_unit":
                 breeder_materials = component["materials"]
                 breeder_geometry = component["geometry"]
                 multiplier_side = breeder_geometry["multiplier side"]
@@ -617,6 +612,85 @@ class BlanketRingAssembly(CreatedComponentAssembly):
         midpoint_vertices = [midpoint_vertex.rotate(angle_subtended*i) for i in range(segments_needed)]
         return midpoint_vertices, angle_subtended
 
+class HCPBBlanket(CreatedComponentAssembly):
+    def __init__(self, json_object: dict):
+        self.geometry = json_object["geometry"]
+        super().__init__("HCPB_blanket", HCPB_BLANKET_REQUIREMENTS, json_object)
+    
+    def setup_assembly(self):
+        for component in self.component_list:
+            if component["class"] == "first_wall":
+                first_wall_object = component
+                first_wall_geometry = first_wall_object["geometry"]
+                first_wall_material = first_wall_object["material"]
+            elif component["class"] == "breeder_unit":
+                breeder_materials = component["materials"]
+                breeder_geometry = component["geometry"]
+        
+        pin_positions = self.__tile_breeder_units(first_wall_geometry, breeder_geometry, breeder_materials)
+        bz_backplate_geometry, bz_origin = self.__get_bz_backplate_parameters(first_wall_geometry, breeder_geometry)
+
+        self.components.append(BZBackplate({"geometry": bz_backplate_geometry, "material": first_wall_material, "origin": bz_origin}, pin_positions))
+        self.components.append(FirstWallComponent(first_wall_object))
+
+    def __tile_breeder_units(self, first_wall_geometry, breeder_geometry, breeder_materials):
+        # get parameters
+        multiplier_side = breeder_geometry["multiplier side"]
+        vertical_offset = self.geometry["vertical offset"]
+        horizontal_offset = self.geometry["horizontal offset"]
+        pin_spacing = self.geometry["pin spacing"]
+        inner_width = first_wall_geometry["inner width"]
+        length = first_wall_geometry["length"]
+        height = first_wall_geometry["height"]
+        wall_bluntness = first_wall_geometry["bluntness"]
+        wall_thickness = first_wall_geometry["thickness"]
+
+        # 'accessible' for tiling breeder units
+        accessible_width = inner_width - 2*(horizontal_offset + wall_bluntness)
+        accessible_height = height - 2*vertical_offset
+        # hexagonally tiled breeder units are broken up into 'rows' and 'columns'
+        # number of pins that will fit in a 'row'
+        row_pins = int((accessible_width - 2*multiplier_side) // (pin_spacing * np.cos(np.pi/6))) + 1
+        horizontal_start_pos = -(row_pins-1)*pin_spacing*np.cos(np.pi/6) / 2
+        # each column 'index' has breeder units at 2 different heights
+        columns_indices = int((accessible_height - 2*multiplier_side*np.cos(np.pi/6)) // pin_spacing) + 1
+        # number of distinct heights we can place breeder units
+        distinct_pin_heights = int((accessible_height - 2*multiplier_side*np.cos(np.pi/6)) // (pin_spacing*np.sin(np.pi/6))) + 1
+        centering_vertical_offset = ((accessible_height- 2*multiplier_side*np.cos(np.pi/6)) - (distinct_pin_heights-1)*pin_spacing*np.sin(np.pi/6)) / 2
+        vertical_start_pos = height - (vertical_offset + centering_vertical_offset + multiplier_side*np.cos(np.pi/6))
+
+        pin_positions = []
+        for j in range(columns_indices):
+            pin_positions.append([])
+            pin_pos = Vertex(horizontal_start_pos , vertical_start_pos, length-wall_thickness) + Vertex(0, -pin_spacing*j)
+            for i in range(row_pins):
+                # stop tiling if we overshoot the number of column pins (each column index corresponds to 2 column pins)
+                if (j*2)+1 + (i%2) <= distinct_pin_heights:
+                    pin_positions[j].append(pin_pos)
+                    self.components.append(BreederUnitAssembly({"materials":breeder_materials, "geometry":breeder_geometry, "origin":pin_pos}))
+                else:
+                    pin_positions[j].append(False)
+                pin_pos = pin_pos + Vertex(pin_spacing).rotate(((-1)**(i+1))*np.pi/6)
+        return pin_positions
+
+    def __get_bz_backplate_parameters(self, first_wall_geometry, breeder_geometry):
+        parameters = {}
+        parameters["height"] = first_wall_geometry["height"]
+        parameters["thickness"] = self.geometry["BZ backplate thickness"]
+        parameters["hole radius"] = breeder_geometry["pressure tube outer radius"]
+        inner_width = first_wall_geometry["inner width"] - 2*first_wall_geometry["thickness"]
+        offset = first_wall_geometry["outer width"] - inner_width
+
+        back_position_fraction = breeder_geometry["pressure tube length"] / (first_wall_geometry["length"] - first_wall_geometry["thickness"])
+        front_position_fraction = (breeder_geometry["pressure tube length"] - parameters["thickness"]) / (first_wall_geometry["length"] - first_wall_geometry["thickness"])
+
+        parameters["back length"] = inner_width + back_position_fraction*offset
+        parameters["front length"] = inner_width + front_position_fraction*offset
+
+        start_point = parameters["thickness"] + first_wall_geometry["length"] - breeder_geometry["pressure tube length"]
+
+        return parameters, Vertex(0, 0, start_point)
+
 def get_all_geometries_from_components(component_list) -> list[GenericCubitInstance]:
     instances = []
     for component in component_list:
@@ -668,6 +742,6 @@ def unionise(component_list: list):
     else:
         raise CubismError("Something unknowable was created in this union. Or worse, a surface.")
 
-def construct(json_object: dict):
+def construct(json_object: dict, *args):
     constructor = globals()[CLASS_MAPPING[json_object["class"]]]
-    return constructor(json_object)
+    return constructor(json_object, *args)

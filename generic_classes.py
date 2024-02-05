@@ -30,6 +30,9 @@ class GenericCubitInstance:
         cmd(f"{self.geometry_type} {self.cid} copy")
         copied_id = cubit.get_last_id(self.geometry_type)
         return GenericCubitInstance(copied_id, self.geometry_type)
+
+    def move(self, vector):
+        cubit.move(self.cubitInstance, vector)
     
     def update_reference(self, cid, geometry_type):
         '''change what this instance refers to cubitside'''

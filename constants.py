@@ -1,10 +1,8 @@
 # components in assemblies to be generated
 NEUTRON_TEST_FACILITY_REQUIREMENTS = ["room", "source"]
-NEUTRON_TEST_FACILITY_ADDITIONAL = []
 BLANKET_REQUIREMENTS = ["breeder", "structure"]
-BLANKET_ADDITIONAL = ["coolant", "multiplier"]
 ROOM_REQUIREMENTS = ["blanket", "surrounding_walls"]
-ROOM_ADDITIONAL = ["wall"]
+HCPB_BLANKET_REQUIREMENTS = ["first_wall", "breeder_unit"]
 
 # classes according to what make_geometry subfunction(?) needs to be called
 BLOB_CLASSES = ["complex", "breeder", "structure", "air"]
@@ -31,7 +29,8 @@ CLASS_MAPPING = {
     "multiplier": "MultiplierComponent",
     "first_wall": "FirstWallComponent",
     "blanket_shell": "BlanketShellAssembly",
-    "blanket_ring": "BlanketRingAssembly"
+    "blanket_ring": "BlanketRingAssembly",
+    "HCPB_blanket":"HCPBBlanket"
 }
 
 # components requiring only geometry and material parameters
