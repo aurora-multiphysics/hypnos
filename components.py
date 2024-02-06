@@ -421,10 +421,11 @@ class FirstWallComponent(ComplexComponent):
         bluntness = geometry["bluntness"]
         length = geometry["length"]
         thickness = geometry["thickness"]
+        sidewall_thickness = geometry["sidewall thickness"]
         height = geometry["height"]
 
         offset = (outer_width - inner_width)/2
-        slope_angle = np.arctan(2*length/offset)
+        slope_angle = np.arctan(length/offset)
 
         # need less vertices when bluntness = 0 so treat as a special case
         if bluntness == 0:
@@ -435,11 +436,11 @@ class FirstWallComponent(ComplexComponent):
             vertices[2] = vertices[1] + Vertex(inner_width)
 
             vertices[3] = vertices[0] + Vertex(outer_width)
-            vertices[4] = vertices[3] + Vertex(-thickness)
+            vertices[4] = vertices[3] + Vertex(-sidewall_thickness/np.sin(slope_angle))
 
-            vertices[5] = vertices[2] + Vertex(-thickness, -thickness)
-            vertices[6] = vertices[1] + Vertex(thickness, -thickness)
-            vertices[7] = vertices[0] + Vertex(thickness)
+            vertices[5] = vertices[2] + Vertex(-sidewall_thickness/np.sin(slope_angle)) + Vertex(thickness/np.tan(slope_angle), -thickness, 0)
+            vertices[6] = vertices[1] + Vertex(sidewall_thickness/np.sin(slope_angle)) + Vertex(-thickness/np.tan(slope_angle), -thickness, 0)
+            vertices[7] = vertices[0] + Vertex(sidewall_thickness/np.sin(slope_angle))
 
             vertices = [vertex.create() for vertex in vertices]
             face_to_sweep = make_surface_from_curves(make_loop(vertices, []))
@@ -456,17 +457,17 @@ class FirstWallComponent(ComplexComponent):
             vertices[4] = right_ref + Vertex(bluntness).rotate(-slope_angle)
 
             vertices[5] = vertices[0] + Vertex(outer_width)
-            vertices[6] = vertices[5] + Vertex(-thickness)
+            vertices[6] = vertices[5] + Vertex(-sidewall_thickness/np.sin(slope_angle))
 
-            right_ref_inner = right_ref + Vertex(-thickness) + Vertex(thickness).rotate(-slope_angle)
+            right_ref_inner = right_ref + Vertex(-sidewall_thickness/np.sin(slope_angle)) + Vertex(thickness/np.tan(slope_angle), -thickness, 0)
             vertices[7] = right_ref_inner + Vertex(bluntness).rotate(-slope_angle)
             vertices[8] = right_ref_inner + Vertex(-bluntness)
 
-            left_ref_inner = left_ref + Vertex(thickness) + Vertex(thickness).rotate(slope_angle-np.pi)
+            left_ref_inner = left_ref + Vertex(sidewall_thickness/np.sin(slope_angle)) + Vertex(-thickness/np.tan(slope_angle), -thickness, 0)
             vertices[9] = left_ref_inner + Vertex(bluntness)
             vertices[10] = left_ref_inner + Vertex(bluntness).rotate(slope_angle-np.pi)
 
-            vertices[11] = vertices[0] + Vertex(thickness)
+            vertices[11] = vertices[0] + Vertex(sidewall_thickness/np.sin(slope_angle))
 
             vertices = [vertex.create() for vertex in vertices]
             face_to_sweep = make_surface_from_curves(make_loop(vertices, [1, 3, 7, 9]))
@@ -492,23 +493,24 @@ class BZBackplate(ComplexComponent):
         front_length = geometry["front length"]
         back_length = geometry["back length"]
         height = geometry["height"]
-        
+
         plate_vertices = [Vertex(0) for i in range(4)]
 
-        plate_vertices[0] = Vertex(-front_length/2)
-        plate_vertices[1] = Vertex(front_length/2)
-        plate_vertices[2] = Vertex(back_length/2, thickness)
-        plate_vertices[3] = Vertex(-back_length/2, thickness)
+        plate_vertices[0] = Vertex(-front_length/2, 0, thickness)
+        plate_vertices[1] = Vertex(front_length/2, 0, thickness)
+        plate_vertices[2] = Vertex(back_length/2)
+        plate_vertices[3] = Vertex(-back_length/2)
 
         plate_vertices = [vertex.create() for vertex in plate_vertices]
         face_to_sweep = make_surface_from_curves(make_loop(plate_vertices, []))
         cmd(f"sweep surface {face_to_sweep.cid} vector 0 1 0 distance {height}")
 
         backplate = get_last_geometry("body")
-        for position in self.pin_pos:
-            hole_to_be = cubit_cmd_check(f"create cylinder radius {hole_radius} height {thickness*2}", "volume")
-            cmd(f"{hole_to_be.geometry_type} {hole_to_be.cid} move {str(position)}")
-            print(f"subtract {hole_to_be.geometry_type} {hole_to_be.cid} from {backplate.geometry_type} {backplate.cid}")
-            cmd(f"subtract {hole_to_be.geometry_type} {hole_to_be.cid} from {backplate.geometry_type} {backplate.cid}")
+        for row in self.pin_pos:
+            for position in row:
+                hole_position = Vertex(position.x, position.y, 0)
+                hole_to_be = cubit_cmd_check(f"create cylinder radius {hole_radius} height {thickness*3}", "volume")
+                cmd(f"{hole_to_be.geometry_type} {hole_to_be.cid} move {str(hole_position)}")
+                cmd(f"subtract {hole_to_be.geometry_type} {hole_to_be.cid} from {backplate.geometry_type} {backplate.cid}")
         self.add_to_subcomponents(backplate)
         self.as_volumes()

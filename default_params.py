@@ -36,6 +36,7 @@ FIRST_WALL = {
         "bluntness": 100,
         "length": 500,
         "thickness": 30,
+        "sidewall thickness": 25,
         "height": 625
     }
 }

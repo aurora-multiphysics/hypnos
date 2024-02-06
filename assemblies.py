@@ -616,34 +616,34 @@ class HCPBBlanket(CreatedComponentAssembly):
     def __init__(self, json_object: dict):
         self.geometry = json_object["geometry"]
         super().__init__("HCPB_blanket", HCPB_BLANKET_REQUIREMENTS, json_object)
-    
+
     def setup_assembly(self):
         for component in self.component_list:
             if component["class"] == "first_wall":
-                first_wall_object = component
-                first_wall_geometry = first_wall_object["geometry"]
-                first_wall_material = first_wall_object["material"]
+                self.first_wall_geometry = component["geometry"]
+                self.first_wall_material = component["material"]
             elif component["class"] == "breeder_unit":
-                breeder_materials = component["materials"]
-                breeder_geometry = component["geometry"]
+                self.breeder_materials = component["materials"]
+                self.breeder_geometry = component["geometry"]
         
-        pin_positions = self.__tile_breeder_units(first_wall_geometry, breeder_geometry, breeder_materials)
-        bz_backplate_geometry, bz_origin = self.__get_bz_backplate_parameters(first_wall_geometry, breeder_geometry)
+        pin_positions = self.__tile_breeder_units()
+        bz_backplate_geometry, bz_origin = self.__get_bz_backplate_parameters()
 
-        self.components.append(BZBackplate({"geometry": bz_backplate_geometry, "material": first_wall_material, "origin": bz_origin}, pin_positions))
-        self.components.append(FirstWallComponent(first_wall_object))
+        self.components.append(BZBackplate({"geometry": bz_backplate_geometry, "material": self.first_wall_material, "origin": bz_origin}, pin_positions))
+        self.components.append(FirstWallComponent({"geometry": self.first_wall_geometry, "material": self.first_wall_material}))
 
-    def __tile_breeder_units(self, first_wall_geometry, breeder_geometry, breeder_materials):
+    def __tile_breeder_units(self):
+        fw_geometry = self.first_wall_geometry
         # get parameters
-        multiplier_side = breeder_geometry["multiplier side"]
+        multiplier_side = self.breeder_geometry["multiplier side"]
         vertical_offset = self.geometry["vertical offset"]
         horizontal_offset = self.geometry["horizontal offset"]
         pin_spacing = self.geometry["pin spacing"]
-        inner_width = first_wall_geometry["inner width"]
-        length = first_wall_geometry["length"]
-        height = first_wall_geometry["height"]
-        wall_bluntness = first_wall_geometry["bluntness"]
-        wall_thickness = first_wall_geometry["thickness"]
+        inner_width = fw_geometry["inner width"]
+        length = fw_geometry["length"]
+        height = fw_geometry["height"]
+        wall_bluntness = fw_geometry["bluntness"]
+        wall_thickness = fw_geometry["thickness"]
 
         # 'accessible' for tiling breeder units
         accessible_width = inner_width - 2*(horizontal_offset + wall_bluntness)
@@ -667,29 +667,41 @@ class HCPBBlanket(CreatedComponentAssembly):
                 # stop tiling if we overshoot the number of column pins (each column index corresponds to 2 column pins)
                 if (j*2)+1 + (i%2) <= distinct_pin_heights:
                     pin_positions[j].append(pin_pos)
-                    self.components.append(BreederUnitAssembly({"materials":breeder_materials, "geometry":breeder_geometry, "origin":pin_pos}))
+                    self.components.append(BreederUnitAssembly({"materials":self.breeder_materials, "geometry":self.breeder_geometry, "origin":pin_pos}))
                 else:
                     pin_positions[j].append(False)
                 pin_pos = pin_pos + Vertex(pin_spacing).rotate(((-1)**(i+1))*np.pi/6)
         return pin_positions
 
-    def __get_bz_backplate_parameters(self, first_wall_geometry, breeder_geometry):
+    def __get_bz_backplate_parameters(self):
+        fw_geometry = self.first_wall_geometry
         parameters = {}
-        parameters["height"] = first_wall_geometry["height"]
+        parameters["height"] = fw_geometry["height"]
         parameters["thickness"] = self.geometry["BZ backplate thickness"]
-        parameters["hole radius"] = breeder_geometry["pressure tube outer radius"]
-        inner_width = first_wall_geometry["inner width"] - 2*first_wall_geometry["thickness"]
-        offset = first_wall_geometry["outer width"] - inner_width
+        parameters["hole radius"] = self.breeder_geometry["pressure tube outer radius"]
 
-        back_position_fraction = breeder_geometry["pressure tube length"] / (first_wall_geometry["length"] - first_wall_geometry["thickness"])
-        front_position_fraction = (breeder_geometry["pressure tube length"] - parameters["thickness"]) / (first_wall_geometry["length"] - first_wall_geometry["thickness"])
+        fw_length = fw_geometry["length"]
+        fw_outer_width = fw_geometry["outer width"]
+        backplate_start_z = fw_geometry["length"] - (self.breeder_geometry["pressure tube length"] + fw_geometry["thickness"])
+        offset = (fw_geometry["outer width"] - fw_geometry["inner width"])/2
 
-        parameters["back length"] = inner_width + back_position_fraction*offset
-        parameters["front length"] = inner_width + front_position_fraction*offset
+        slope_angle = np.arctan(fw_length/offset)
+        back_position_fraction = backplate_start_z/ fw_length
+        front_position_fraction = (backplate_start_z + parameters["thickness"]) / fw_length
+        fw_sidewall_horizontal = fw_geometry["sidewall thickness"]/np.sin(slope_angle)
 
-        start_point = parameters["thickness"] + first_wall_geometry["length"] - breeder_geometry["pressure tube length"]
+        # back_right = Vertex(fw_outer_width) + Vertex(-fw_sidewall_thickness/np.sin(slope_angle)) + Vertex(-offset*back_position_fraction, fw_length*back_position_fraction)                                                                                              
+        # back_left = Vertex(fw_sidewall_thickness/np.sin(slope_angle)) + Vertex(offset*back_position_fraction, fw_length*back_position_fraction)
+        # front_right = Vertex(fw_outer_width) + Vertex(-fw_sidewall_thickness/np.sin(slope_angle)) + Vertex(-offset*front_position_fraction, fw_length*front_position_fraction)                                                                                             
+        # front_left = Vertex(fw_sidewall_thickness/np.sin(slope_angle)) + Vertex(offset*front_position_fraction, fw_length*front_position_fraction)
 
-        return parameters, Vertex(0, 0, start_point)
+        # parameters["back length"] = (back_left + back_right.rotate(np.pi)).x
+        # parameters["front length"] = (front_left + front_right.rotate(np.pi)).x
+
+        parameters["back length"] = fw_outer_width - 2*(back_position_fraction*offset + fw_sidewall_horizontal)
+        parameters["front length"] = fw_outer_width - 2*(front_position_fraction*offset + fw_sidewall_horizontal)
+
+        return parameters, Vertex(0, 0, backplate_start_z)
 
 def get_all_geometries_from_components(component_list) -> list[GenericCubitInstance]:
     instances = []
