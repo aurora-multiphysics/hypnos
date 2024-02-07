@@ -36,7 +36,7 @@ class ComplexComponent:
         elif type(subcomponents) == list:
             for subcomponent in subcomponents:
                 if isinstance(subcomponent, GenericCubitInstance):
-                    self.subcomponents.append(subcomponents)
+                    self.subcomponents.append(subcomponent)
 
     def make_geometry(self):
         '''create geometry in cubit. if the class is a blob or walls, make those. otherwise break.'''
@@ -481,36 +481,52 @@ class FirstWallComponent(ComplexComponent):
         #cubit.move(first_wall.cubitInstance, [0,0,length])
         return first_wall
 
-class BZBackplate(ComplexComponent):
-    def __init__(self, json_object: dict, pin_positions):
+class Plate(ComplexComponent):
+    def __init__(self, classname, json_object: dict, plate_type, pin_positions= Vertex(0)):
+        self.plate_type = plate_type
         self.pin_pos = pin_positions
-        super().__init__("bz_backplate", json_object)
+        super().__init__(classname, json_object)
+    
+    def __get_back_vertices(self):
+        if self.plate_type != "mid":
+            extension = self.geometry["extension"]
+        front_length = self.geometry["length"]
+        right_position = front_length/2 + extension if self.plate_type in ["right", "full"] else front_length/2
+        left_position = -(front_length/2 + extension) if self.plate_type in ["left", "full"] else -front_length/2
+        return left_position, right_position
 
     def make_geometry(self):
-        geometry = self.geometry
-        thickness = geometry["thickness"]
-        hole_radius = geometry["hole radius"]
-        front_length = geometry["front length"]
-        back_length = geometry["back length"]
-        height = geometry["height"]
+        thickness = self.geometry["thickness"]
+        front_length = self.geometry["length"]
+        height = self.geometry["height"]
+        back_left_position, back_right_position = self.__get_back_vertices()
 
         plate_vertices = [Vertex(0) for i in range(4)]
 
         plate_vertices[0] = Vertex(-front_length/2, 0, thickness)
         plate_vertices[1] = Vertex(front_length/2, 0, thickness)
-        plate_vertices[2] = Vertex(back_length/2)
-        plate_vertices[3] = Vertex(-back_length/2)
+        plate_vertices[2] = Vertex(back_right_position)
+        plate_vertices[3] = Vertex(back_left_position)
 
         plate_vertices = [vertex.create() for vertex in plate_vertices]
         face_to_sweep = make_surface_from_curves(make_loop(plate_vertices, []))
         cmd(f"sweep surface {face_to_sweep.cid} vector 0 1 0 distance {height}")
+        plate = get_last_geometry("body")
+        plate = self.__make_holes(plate)
+        return from_bodies_to_volumes([plate])
 
-        backplate = get_last_geometry("body")
+    def __make_holes(self, plate: GenericCubitInstance):
+        plate_thickness = self.geometry["thickness"]
+        hole_radius = self.geometry["hole radius"]
+
         for row in self.pin_pos:
             for position in row:
                 hole_position = Vertex(position.x, position.y, 0)
-                hole_to_be = cubit_cmd_check(f"create cylinder radius {hole_radius} height {thickness*3}", "volume")
+                hole_to_be = cubit_cmd_check(f"create cylinder radius {hole_radius} height {plate_thickness*3}", "volume")
                 cmd(f"{hole_to_be.geometry_type} {hole_to_be.cid} move {str(hole_position)}")
-                cmd(f"subtract {hole_to_be.geometry_type} {hole_to_be.cid} from {backplate.geometry_type} {backplate.cid}")
-        self.add_to_subcomponents(backplate)
-        self.as_volumes()
+                cmd(f"subtract {hole_to_be.geometry_type} {hole_to_be.cid} from {plate.geometry_type} {plate.cid}")
+        return plate
+
+class BZBackplate(Plate):
+    def __init__(self, json_object: dict, pin_positions):
+        super().__init__("BZ_backplate", json_object, "full", pin_positions)

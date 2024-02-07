@@ -673,6 +673,26 @@ class HCPBBlanket(CreatedComponentAssembly):
                 pin_pos = pin_pos + Vertex(pin_spacing).rotate(((-1)**(i+1))*np.pi/6)
         return pin_positions
 
+    def __fill_fw_width(self, distance_from_fw):
+        fw_length = self.first_wall_geometry["length"]
+        fw_outer_width = self.first_wall_geometry["outer width"]
+        z_position = fw_length -(distance_from_fw + self.first_wall_geometry["thickness"])
+        offset = (fw_outer_width - self.first_wall_geometry["inner width"])/2
+
+        slope_angle = np.arctan(fw_length/offset)
+        fw_sidewall_horizontal = self.first_wall_geometry["sidewall thickness"]/np.sin(slope_angle)
+        position_fraction = z_position/fw_length
+
+        filled_width = fw_outer_width - 2*(position_fraction*offset + fw_sidewall_horizontal)
+
+        return filled_width
+
+    def __get_plate_length_and_ext(self, distance_from_fw: int, thickness: int):
+        back_distance_from_fw = distance_from_fw + thickness
+        length = self.__fill_fw_width(distance_from_fw)
+        extension = (self.__fill_fw_width(back_distance_from_fw) - length)/2
+        return length, extension
+
     def __get_bz_backplate_parameters(self):
         fw_geometry = self.first_wall_geometry
         parameters = {}
@@ -680,27 +700,10 @@ class HCPBBlanket(CreatedComponentAssembly):
         parameters["thickness"] = self.geometry["BZ backplate thickness"]
         parameters["hole radius"] = self.breeder_geometry["pressure tube outer radius"]
 
-        fw_length = fw_geometry["length"]
-        fw_outer_width = fw_geometry["outer width"]
+        front_distance_from_fw = self.breeder_geometry["pressure tube length"] - parameters["thickness"]
+        parameters["length"], parameters["extension"] = self.__get_plate_length_and_ext(front_distance_from_fw, parameters["thickness"])
+        
         backplate_start_z = fw_geometry["length"] - (self.breeder_geometry["pressure tube length"] + fw_geometry["thickness"])
-        offset = (fw_geometry["outer width"] - fw_geometry["inner width"])/2
-
-        slope_angle = np.arctan(fw_length/offset)
-        back_position_fraction = backplate_start_z/ fw_length
-        front_position_fraction = (backplate_start_z + parameters["thickness"]) / fw_length
-        fw_sidewall_horizontal = fw_geometry["sidewall thickness"]/np.sin(slope_angle)
-
-        # back_right = Vertex(fw_outer_width) + Vertex(-fw_sidewall_thickness/np.sin(slope_angle)) + Vertex(-offset*back_position_fraction, fw_length*back_position_fraction)                                                                                              
-        # back_left = Vertex(fw_sidewall_thickness/np.sin(slope_angle)) + Vertex(offset*back_position_fraction, fw_length*back_position_fraction)
-        # front_right = Vertex(fw_outer_width) + Vertex(-fw_sidewall_thickness/np.sin(slope_angle)) + Vertex(-offset*front_position_fraction, fw_length*front_position_fraction)                                                                                             
-        # front_left = Vertex(fw_sidewall_thickness/np.sin(slope_angle)) + Vertex(offset*front_position_fraction, fw_length*front_position_fraction)
-
-        # parameters["back length"] = (back_left + back_right.rotate(np.pi)).x
-        # parameters["front length"] = (front_left + front_right.rotate(np.pi)).x
-
-        parameters["back length"] = fw_outer_width - 2*(back_position_fraction*offset + fw_sidewall_horizontal)
-        parameters["front length"] = fw_outer_width - 2*(front_position_fraction*offset + fw_sidewall_horizontal)
-
         return parameters, Vertex(0, 0, backplate_start_z)
 
 def get_all_geometries_from_components(component_list) -> list[GenericCubitInstance]:
