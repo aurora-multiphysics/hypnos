@@ -638,6 +638,12 @@ class HCPBBlanket(CreatedComponentAssembly):
         purge_gas_front_plate_geometry, pgfp_origin = self.__get_pg_front_plate_params()
         self.components.append(PurgeGasPlate("purge_gas_front", {"geometry": purge_gas_front_plate_geometry, "material": self.first_wall_material, "origin": pgfp_origin}, front_rib_positions, self.front_ribs_geometry["thickness"], purge_gas_hole_positions))
 
+        purge_gas_mid_plate_geometry, pgmp_origin = self.__get_pg_mid_plate_params()
+        self.components.append(PurgeGasPlate("purge_gas_mid", {"geometry": purge_gas_mid_plate_geometry, "material": self.first_wall_material, "origin": pgmp_origin}, front_rib_positions, self.front_ribs_geometry["thickness"], purge_gas_hole_positions))
+
+        purge_gas_back_plate_geometry, pgbp_origin = self.__get_pg_back_plate_params()
+        self.components.append(PurgeGasPlate("purge_gas_back", {"geometry": purge_gas_back_plate_geometry, "material": self.first_wall_material, "origin": pgbp_origin}, front_rib_positions, self.front_ribs_geometry["thickness"], purge_gas_hole_positions))
+
         self.components.append(BZBackplate({"geometry": bz_backplate_geometry, "material": self.first_wall_material, "origin": bz_origin}, pin_positions))
         self.components.append(FirstWallComponent({"geometry": self.first_wall_geometry, "material": self.first_wall_material}))
 
@@ -747,6 +753,32 @@ class HCPBBlanket(CreatedComponentAssembly):
         parameters["thickness"] = self.geometry["PG front plate thickness"]
         plate_distance_from_fw = bu_geometry["pressure tube thickness"] + bu_geometry["pressure tube gap"] + bu_geometry["offset"] + bu_geometry["outer length"] - parameters["thickness"]
         parameters["hole radius"] = bu_geometry["inner cladding"] + bu_geometry["outer cladding"] + bu_geometry["breeder chamber thickness"] + bu_geometry["coolant inlet radius"]
+        parameters["length"], parameters["extension"] = self.__get_plate_length_and_ext(plate_distance_from_fw, parameters["thickness"])
+
+        start_z = fw_geometry["length"] - (fw_geometry["thickness"] + plate_distance_from_fw + parameters["thickness"])
+        return parameters, Vertex(0, 0, start_z)
+    
+    def __get_pg_mid_plate_params(self):
+        fw_geometry = self.first_wall_geometry
+        bu_geometry = self.breeder_geometry
+        parameters = {}
+        parameters["height"] = fw_geometry["height"]
+        parameters["thickness"] = self.geometry["PG mid plate thickness"]
+        plate_distance_from_fw = bu_geometry["pressure tube thickness"] + bu_geometry["pressure tube gap"] + bu_geometry["offset"] + bu_geometry["outer length"] + self.geometry["PG mid plate gap"]
+        parameters["hole radius"] = bu_geometry["inner cladding"] + bu_geometry["coolant inlet radius"]
+        parameters["length"], parameters["extension"] = self.__get_plate_length_and_ext(plate_distance_from_fw, parameters["thickness"])
+
+        start_z = fw_geometry["length"] - (fw_geometry["thickness"] + plate_distance_from_fw + parameters["thickness"])
+        return parameters, Vertex(0, 0, start_z)
+    
+    def __get_pg_back_plate_params(self):
+        fw_geometry = self.first_wall_geometry
+        bu_geometry = self.breeder_geometry
+        parameters = {}
+        parameters["height"] = fw_geometry["height"]
+        parameters["thickness"] = self.geometry["PG back plate thickness"]
+        plate_distance_from_fw = bu_geometry["pressure tube thickness"] + bu_geometry["pressure tube gap"] + bu_geometry["inner length"] - parameters["thickness"]
+        parameters["hole radius"] = bu_geometry["inner cladding"] + bu_geometry["coolant inlet radius"]
         parameters["length"], parameters["extension"] = self.__get_plate_length_and_ext(plate_distance_from_fw, parameters["thickness"])
 
         start_z = fw_geometry["length"] - (fw_geometry["thickness"] + plate_distance_from_fw + parameters["thickness"])

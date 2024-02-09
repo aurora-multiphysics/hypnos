@@ -7,7 +7,10 @@
 
         "BZ backplate thickness": 15,
         "front rib positions": [3, 7],
-        "PG front plate thickness": 5
+        "PG front plate thickness": 5,
+        "PG mid plate thickness": 5,
+        "PG mid plate gap": 20,
+        "PG back plate thickness": 5
     },
     "components": [
         "sample_breeder_unit.json",
@@ -15,7 +18,7 @@
         {
             "class": "front_rib",
             "geometry": {
-                "length": 70,
+                "length": 140,
                 "thickness": 30,
                 "side channel width": 10,
                 "side channel height": 10,
