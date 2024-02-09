@@ -474,8 +474,7 @@ class BreederUnitAssembly(CreatedComponentAssembly):
 
         slope_angle = np.arctan((inner_cladding + breeder_chamber_thickness + outer_cladding) / offset)
 
-        parameters = {}
-        parameters["bluntness"] = geometry["bluntness"]
+        parameters = self.__extract_parameters(["bluntness"])
         parameters["inner radius"] = coolant_inlet_radius + inner_cladding
         parameters["outer radius"] = coolant_inlet_radius + inner_cladding + breeder_chamber_thickness
         parameters["chamber offset"] = outer_cladding/np.sin(slope_angle) + inner_cladding/np.tan(slope_angle)
@@ -625,9 +624,15 @@ class HCPBBlanket(CreatedComponentAssembly):
             elif component["class"] == "breeder_unit":
                 self.breeder_materials = component["materials"]
                 self.breeder_geometry = component["geometry"]
+            elif component["class"] == "front_rib":
+                self.front_ribs_geometry = component["geometry"]
         
         pin_positions = self.__tile_breeder_units()
         bz_backplate_geometry, bz_origin = self.__get_bz_backplate_parameters()
+
+        front_rib_geometry, front_rib_positions = self.__get_front_ribs_params()
+        for front_rib_pos in front_rib_positions:
+            self.components.append(FrontRib({"geometry": front_rib_geometry, "material": self.first_wall_material, "origin": front_rib_pos}))
 
         self.components.append(BZBackplate({"geometry": bz_backplate_geometry, "material": self.first_wall_material, "origin": bz_origin}, pin_positions))
         self.components.append(FirstWallComponent({"geometry": self.first_wall_geometry, "material": self.first_wall_material}))
@@ -652,6 +657,7 @@ class HCPBBlanket(CreatedComponentAssembly):
         # number of pins that will fit in a 'row'
         row_pins = int((accessible_width - 2*multiplier_side) // (pin_spacing * np.cos(np.pi/6))) + 1
         horizontal_start_pos = -(row_pins-1)*pin_spacing*np.cos(np.pi/6) / 2
+        self.first_wall_geometry["pin horizontal start"] = horizontal_start_pos
         # each column 'index' has breeder units at 2 different heights
         columns_indices = int((accessible_height - 2*multiplier_side*np.cos(np.pi/6)) // pin_spacing) + 1
         # number of distinct heights we can place breeder units
@@ -705,6 +711,19 @@ class HCPBBlanket(CreatedComponentAssembly):
         
         backplate_start_z = fw_geometry["length"] - (self.breeder_geometry["pressure tube length"] + fw_geometry["thickness"])
         return parameters, Vertex(0, 0, backplate_start_z)
+    
+    def __get_front_ribs_params(self):
+        params = self.front_ribs_geometry
+        params["height"] = self.first_wall_geometry["height"]
+
+        z_position = self.first_wall_geometry["length"] - (self.first_wall_geometry["thickness"] + self.breeder_geometry["pressure tube length"])
+        pin_spacing = self.geometry["pin spacing"]*np.sqrt(3/4)
+        horizontal_start = self.first_wall_geometry["pin horizontal start"] - pin_spacing/2
+
+        positions = []
+        for position_index in self.geometry["front rib positions"]:
+            positions.append(Vertex(horizontal_start + position_index*pin_spacing, 0, z_position))
+        return params, positions
 
 def get_all_geometries_from_components(component_list) -> list[GenericCubitInstance]:
     instances = []

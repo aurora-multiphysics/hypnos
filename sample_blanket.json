@@ -5,10 +5,25 @@
         "vertical offset": 0,
         "horizontal offset": 0,
 
-        "BZ backplate thickness": 15
+        "BZ backplate thickness": 15,
+        "front rib positions": [3, 7]
     },
     "components": [
         "sample_breeder_unit.json",
-        "sample_first_wall.json"
+        "sample_first_wall.json",
+        {
+            "class": "front_rib",
+            "geometry": {
+                "length": 70,
+                "thickness": 30,
+                "side channel width": 10,
+                "side channel height": 10,
+                "side channel gap": 107,
+                "side channel vertical margin": 50,
+                "side channel horizontal offset": 0,
+                "connection height": 10,
+                "connection width": 10
+            }
+        }
     ]
 }
