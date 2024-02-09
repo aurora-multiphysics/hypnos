@@ -433,13 +433,13 @@ class BreederUnitAssembly(CreatedComponentAssembly):
         coolant_geometry = self.__get_coolant_parameters()
 
         pressure_tube_thickness = self.geometry["pressure tube thickness"]
-        pressure_tube_gap = self.geometry["pressure tube gap"]
+        pressure_tube_gap = self.geometry["pressure tube gap"] + pressure_tube_thickness
         chamber_spacing = breeder_geometry["chamber offset"] + pressure_tube_gap
         filter_disk_spacing = pressure_tube_gap + self.geometry["offset"] + self.geometry["outer length"] - filter_disk_geometry["length"]
 
         pin = PinComponent({"geometry":pin_geometry, "material":self.materials["pin"], "origin": Vertex(pressure_tube_gap)})
         pressure_tube = PressureTubeComponent({"geometry":pressure_tube_geometry, "material":self.materials["pressure tube"]})
-        multiplier = MultiplierComponent({"geometry":multiplier_geometry, "material":self.materials["multiplier"], })
+        multiplier = MultiplierComponent({"geometry":multiplier_geometry, "material":self.materials["multiplier"]})
         breeder = BreederChamber({"geometry":breeder_geometry, "material":self.materials["breeder"], "origin":Vertex(chamber_spacing)})
         filter_disk = FilterDiskComponent({"geometry": filter_disk_geometry, "material": self.materials["filter disk"], "origin":Vertex(filter_disk_spacing, 0, 0)})
         coolant = BreederUnitCoolant({"geometry": coolant_geometry, "material": self.materials["coolant"], "origin": Vertex(pressure_tube_thickness, 0, 0)})
@@ -628,11 +628,15 @@ class HCPBBlanket(CreatedComponentAssembly):
                 self.front_ribs_geometry = component["geometry"]
         
         pin_positions = self.__tile_breeder_units()
-        bz_backplate_geometry, bz_origin = self.__get_bz_backplate_parameters()
+        bz_backplate_geometry, bz_origin = self.__get_bz_backplate_params()
 
         front_rib_geometry, front_rib_positions = self.__get_front_ribs_params()
         for front_rib_pos in front_rib_positions:
             self.components.append(FrontRib({"geometry": front_rib_geometry, "material": self.first_wall_material, "origin": front_rib_pos}))
+
+        purge_gas_hole_positions = self.__sort_pin_positions(pin_positions)
+        purge_gas_front_plate_geometry, pgfp_origin = self.__get_pg_front_plate_params()
+        self.components.append(PurgeGasPlate("purge_gas_front", {"geometry": purge_gas_front_plate_geometry, "material": self.first_wall_material, "origin": pgfp_origin}, front_rib_positions, self.front_ribs_geometry["thickness"], purge_gas_hole_positions))
 
         self.components.append(BZBackplate({"geometry": bz_backplate_geometry, "material": self.first_wall_material, "origin": bz_origin}, pin_positions))
         self.components.append(FirstWallComponent({"geometry": self.first_wall_geometry, "material": self.first_wall_material}))
@@ -699,7 +703,7 @@ class HCPBBlanket(CreatedComponentAssembly):
         extension = (self.__fill_fw_width(back_distance_from_fw) - length)/2
         return length, extension
 
-    def __get_bz_backplate_parameters(self):
+    def __get_bz_backplate_params(self):
         fw_geometry = self.first_wall_geometry
         parameters = {}
         parameters["height"] = fw_geometry["height"]
@@ -724,6 +728,29 @@ class HCPBBlanket(CreatedComponentAssembly):
         for position_index in self.geometry["front rib positions"]:
             positions.append(Vertex(horizontal_start + position_index*pin_spacing, 0, z_position))
         return params, positions
+
+    def __sort_pin_positions(self, pin_positions):
+        rib_pos = self.geometry["front rib positions"]
+        plate_hole_positions = [[] for i in range(len(rib_pos)+1)]
+
+        for row in pin_positions:
+            padded_rib_pos = [0] + rib_pos + [len(row)]
+            for i in range(len(padded_rib_pos)-1):
+                plate_hole_positions[i].append(row[padded_rib_pos[i]:padded_rib_pos[i+1]])
+        return plate_hole_positions
+
+    def __get_pg_front_plate_params(self):
+        fw_geometry = self.first_wall_geometry
+        bu_geometry = self.breeder_geometry
+        parameters = {}
+        parameters["height"] = fw_geometry["height"]
+        parameters["thickness"] = self.geometry["PG front plate thickness"]
+        plate_distance_from_fw = bu_geometry["pressure tube thickness"] + bu_geometry["pressure tube gap"] + bu_geometry["offset"] + bu_geometry["outer length"] - parameters["thickness"]
+        parameters["hole radius"] = bu_geometry["inner cladding"] + bu_geometry["outer cladding"] + bu_geometry["breeder chamber thickness"] + bu_geometry["coolant inlet radius"]
+        parameters["length"], parameters["extension"] = self.__get_plate_length_and_ext(plate_distance_from_fw, parameters["thickness"])
+
+        start_z = fw_geometry["length"] - (fw_geometry["thickness"] + plate_distance_from_fw + parameters["thickness"])
+        return parameters, Vertex(0, 0, start_z)
 
 def get_all_geometries_from_components(component_list) -> list[GenericCubitInstance]:
     instances = []

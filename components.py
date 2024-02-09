@@ -104,7 +104,20 @@ class ComplexComponent:
     
     def move(self, vector: Vertex):
         for subcomponent in self.subcomponents:
-            cmd(f"{subcomponent.geometry_type} {subcomponent.cid} move {str(vector)}")
+            if isinstance(subcomponent, GenericCubitInstance):
+                cmd(f"{str(subcomponent)} move {str(vector)}")
+    
+    def extract_parameters(self, parameters):
+        out_dict = {}
+        if type(parameters) == list:
+            for parameter in parameters:
+                out_dict[parameter] = self.geometry[parameter]
+        elif type(parameters) == dict:
+            for fetch_parameter, out_parameter in parameters.items():
+                out_dict[out_parameter] = self.geometry[fetch_parameter]
+        else:
+            raise CubismError(f"parameters type not recognised: {type(parameters)}")
+        return out_dict
 
 class SurroundingWallsComponent(ComplexComponent):
     '''Surrounding walls, filled with air'''
@@ -512,7 +525,9 @@ class Plate(ComplexComponent):
         face_to_sweep = make_surface_from_curves(make_loop(plate_vertices, []))
         cmd(f"sweep surface {face_to_sweep.cid} vector 0 1 0 distance {height}")
         plate = get_last_geometry("body")
+        cmd(f"{str(plate)} move {self.origin.x} 0 0")
         plate = self.__make_holes(plate)
+        cmd(f"{str(plate)} move {Vertex(-self.origin.x).x} 0 0")
         return from_bodies_to_volumes([plate])
 
     def __make_holes(self, plate: GenericCubitInstance):
@@ -530,6 +545,37 @@ class Plate(ComplexComponent):
 class BZBackplate(Plate):
     def __init__(self, json_object: dict, pin_positions):
         super().__init__("BZ_backplate", json_object, "full", pin_positions)
+
+class PurgeGasPlate(ComplexComponent):
+    def __init__(self, classname, json_object: dict, rib_positions: list[Vertex], rib_thickness: int, plate_hole_positions: list):
+        self.hole_pos = plate_hole_positions
+        self.rib_pos = [i.x for i in rib_positions]
+        self.rib_pos.sort()
+        self.rib_thickness = rib_thickness
+        super().__init__(classname, json_object)
+    
+    def make_geometry(self):
+        plates = []
+        generic_params = self.extract_parameters(["thickness", "height", "extension", "hole radius"])
+        total_plate_length = self.geometry["length"]
+
+        left_plate_geometry = generic_params
+        left_plate_geometry["length"] = (total_plate_length/2 - np.abs(self.rib_pos[0])) - self.rib_thickness/2
+        left_plate_origin = Vertex(self.rib_pos[0] - (left_plate_geometry["length"] + self.rib_thickness)/2)
+        plates.extend(Plate(self.classname+"_left", {"geometry": left_plate_geometry, "material": self.material, "origin": left_plate_origin}, "left", self.hole_pos[0]).get_subcomponents())
+
+        for i in range(len(self.rib_pos)-1):
+            mid_plate_geometry = generic_params
+            mid_plate_geometry["length"] = np.abs(self.rib_pos[i] - self.rib_pos[i+1]) - self.rib_thickness
+            mid_plate_origin = Vertex((self.rib_pos[i] + self.rib_pos[i+1])/2)
+            plates.extend(Plate(self.classname+"_mid", {"geometry": mid_plate_geometry, "material": self.material, "origin": mid_plate_origin}, "mid", self.hole_pos[i+1]).get_subcomponents())
+
+        right_plate_geometry = generic_params
+        right_plate_geometry["length"] = (total_plate_length/2 - np.abs(self.rib_pos[-1])) - self.rib_thickness/2
+        right_plate_origin = Vertex(self.rib_pos[-1] + (right_plate_geometry["length"] + self.rib_thickness)/2)
+        plates.extend(Plate(self.classname+"_right", {"geometry": right_plate_geometry, "material": self.material, "origin": right_plate_origin}, "right", self.hole_pos[-1]).get_subcomponents())
+
+        return plates
 
 class FrontRib(ComplexComponent):
     def __init__(self, json_object: dict):
