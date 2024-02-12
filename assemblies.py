@@ -626,9 +626,13 @@ class HCPBBlanket(CreatedComponentAssembly):
                 self.breeder_geometry = component["geometry"]
             elif component["class"] == "front_rib":
                 self.front_ribs_geometry = component["geometry"]
+            elif component["class"] == "back_rib":
+                self.back_ribs_geometry = component["geometry"]
         
         pin_positions = self.__tile_breeder_units()
+
         bz_backplate_geometry, bz_origin = self.__get_bz_backplate_params()
+        self.components.append(BZBackplate({"geometry": bz_backplate_geometry, "material": self.first_wall_material, "origin": bz_origin}, pin_positions))
 
         front_rib_geometry, front_rib_positions = self.__get_front_ribs_params()
         for front_rib_pos in front_rib_positions:
@@ -644,7 +648,10 @@ class HCPBBlanket(CreatedComponentAssembly):
         purge_gas_back_plate_geometry, pgbp_origin = self.__get_pg_back_plate_params()
         self.components.append(PurgeGasPlate("purge_gas_back", {"geometry": purge_gas_back_plate_geometry, "material": self.first_wall_material, "origin": pgbp_origin}, front_rib_positions, self.front_ribs_geometry["thickness"], purge_gas_hole_positions))
 
-        self.components.append(BZBackplate({"geometry": bz_backplate_geometry, "material": self.first_wall_material, "origin": bz_origin}, pin_positions))
+        back_rib_geometry, back_rib_positions = self.__get_back_ribs_params()
+        for back_rib_pos in back_rib_positions:
+            self.components.append(BackRib({"geometry": back_rib_geometry, "material": self.first_wall_material, "origin": back_rib_pos}))
+        
         self.components.append(FirstWallComponent({"geometry": self.first_wall_geometry, "material": self.first_wall_material}))
 
     def __tile_breeder_units(self):
@@ -722,21 +729,44 @@ class HCPBBlanket(CreatedComponentAssembly):
         backplate_start_z = fw_geometry["length"] - (self.breeder_geometry["pressure tube length"] + fw_geometry["thickness"])
         return parameters, Vertex(0, 0, backplate_start_z)
     
-    def __get_front_ribs_params(self):
-        bu_geometry = self.breeder_geometry
-
-        params = self.front_ribs_geometry
-        params["height"] = self.first_wall_geometry["height"]
-        params["length"] = bu_geometry["pressure tube thickness"] + bu_geometry["pressure tube gap"] + bu_geometry["inner length"] - bu_geometry["pressure tube length"]
-
-        z_position = self.first_wall_geometry["length"] - (self.first_wall_geometry["thickness"] + self.breeder_geometry["pressure tube length"])
+    def __get_rib_positions(self, z_position):
         pin_spacing = self.geometry["pin spacing"]*np.sqrt(3/4)
         horizontal_start = self.first_wall_geometry["pin horizontal start"] - pin_spacing/2
 
         positions = []
         for position_index in self.geometry["front rib positions"]:
             positions.append(Vertex(horizontal_start + position_index*pin_spacing, 0, z_position))
-        return params, positions
+        
+        return positions
+    
+    def __add_common_rib_params(self, params: dict):
+        params["height"] = self.first_wall_geometry["height"]
+        params["connection height"] = self.geometry["rib connection height"]
+        params["connection width"] = self.geometry["rib connection width"]
+        params["side channel gap"] = self.geometry["rib side channel gap"]
+        params["side channel vertical margin"] = self.geometry["rib side channel vertical margin"]
+        return params
+    
+    def __get_front_ribs_params(self):
+        bu_geometry = self.breeder_geometry
+
+        params = self.front_ribs_geometry
+        params = self.__add_common_rib_params(params)
+        params["length"] = bu_geometry["pressure tube thickness"] + bu_geometry["pressure tube gap"] + bu_geometry["inner length"] - bu_geometry["pressure tube length"]
+
+        z_position = self.first_wall_geometry["length"] - (self.first_wall_geometry["thickness"] + self.breeder_geometry["pressure tube length"])
+        rib_positions = self.__get_rib_positions(z_position)
+        return params, rib_positions
+    
+    def __get_back_ribs_params(self):
+        bu_geometry = self.breeder_geometry
+
+        params = self.back_ribs_geometry
+        params = self.__add_common_rib_params(params)
+
+        z_position = self.first_wall_geometry["length"] - (bu_geometry["pressure tube thickness"] + bu_geometry["pressure tube gap"] + bu_geometry["inner length"] + self.first_wall_geometry["thickness"])
+        rib_positions = self.__get_rib_positions(z_position)
+        return params, rib_positions
 
     def __sort_pin_positions(self, pin_positions):
         rib_pos = self.geometry["front rib positions"]

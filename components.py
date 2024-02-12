@@ -577,9 +577,9 @@ class PurgeGasPlate(ComplexComponent):
 
         return plates
 
-class FrontRib(ComplexComponent):
-    def __init__(self, json_object: dict):
-        super().__init__("front_rib", json_object)
+class Rib(ComplexComponent):
+    def __init__(self, classname, json_object: dict):
+        super().__init__(classname, json_object)
     
     def make_geometry(self):
         height = self.geometry["height"]
@@ -590,7 +590,7 @@ class FrontRib(ComplexComponent):
         cmd(f"{structure.geometry_type} {structure.cid} move 0 {height/2} {-length/2}")
 
         structure, number_of_channels = self.__make_side_channels(structure)
-        rib = self.__make_rib_connections(structure, number_of_channels)
+        rib = self.make_rib_connections(structure, number_of_channels)
 
         return from_bodies_to_volumes([rib])
 
@@ -611,11 +611,11 @@ class FrontRib(ComplexComponent):
         y_margin += (accessible_height - (number_of_channels-1)*spacing)/2
 
         channel_dims = Vertex(length, height, width)
-        structure = self.__tile_channels_vertically(structure, channel_dims, number_of_channels, y_margin, z_offset, spacing)
+        structure = self.tile_channels_vertically(structure, channel_dims, number_of_channels, y_margin, z_offset, spacing)
         
         return structure, number_of_channels
 
-    def __make_rib_connections(self, structure: GenericCubitInstance, number_of_channels: int):
+    def make_rib_connections(self, structure: GenericCubitInstance, number_of_channels: int):
         height = self.geometry["connection height"]
         length = self.geometry["length"] - self.geometry["side channel horizontal offset"]
         connection_dims = Vertex(self.geometry["connection width"], height, length)
@@ -624,11 +624,11 @@ class FrontRib(ComplexComponent):
         spacing = self.geometry["side channel gap"] + self.geometry["side channel height"]
         y_margin = (self.geometry["height"] + self.geometry["side channel height"] - (height + (number_of_channels-1)*spacing))/2
 
-        structure = self.__tile_channels_vertically(structure, connection_dims, number_of_channels, y_margin, z_offset, spacing)
+        structure = self.tile_channels_vertically(structure, connection_dims, number_of_channels, y_margin, z_offset, spacing)
 
         return structure
 
-    def __tile_channels_vertically(self, structure: GenericCubitInstance, channel_dims: Vertex, number_of_channels, y_margin, z_offset, spacing):
+    def tile_channels_vertically(self, structure: GenericCubitInstance, channel_dims: Vertex, number_of_channels, y_margin, z_offset, spacing):
         for i in range(number_of_channels):
             hole_to_be = cubit_cmd_check(f"create brick x {channel_dims.x} y {channel_dims.y} z {channel_dims.z}", "volume")
             hole_name = str(hole_to_be)
@@ -637,3 +637,27 @@ class FrontRib(ComplexComponent):
             cmd(f"subtract {hole_name} from {str(structure)}")
         
         return structure
+
+class FrontRib(Rib):
+    def __init__(self, json_object: dict):
+        super().__init__("front_rib", json_object)
+
+class BackRib(Rib):
+    def __init__(self, json_object: dict):
+        super().__init__("back_rib", json_object)
+    
+    def make_rib_connections(self, structure: GenericCubitInstance, number_of_channels: int):
+        height = self.geometry["connection height"]
+        # runs from connection point with front rib to the side channel
+        length = self.geometry["side channel horizontal offset"]
+        connection_dims = Vertex(self.geometry["connection width"], height, length)
+        
+        # this is 0 to connect to the front ribs
+        z_offset = 0
+        spacing = self.geometry["side channel gap"] + self.geometry["side channel height"]
+        y_margin = (self.geometry["height"] + self.geometry["side channel height"] - (height + (number_of_channels-1)*spacing))/2
+
+        structure = self.tile_channels_vertically(structure, connection_dims, number_of_channels, y_margin, z_offset, spacing)
+
+        return structure
+
