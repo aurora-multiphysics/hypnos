@@ -723,8 +723,11 @@ class HCPBBlanket(CreatedComponentAssembly):
         return parameters, Vertex(0, 0, backplate_start_z)
     
     def __get_front_ribs_params(self):
+        bu_geometry = self.breeder_geometry
+
         params = self.front_ribs_geometry
         params["height"] = self.first_wall_geometry["height"]
+        params["length"] = bu_geometry["pressure tube thickness"] + bu_geometry["pressure tube gap"] + bu_geometry["inner length"] - bu_geometry["pressure tube length"]
 
         z_position = self.first_wall_geometry["length"] - (self.first_wall_geometry["thickness"] + self.breeder_geometry["pressure tube length"])
         pin_spacing = self.geometry["pin spacing"]*np.sqrt(3/4)
