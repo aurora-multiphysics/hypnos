@@ -721,3 +721,6 @@ class CoolantOutletPlenum(ComplexComponent):
         plenum = get_last_geometry("volume")
         return plenum
 
+class SeparatorPlate(PurgeGasPlate):
+    def __init__(self, json_object: dict, rib_positions: list[Vertex], rib_thickness: int):
+        super().__init__("separator_plate", json_object, rib_positions, rib_thickness, [[[]] for i in rib_positions])

@@ -15,7 +15,9 @@
         "rib connection width": 10,
         "rib side channel gap": 107,
         "rib side channel vertical margin": 50,
-        "coolant outlet plenum gap": 30
+        "coolant outlet plenum gap": 30,
+        "separator plate gap": 30,
+        "separator plate thickness": 10
     },
     "components": [
         "sample_breeder_unit.json",

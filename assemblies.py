@@ -657,6 +657,9 @@ class HCPBBlanket(CreatedComponentAssembly):
         co_plenum_geometry, cop_origin = self.__get_cop_params()
         self.components.append(CoolantOutletPlenum({"geometry": co_plenum_geometry, "material": self.first_wall_material, "origin": cop_origin}, back_rib_positions, self.back_ribs_geometry["thickness"]))
 
+        sep_plate_geometry, sp_origin = self.__get_separator_plate_params()
+        self.components.append(SeparatorPlate({"geometry": sep_plate_geometry, "material": self.first_wall_material, "origin": sp_origin}, back_rib_positions, self.back_ribs_geometry["thickness"]))
+
         self.components.append(FirstWallComponent({"geometry": self.first_wall_geometry, "material": self.first_wall_material}))
 
     def __tile_breeder_units(self):
@@ -830,6 +833,20 @@ class HCPBBlanket(CreatedComponentAssembly):
 
         z_position = self.first_wall_geometry["length"] - (bu_geometry["pressure tube thickness"] + bu_geometry["pressure tube gap"] + bu_geometry["inner length"] + self.first_wall_geometry["thickness"] + offset)
         return params, Vertex(0, 0, z_position)
+
+    def __get_separator_plate_params(self):
+        bu_geometry = self.breeder_geometry
+        pg_backplate_distance = bu_geometry["pressure tube thickness"] + bu_geometry["pressure tube gap"] + bu_geometry["inner length"]
+        plate_distance_from_fw = pg_backplate_distance + self.geometry["coolant outlet plenum gap"] + self.cop_geometry["length"] + self.geometry["separator plate gap"]
+
+        parameters = {}
+        parameters["height"] = self.first_wall_geometry["height"]
+        parameters["thickness"] = self.geometry["separator plate thickness"]
+        parameters["length"], parameters["extension"] = self.__get_plate_length_and_ext(plate_distance_from_fw, parameters["thickness"])
+        parameters["hole radius"] = 0
+
+        z_position = self.first_wall_geometry["length"] - (plate_distance_from_fw + parameters["thickness"] + self.first_wall_geometry["thickness"])
+        return parameters, Vertex(0, 0, z_position)
 
 def get_all_geometries_from_components(component_list) -> list[GenericCubitInstance]:
     instances = []
