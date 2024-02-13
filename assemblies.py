@@ -660,6 +660,9 @@ class HCPBBlanket(CreatedComponentAssembly):
         sep_plate_geometry, sp_origin = self.__get_separator_plate_params()
         self.components.append(SeparatorPlate({"geometry": sep_plate_geometry, "material": self.first_wall_material, "origin": sp_origin}, back_rib_positions, self.back_ribs_geometry["thickness"]))
 
+        fw_backplate_geometry = self.__get_fw_backplate_params()
+        self.components.append(FWBackplate({"geometry": fw_backplate_geometry, "material": self.first_wall_material}))
+
         self.components.append(FirstWallComponent({"geometry": self.first_wall_geometry, "material": self.first_wall_material}))
 
     def __tile_breeder_units(self):
@@ -773,6 +776,7 @@ class HCPBBlanket(CreatedComponentAssembly):
         params = self.__add_common_rib_params(params)
 
         z_position = self.first_wall_geometry["length"] - (bu_geometry["pressure tube thickness"] + bu_geometry["pressure tube gap"] + bu_geometry["inner length"] + self.first_wall_geometry["thickness"])
+        params["length"] = z_position - self.geometry["FW backplate thickness"]
         rib_positions = self.__get_rib_positions(z_position)
         return params, rib_positions
 
@@ -847,6 +851,16 @@ class HCPBBlanket(CreatedComponentAssembly):
 
         z_position = self.first_wall_geometry["length"] - (plate_distance_from_fw + parameters["thickness"] + self.first_wall_geometry["thickness"])
         return parameters, Vertex(0, 0, z_position)
+    
+    def __get_fw_backplate_params(self):
+        fw_geom = self.first_wall_geometry
+        parameters = {}
+        parameters["height"] = fw_geom["height"]
+        parameters["thickness"] = self.geometry["FW backplate thickness"]
+        parameters["hole radius"] = 0
+        distance_from_fw = fw_geom["length"] - (parameters["thickness"] + fw_geom["thickness"])
+        parameters["length"], parameters["extension"] = self.__get_plate_length_and_ext(distance_from_fw, parameters["thickness"])
+        return parameters
 
 def get_all_geometries_from_components(component_list) -> list[GenericCubitInstance]:
     instances = []

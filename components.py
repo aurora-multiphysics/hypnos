@@ -495,7 +495,7 @@ class FirstWallComponent(ComplexComponent):
         return first_wall
 
 class Plate(ComplexComponent):
-    def __init__(self, classname, json_object: dict, plate_type, pin_positions= Vertex(0)):
+    def __init__(self, classname, json_object: dict, plate_type, pin_positions= [[]]):
         self.plate_type = plate_type
         self.pin_pos = pin_positions
         super().__init__(classname, json_object)
@@ -724,3 +724,7 @@ class CoolantOutletPlenum(ComplexComponent):
 class SeparatorPlate(PurgeGasPlate):
     def __init__(self, json_object: dict, rib_positions: list[Vertex], rib_thickness: int):
         super().__init__("separator_plate", json_object, rib_positions, rib_thickness, [[[]] for i in rib_positions])
+
+class FWBackplate(Plate):
+    def __init__(self, json_object: dict):
+        super().__init__("FW_backplate", json_object, "full")
