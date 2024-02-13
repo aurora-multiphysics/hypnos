@@ -2,7 +2,7 @@ from constants import *
 from generic_classes import *
 from materials import MaterialsTracker
 from cubit_functions import from_bodies_to_volumes, from_everything_to_bodies, cubit_cmd_check, get_last_geometry
-from geometry import make_surface_from_curves, make_cylinder_along, make_loop, Vertex
+from geometry import make_surface_from_curves, make_cylinder_along, make_loop, Vertex, make_surface
 import numpy as np
 
 class ExternalComponent(GenericCubitInstance):
@@ -660,4 +660,64 @@ class BackRib(Rib):
         structure = self.tile_channels_vertically(structure, connection_dims, number_of_channels, y_margin, z_offset, spacing)
 
         return structure
+
+class CoolantOutletPlenum(ComplexComponent):
+    def __init__(self, json_object: dict, rib_positions: list[Vertex], rib_thickness):
+        self.rib_pos = [i.x for i in rib_positions]
+        self.rib_pos.sort()
+        self.rib_thickness = rib_thickness
+        super().__init__("coolant_outlet_plenum", json_object)
+    
+    def make_geometry(self):
+        height = self.geometry["height"]
+        length = self.geometry["length"]
+        thickness = self.geometry["thickness"]
+        width = self.geometry["width"]
+        plenum = []
+
+        plenum.append(self.__make_side_plenum(self.rib_pos[0] - self.rib_thickness/2,-width/2, length, height, thickness))
+        plenum.append(self.__make_side_plenum(self.rib_pos[-1] + self.rib_thickness/2, width/2, length, height, thickness))
+
+        for i in range(len(self.rib_pos)-1):
+            plenum.extend(self.__make_mid_plates(self.rib_pos[i] + self.rib_thickness/2, self.rib_pos[i+1] - self.rib_thickness/2, length, height, thickness))
+        return plenum
+    
+    def __make_mid_plates(self, start_x, end_x, length, height, thickness):
+        front_plate = list(np.zeros(4))
+        front_plate[0] = Vertex(start_x)
+        front_plate[1] = Vertex(end_x)
+        front_plate[2] = front_plate[1] + Vertex(0, 0, -thickness)
+        front_plate[3] = front_plate[0] + Vertex(0, 0, -thickness)
+
+        face_to_sweep = make_surface(front_plate, [])
+        cmd(f"sweep surface {face_to_sweep.cid} vector 0 1 0 distance {height}")
+        front_plate = get_last_geometry("volume")
+
+        back_plate = list(np.zeros(4))
+        back_plate[0] = Vertex(start_x, 0, -length)
+        back_plate[1] = Vertex(end_x, 0, -length)
+        back_plate[2] = back_plate[1] + Vertex(0, 0, thickness)
+        back_plate[3] = back_plate[0] + Vertex(0, 0, thickness)
+
+        face_to_sweep = make_surface(back_plate, [])
+        cmd(f"sweep surface {face_to_sweep.cid} vector 0 1 0 distance {height}")
+        back_plate = get_last_geometry("volume")
+
+        return [front_plate, back_plate]
+    
+    def __make_side_plenum(self, start_x, end_x, length, height, thickness):
+        side = list(np.zeros(8))
+        side[0] = Vertex(start_x)
+        side[1] = Vertex(end_x)
+        side[2] = Vertex(end_x, 0, -length)
+        side[3] = Vertex(start_x, 0, -length)
+
+        side[4] = side[3] + Vertex(0, 0, thickness)
+        side[5] = side[2] + Vertex(0, 0, thickness)
+        side[6] = side[1] + Vertex(0, 0, -thickness)
+        side[7] = side[0] + Vertex(0, 0, -thickness)
+        face_to_sweep = make_surface(side, [1, 5])
+        cmd(f"sweep surface {face_to_sweep.cid} vector 0 1 0 distance {height}")
+        plenum = get_last_geometry("volume")
+        return plenum
 

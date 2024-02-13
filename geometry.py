@@ -151,3 +151,9 @@ class Vertex():
         :rtype: np.float64
         '''
         return np.sqrt(np.square(self.x)+np.square(self.y)+np.square(self.z))
+
+def make_surface(vertices: list[Vertex], tangent_indices: list[int]):
+    vertices = [vertex.create() for vertex in vertices]
+    loop = make_loop(vertices, tangent_indices)
+    surface = make_surface_from_curves(loop)
+    return surface

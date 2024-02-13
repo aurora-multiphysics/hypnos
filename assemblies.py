@@ -628,6 +628,8 @@ class HCPBBlanket(CreatedComponentAssembly):
                 self.front_ribs_geometry = component["geometry"]
             elif component["class"] == "back_rib":
                 self.back_ribs_geometry = component["geometry"]
+            elif component["class"] == "coolant_outlet_plenum":
+                self.cop_geometry = component["geometry"]
         
         pin_positions = self.__tile_breeder_units()
 
@@ -652,6 +654,9 @@ class HCPBBlanket(CreatedComponentAssembly):
         for back_rib_pos in back_rib_positions:
             self.components.append(BackRib({"geometry": back_rib_geometry, "material": self.first_wall_material, "origin": back_rib_pos}))
         
+        co_plenum_geometry, cop_origin = self.__get_cop_params()
+        self.components.append(CoolantOutletPlenum({"geometry": co_plenum_geometry, "material": self.first_wall_material, "origin": cop_origin}, back_rib_positions, self.back_ribs_geometry["thickness"]))
+
         self.components.append(FirstWallComponent({"geometry": self.first_wall_geometry, "material": self.first_wall_material}))
 
     def __tile_breeder_units(self):
@@ -816,6 +821,15 @@ class HCPBBlanket(CreatedComponentAssembly):
 
         start_z = fw_geometry["length"] - (fw_geometry["thickness"] + plate_distance_from_fw + parameters["thickness"])
         return parameters, Vertex(0, 0, start_z)
+
+    def __get_cop_params(self):
+        bu_geometry = self.breeder_geometry
+        params = self.cop_geometry
+        offset = self.geometry["coolant outlet plenum gap"]
+        params["height"] = self.first_wall_geometry["height"]
+
+        z_position = self.first_wall_geometry["length"] - (bu_geometry["pressure tube thickness"] + bu_geometry["pressure tube gap"] + bu_geometry["inner length"] + self.first_wall_geometry["thickness"] + offset)
+        return params, Vertex(0, 0, z_position)
 
 def get_all_geometries_from_components(component_list) -> list[GenericCubitInstance]:
     instances = []
