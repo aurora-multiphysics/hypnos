@@ -21,6 +21,7 @@ class ComplexComponent:
         self.geometry = json_object["geometry"]
         self.material = json_object["material"]
         self.origin = json_object["origin"] if "origin" in json_object.keys() else Vertex(0)
+        self.check_sanity()
 
         self.add_to_subcomponents(self.make_geometry())
         if not self.origin == Vertex(0):
@@ -118,6 +119,9 @@ class ComplexComponent:
         else:
             raise CubismError(f"parameters type not recognised: {type(parameters)}")
         return out_dict
+    
+    def check_sanity(self):
+        pass
 
 class SurroundingWallsComponent(ComplexComponent):
     '''Surrounding walls, filled with air'''
@@ -217,7 +221,19 @@ class WallComponent(ComplexComponent):
 class PinComponent(ComplexComponent):
     def __init__(self, json_object):
         super().__init__("pin", json_object)
-    
+
+    def check_sanity(self):
+        geom = self.geometry
+        offset_slope = np.sqrt(np.square(geom["offset"])+np.square(geom["outer cladding"] + geom["breeder chamber thickness"] + geom["inner cladding"]))
+        if "bluntness" in self.geometry.keys():
+            assert geom["bluntness"] < offset_slope/2
+            assert geom["bluntness"] < geom["outer length"]
+            assert geom["bluntness"] < geom["inner length"]
+        else:
+            assert geom["inner bluntness"] + geom["outer bluntness"] < offset_slope
+            assert geom["inner bluntness"] < geom["inner length"]
+            assert geom["outer bluntness"] < geom["outer length"]
+
     def make_geometry(self):
         # get params
         geometry = self.geometry
