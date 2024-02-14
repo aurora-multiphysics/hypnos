@@ -669,8 +669,8 @@ class HCPBBlanket(CreatedComponentAssembly):
         fw_geometry = self.first_wall_geometry
         # get parameters
         multiplier_side = self.breeder_geometry["multiplier side"]
-        vertical_offset = self.geometry["vertical offset"]
-        horizontal_offset = self.geometry["horizontal offset"]
+        vertical_offset = self.geometry["pin vertical offset"]
+        horizontal_offset = self.geometry["pin horizontal offset"]
         pin_spacing = self.geometry["pin spacing"]
         inner_width = fw_geometry["inner width"]
         length = fw_geometry["length"]

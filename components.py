@@ -312,9 +312,7 @@ class BreederUnitCoolant(ComplexComponent):
         coolant_vertices[8] = coolant_vertices[9] + Vertex(0, pressure_tube_radius)
         coolant_vertices[7] = coolant_vertices[8] + Vertex(pressure_tube_length)
 
-        coolant_vertices = [vertex.create() for vertex in coolant_vertices]
-        coolant_curves = make_loop(coolant_vertices, [2, 4])
-        surface_to_sweep = make_surface_from_curves(coolant_curves)
+        surface_to_sweep = make_surface(coolant_vertices, [2, 4])
         cmd(f"sweep surface {surface_to_sweep.cid} axis 0 0 0 1 0 0 angle 360")
         coolant = get_last_geometry("volume")
         # realign with origin
@@ -372,9 +370,7 @@ class MultiplierComponent(ComplexComponent):
 
         # hexagonal face
         face_vertex_positions= [Vertex(side_length).rotate(i*np.pi/3) for i in range(6)]
-        face_vertices = [vertex.create() for vertex in face_vertex_positions]
-        face_curves = make_loop(face_vertices, [])
-        face = make_surface_from_curves(face_curves)
+        face = make_surface(face_vertex_positions, [])
         cmd(f"sweep surface {face.cid} vector 0 0 1 distance {length}")
         hex_prism = get_last_geometry("volume")
 
@@ -414,9 +410,7 @@ class BreederChamber(ComplexComponent):
         breeder_vertices[4] = outer_ref + Vertex(outer_bluntness)
         breeder_vertices[5] = Vertex(length, thickness)
 
-        breeder_vertices = [vertex.create() for vertex in breeder_vertices]
-        breeder_curves = make_loop(breeder_vertices, [1, 3])
-        surface_to_sweep = make_surface_from_curves(breeder_curves)
+        surface_to_sweep = make_surface(breeder_vertices, [1, 3])
         cmd(f"sweep surface {surface_to_sweep.cid} axis 0 {-inner_radius} 0 1 0 0 angle 360")
         breeder = get_last_geometry("volume")
         cubit.move(breeder.cubitInstance, [0, inner_radius, 0])
@@ -455,8 +449,7 @@ class FirstWallComponent(ComplexComponent):
             vertices[6] = vertices[1] + Vertex(sidewall_thickness/np.sin(slope_angle)) + Vertex(-thickness/np.tan(slope_angle), -thickness, 0)
             vertices[7] = vertices[0] + Vertex(sidewall_thickness/np.sin(slope_angle))
 
-            vertices = [vertex.create() for vertex in vertices]
-            face_to_sweep = make_surface_from_curves(make_loop(vertices, []))
+            face_to_sweep = make_surface(vertices, [])
         else:
             vertices = list(np.zeros(12))
             vertices[0] = Vertex(0, 0)
@@ -482,8 +475,7 @@ class FirstWallComponent(ComplexComponent):
 
             vertices[11] = vertices[0] + Vertex(sidewall_thickness/np.sin(slope_angle))
 
-            vertices = [vertex.create() for vertex in vertices]
-            face_to_sweep = make_surface_from_curves(make_loop(vertices, [1, 3, 7, 9]))
+            face_to_sweep = make_surface(vertices, [1, 3, 7, 9])
         
         # line up sweep direction along y axis
         cmd(f"surface {face_to_sweep.cid} move -{outer_width/2} 0 0")
@@ -521,8 +513,7 @@ class Plate(ComplexComponent):
         plate_vertices[2] = Vertex(back_right_position)
         plate_vertices[3] = Vertex(back_left_position)
 
-        plate_vertices = [vertex.create() for vertex in plate_vertices]
-        face_to_sweep = make_surface_from_curves(make_loop(plate_vertices, []))
+        face_to_sweep = make_surface(plate_vertices, [])
         cmd(f"sweep surface {face_to_sweep.cid} vector 0 1 0 distance {height}")
         plate = get_last_geometry("body")
         cmd(f"{str(plate)} move {self.origin.x} 0 0")
@@ -556,26 +547,31 @@ class PurgeGasPlate(ComplexComponent):
     
     def make_geometry(self):
         plates = []
-        generic_params = self.extract_parameters(["thickness", "height", "extension", "hole radius"])
-        total_plate_length = self.geometry["length"]
 
-        left_plate_geometry = generic_params
-        left_plate_geometry["length"] = (total_plate_length/2 - np.abs(self.rib_pos[0])) - self.rib_thickness/2
-        left_plate_origin = Vertex(self.rib_pos[0] - (left_plate_geometry["length"] + self.rib_thickness)/2)
-        plates.extend(Plate(self.classname+"_left", {"geometry": left_plate_geometry, "material": self.material, "origin": left_plate_origin}, "left", self.hole_pos[0]).get_subcomponents())
+        left_plate_json = self.__make_side_plate_json(0)
+        plates.extend(Plate(self.classname+"_left", left_plate_json, "left", self.hole_pos[0]).get_subcomponents())
 
         for i in range(len(self.rib_pos)-1):
-            mid_plate_geometry = generic_params
-            mid_plate_geometry["length"] = np.abs(self.rib_pos[i] - self.rib_pos[i+1]) - self.rib_thickness
-            mid_plate_origin = Vertex((self.rib_pos[i] + self.rib_pos[i+1])/2)
-            plates.extend(Plate(self.classname+"_mid", {"geometry": mid_plate_geometry, "material": self.material, "origin": mid_plate_origin}, "mid", self.hole_pos[i+1]).get_subcomponents())
+            mid_plate_json = self.__make_mid_plate_json(i)
+            plates.extend(Plate(self.classname+"_mid", mid_plate_json, "mid", self.hole_pos[i+1]).get_subcomponents())
 
-        right_plate_geometry = generic_params
-        right_plate_geometry["length"] = (total_plate_length/2 - np.abs(self.rib_pos[-1])) - self.rib_thickness/2
-        right_plate_origin = Vertex(self.rib_pos[-1] + (right_plate_geometry["length"] + self.rib_thickness)/2)
-        plates.extend(Plate(self.classname+"_right", {"geometry": right_plate_geometry, "material": self.material, "origin": right_plate_origin}, "right", self.hole_pos[-1]).get_subcomponents())
+        right_plate_json = self.__make_side_plate_json(-1)
+        plates.extend(Plate(self.classname+"_right", right_plate_json, "right", self.hole_pos[-1]).get_subcomponents())
 
         return plates
+
+    def __make_side_plate_json(self, rib_index):
+        total_length = self.geometry["length"]
+        geometry = self.extract_parameters(["thickness", "height", "extension", "hole radius"])
+        geometry["length"] = (total_length/2 - np.abs(self.rib_pos[rib_index])) - self.rib_thickness/2
+        origin = Vertex((geometry["length"] - total_length)/2) if rib_index == 0 else Vertex((-geometry["length"] + total_length)/2)
+        return {"geometry": geometry, "material": self.material, "origin": origin}
+    
+    def __make_mid_plate_json(self, left_rib_index):
+        geometry = self.extract_parameters(["thickness", "height", "extension", "hole radius"])
+        geometry["length"] = np.abs(self.rib_pos[left_rib_index] - self.rib_pos[left_rib_index+1]) - self.rib_thickness
+        origin = Vertex((self.rib_pos[left_rib_index] + self.rib_pos[left_rib_index+1])/2)
+        return {"geometry": geometry, "material": self.material, "origin": origin}
 
 class Rib(ComplexComponent):
     def __init__(self, classname, json_object: dict):
@@ -597,7 +593,6 @@ class Rib(ComplexComponent):
     def __make_side_channels(self, structure: GenericCubitInstance):
 
         structure_height = self.geometry["height"]
-
         length = self.geometry["thickness"]
         width = self.geometry["side channel width"]
         height = self.geometry["side channel height"]
@@ -628,7 +623,7 @@ class Rib(ComplexComponent):
 
         return structure
 
-    def tile_channels_vertically(self, structure: GenericCubitInstance, channel_dims: Vertex, number_of_channels, y_margin, z_offset, spacing):
+    def tile_channels_vertically(self, structure: GenericCubitInstance, channel_dims: Vertex, number_of_channels: int, y_margin: int, z_offset: int, spacing: int):
         for i in range(number_of_channels):
             hole_to_be = cubit_cmd_check(f"create brick x {channel_dims.x} y {channel_dims.y} z {channel_dims.z}", "volume")
             hole_name = str(hole_to_be)

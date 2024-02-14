@@ -32,7 +32,7 @@ class ParameterFiller():
     def __get_default_object(self, json_object) -> dict:
         try:
             for default_class in DEFAULTS:
-                if default_class["class"] == json_object["class"]:
+                if default_class["class"].lower() == json_object["class"].lower():
                     return default_class
         except KeyError:
             raise CubismError("All json objects need to have a class")

@@ -2,9 +2,8 @@
     "class": "HCPB_blanket",
     "geometry": {
         "pin spacing": 135,
-        "vertical offset": 0,
-        "horizontal offset": 0,
-
+        "pin vertical offset": 0,
+        "pin horizontal offset": 0,
         "BZ backplate thickness": 15,
         "front rib positions": [3, 7],
         "PG front plate thickness": 5,
