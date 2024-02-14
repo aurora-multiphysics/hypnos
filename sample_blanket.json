@@ -28,15 +28,12 @@
                 "thickness": 30,
                 "side channel width": 10,
                 "side channel height": 10,
-                "side channel gap": 107,
-                "side channel vertical margin": 50,
                 "side channel horizontal offset": 0
             }
         },
         {
             "class": "back_rib",
             "geometry": {
-                "length": 360,
                 "thickness": 60,
                 "side channel width": 10,
                 "side channel height": 10,
