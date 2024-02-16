@@ -99,6 +99,10 @@ def make_loop(vertices: list[GenericCubitInstance], tangent_indices: list[int]):
         curves[i] = connect_curves_tangentially(vertices[i], vertices[i+1])
     return curves
 
+def hypotenuse(*sides: int):
+    squared = [np.square(side) for side in sides]
+    return np.sqrt(np.sum(squared))
+
 class Vertex():
     '''Representation of a vertex'''
     def __init__(self, x: int, y= 0, z= 0) -> None:

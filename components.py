@@ -2,7 +2,7 @@ from constants import *
 from generic_classes import *
 from materials import MaterialsTracker
 from cubit_functions import from_bodies_to_volumes, from_everything_to_bodies, cubit_cmd_check, get_last_geometry
-from geometry import make_surface_from_curves, make_cylinder_along, make_loop, Vertex, make_surface
+from geometry import make_surface_from_curves, make_cylinder_along, make_loop, Vertex, make_surface, hypotenuse
 import numpy as np
 
 class ExternalComponent(GenericCubitInstance):
@@ -224,15 +224,21 @@ class PinComponent(ComplexComponent):
 
     def check_sanity(self):
         geom = self.geometry
-        offset_slope = np.sqrt(np.square(geom["offset"])+np.square(geom["outer cladding"] + geom["breeder chamber thickness"] + geom["inner cladding"]))
+        offset_slope = hypotenuse(geom["offset"], geom["outer cladding"] + geom["breeder chamber thickness"] + geom["inner cladding"])
         if "bluntness" in self.geometry.keys():
-            assert geom["bluntness"] < offset_slope/2
-            assert geom["bluntness"] < geom["outer length"]
-            assert geom["bluntness"] < geom["inner length"]
+            if geom["bluntness"] >= offset_slope/2:
+                raise ValueError("Pin bluntness larger than offset surface")
+            elif geom["bluntness"] >= geom["outer length"]:
+                raise ValueError("Pin bluntness larger than outer length")
+            elif geom["bluntness"] >= geom["inner length"]:
+                raise ValueError("Pin bluntness larger than inner length")
         else:
-            assert geom["inner bluntness"] + geom["outer bluntness"] < offset_slope
-            assert geom["inner bluntness"] < geom["inner length"]
-            assert geom["outer bluntness"] < geom["outer length"]
+            if geom["inner bluntness"] + geom["outer bluntness"] >= offset_slope:
+                raise ValueError("Pin bluntness larger than offset surface")
+            elif geom["inner bluntness"] >= geom["inner length"]:
+                raise ValueError("Pin inner bluntness larger than inner length")
+            elif geom["outer bluntness"] >= geom["outer length"]:
+                raise ValueError("Pin outer bluntness larger than outer length")
 
     def make_geometry(self):
         # get params
@@ -278,10 +284,8 @@ class PinComponent(ComplexComponent):
         inner_cladding_ref2 = inner_cladding_ref1 + Vertex(inner_cladding/np.tan(slope_angle) + outer_cladding/np.sin(slope_angle), inner_cladding)
         pin_vertices[10] = inner_cladding_ref2 + Vertex(inner_bluntness).rotate(slope_angle)
         pin_vertices[11] = inner_cladding_ref2 + Vertex(inner_bluntness)
-
-        pin_vertices = [vertex.create() for vertex in pin_vertices]
-        pin_curves = make_loop(pin_vertices, [2, 4, 8, 10])                
-        surface_to_sweep = make_surface_from_curves(pin_curves)
+             
+        surface_to_sweep = make_surface(pin_vertices, [2, 4, 8, 10])
         cmd(f"sweep surface {surface_to_sweep.cid} axis 0 {-coolant_inlet_radius} 0 1 0 0 angle 360")
         pin = get_last_geometry("volume")
         # realign with origin
@@ -376,6 +380,10 @@ class MultiplierComponent(ComplexComponent):
     def __init__(self, json_object):
         super().__init__("multiplier", json_object)
     
+    def check_sanity(self):
+        if self.geometry["side"] <= np.sqrt(4/3) * self.geometry["inner radius"]:
+            raise ValueError("Multiplier side length not big enough to make multiplier around pressure tube")
+    
     def make_geometry(self):
         inner_radius = self.geometry["inner radius"]
         length = self.geometry["length"]
@@ -437,6 +445,13 @@ class FirstWallComponent(ComplexComponent):
     def __init__(self, json_object):
         super().__init__("first_wall", json_object)
     
+    def check_sanity(self):
+        if self.geometry["bluntness"] >= self.geometry["inner width"]/2:
+            raise ValueError("Bluntness too large")
+        offset = (self.geometry["outer width"]-self.geometry["inner width"])/2
+        if self.geometry["bluntness"] >= hypotenuse(offset, self.geometry["length"]):
+            raise ValueError("Bluntness larger than side wall")
+    
     def make_geometry(self):
         geometry = self.geometry
         inner_width = geometry["inner width"]
@@ -448,7 +463,12 @@ class FirstWallComponent(ComplexComponent):
         height = geometry["height"]
 
         offset = (outer_width - inner_width)/2
-        slope_angle = np.arctan(length/offset)
+        if offset == 0:
+            slope_angle = np.pi/2
+        elif offset > 0:
+            slope_angle = np.arctan(length/offset)
+        else:
+            slope_angle = np.pi + np.arctan(length/offset)
 
         # need less vertices when bluntness = 0 so treat as a special case
         if bluntness == 0:
@@ -593,6 +613,20 @@ class Rib(ComplexComponent):
     def __init__(self, classname, json_object: dict):
         super().__init__(classname, json_object)
     
+    def check_sanity(self):
+        if self.geometry["side channel width"] >= self.geometry["length"]:
+            raise ValueError("Rib side channel wider than rib")
+        elif self.geometry["side channel height"] >= self.geometry["height"]:
+            raise ValueError("Rib side channel height taller than rib")
+        elif self.geometry["side channel height"] + self.geometry["side channel gap"] + 2*self.geometry["side channel vertical margin"] > self.geometry["height"]:
+            raise ValueError("Gap between side channels/ vertical margin too big")
+        elif self.geometry["side channel vertical margin"]*2 + self.geometry["side channel height"] > self.geometry["height"]:
+            raise ValueError("side channel vertical margins too big")
+        elif 2*self.geometry["connection height"] > self.geometry["side channel vertical margin"]:
+            raise ValueError("connection height larger than vertical margin")
+        elif self.geometry["connection height"] > self.geometry["side channel gap"]:
+            raise ValueError("Rib connections overlapping, connection height too large")
+    
     def make_geometry(self):
         height = self.geometry["height"]
         length = self.geometry["length"]
@@ -678,6 +712,10 @@ class CoolantOutletPlenum(ComplexComponent):
         self.rib_pos.sort()
         self.rib_thickness = rib_thickness
         super().__init__("coolant_outlet_plenum", json_object)
+    
+    def check_sanity(self):
+        if self.geometry["length"] <= 2*self.geometry["thickness"]:
+            raise ValueError("Coolant outlet plenum 'thickness' calculated inward from width, width too small")
     
     def make_geometry(self):
         height = self.geometry["height"]

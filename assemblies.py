@@ -420,6 +420,11 @@ class BreederUnitAssembly(CreatedComponentAssembly):
         self.setup_assembly()
         self.move(self.origin)
     
+    def check_sanity(self):
+        pin_radius = self.geometry["coolant inlet radius"] + self.geometry["inner cladding"] + self.geometry["breeder chamber thickness"] + self.geometry["outer cladding"]
+        if self.geometry["pressure tube outer radius"] - self.geometry["pressure tube thickness"] < pin_radius:
+            raise ValueError("Pin radius larger than pressure tube radius")
+    
     def setup_assembly(self):
         pin_geometry = self.__extract_parameters(["outer length", "inner length", "offset", "bluntness", "inner cladding", "outer cladding", "breeder chamber thickness", "coolant inlet radius"])
         pin_origin = Vertex(self.geometry["pressure tube gap"] + self.geometry["pressure tube thickness"])
@@ -618,9 +623,18 @@ class HCPBBlanket(CreatedComponentAssembly):
         self.geometry = json_object["geometry"]
         super().__init__("HCPB_blanket", HCPB_BLANKET_REQUIREMENTS, json_object)
 
-    def setup_assembly(self):
+    def check_sanity(self):
         self.__add_component_attributes()
+        bu_geometry = self.breeder_geometry
+        distance_to_sep_plate = self.first_wall_geometry["thickness"] + bu_geometry["pressure tube gap"] + bu_geometry["pressure tube thickness"] + bu_geometry["inner length"] + self.geometry["coolant outlet plenum gap"] + self.cop_geometry["length"] + self.geometry["separator plate gap"] + self.geometry["separator plate thickness"]
+        if self.first_wall_geometry["length"] - distance_to_sep_plate < self.geometry["FW backplate thickness"]:
+            raise ValueError("First wall length too short")
+        
+
+    def setup_assembly(self):
         pin_positions = self.__tile_breeder_units()
+
+        self.components.append(FirstWallComponent({"geometry": self.first_wall_geometry, "material": self.first_wall_material}))
 
         bz_backplate_json = self.__get_bz_backplate_json()
         self.components.append(BZBackplate(bz_backplate_json, pin_positions))
@@ -653,8 +667,6 @@ class HCPBBlanket(CreatedComponentAssembly):
         fw_backplate_geometry = self.__get_fw_backplate_params()
         self.components.append(FWBackplate({"geometry": fw_backplate_geometry, "material": self.first_wall_material}))
 
-        self.components.append(FirstWallComponent({"geometry": self.first_wall_geometry, "material": self.first_wall_material}))
-
     def __add_component_attributes(self):
         for component in self.component_list:
             if component["class"] == "first_wall":
@@ -670,15 +682,8 @@ class HCPBBlanket(CreatedComponentAssembly):
             elif component["class"] == "coolant_outlet_plenum":
                 self.cop_geometry = component["geometry"]
 
-    def __start_with_height(self, *kwargs):
+    def __start_with_height(self):
         height_dict = {"height": self.first_wall_geometry["height"]}
-        for arg in kwargs:
-            if arg == "b":
-                return height_dict, self.breeder_geometry
-            elif arg == "f":
-                return height_dict, self.first_wall_geometry
-            elif arg == "fb":
-                return height_dict, self.first_wall_geometry, self.breeder_geometry
         return height_dict
     
     def __jsonify(self, geometry, start_z):
@@ -732,7 +737,13 @@ class HCPBBlanket(CreatedComponentAssembly):
         z_position = fw_length -(distance_from_fw + self.first_wall_geometry["thickness"])
         offset = (fw_outer_width - self.first_wall_geometry["inner width"])/2
 
-        slope_angle = np.arctan(fw_length/offset)
+        if offset == 0:
+            slope_angle = np.pi/2
+        elif offset > 0:
+            slope_angle = np.arctan(fw_length/offset)
+        else:
+            slope_angle = np.pi + np.arctan(fw_length/offset)
+
         fw_sidewall_horizontal = self.first_wall_geometry["sidewall thickness"]/np.sin(slope_angle)
         position_fraction = z_position/fw_length
 
@@ -747,7 +758,8 @@ class HCPBBlanket(CreatedComponentAssembly):
         return length, extension
 
     def __get_bz_backplate_json(self):
-        parameters, fw_geometry = self.__start_with_height("f")
+        fw_geometry = self.first_wall_geometry
+        parameters = self.__start_with_height()
         parameters["thickness"] = self.geometry["BZ backplate thickness"]
         parameters["hole radius"] = self.breeder_geometry["pressure tube outer radius"]
 
