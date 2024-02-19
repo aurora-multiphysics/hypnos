@@ -2,7 +2,7 @@ from constants import *
 from generic_classes import *
 from materials import MaterialsTracker
 from cubit_functions import from_bodies_to_volumes, from_everything_to_bodies, cubit_cmd_check, get_last_geometry
-from geometry import make_surface_from_curves, make_cylinder_along, make_loop, Vertex, make_surface, hypotenuse
+from geometry import make_cylinder_along, Vertex, make_surface, hypotenuse, arctan
 import numpy as np
 
 class ExternalComponent(GenericCubitInstance):
@@ -258,7 +258,7 @@ class PinComponent(ComplexComponent):
         outer_cladding = geometry["outer cladding"]
         # helpful calculations
         net_thickness = inner_cladding + breeder_chamber_thickness + outer_cladding
-        slope_angle = np.arctan(net_thickness / offset)
+        slope_angle = arctan(net_thickness, offset)
 
         pin_vertices = list(np.zeros(12))
         

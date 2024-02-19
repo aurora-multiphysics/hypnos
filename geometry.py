@@ -103,6 +103,24 @@ def hypotenuse(*sides: int):
     squared = [np.square(side) for side in sides]
     return np.sqrt(np.sum(squared))
 
+def arctan(opposite: int, adjacent: int):
+    '''Arctan with range 0, 2pi. Takes triangle side lengths.
+
+    :param opposite: 'Opposite' side of a right-angled triangle
+    :type opposite: int
+    :param adjacent: 'Adjacent' side of a right-angled triangle
+    :type adjacent: int
+    :return: arctan(opposite/ adjacent)
+    :rtype: int
+    '''
+    if opposite == 0:
+        arctan_angle = np.pi/2
+    elif opposite > 0:
+        arctan_angle = np.arctan(opposite/ adjacent)
+    else:
+        arctan_angle = np.pi + np.arctan(opposite/ adjacent)
+    return arctan_angle
+
 class Vertex():
     '''Representation of a vertex'''
     def __init__(self, x: int, y= 0, z= 0) -> None:

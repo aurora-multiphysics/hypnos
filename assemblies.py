@@ -630,6 +630,29 @@ class HCPBBlanket(CreatedComponentAssembly):
         if self.first_wall_geometry["length"] - distance_to_sep_plate < self.geometry["FW backplate thickness"]:
             raise ValueError("First wall length too short")
         
+        horizontal_start_pos = self.__get_pin_start_params()[1]
+        distance_to_pin_centre = self.first_wall_geometry["inner width"]/2 - np.abs(horizontal_start_pos)
+        distance_to_multiplier = distance_to_pin_centre - bu_geometry["multiplier side"]
+        distance_to_pin_inner = distance_to_pin_centre - (bu_geometry["coolant inlet radius"] + bu_geometry["inner cladding"])
+        distance_to_pin_outer = distance_to_pin_inner - (bu_geometry["breeder chamber thickness"] + bu_geometry["outer cladding"])
+        # this isnt very accurate, treating coolant outlet plenum as if it has a rectangular hitbox
+        distance_to_cop = (self.first_wall_geometry["inner width"] - self.cop_geometry["width"]) / 2
+
+        multiplier_extent = bu_geometry["multiplier length"] + self.first_wall_geometry["thickness"]
+        pin_outer_extent = self.first_wall_geometry["thickness"] + bu_geometry["pressure tube thickness"] + bu_geometry["pressure tube gap"] + bu_geometry["outer length"] + bu_geometry["offset"]
+        pin_inner_extent = self.first_wall_geometry["thickness"] + bu_geometry["pressure tube thickness"] + bu_geometry["pressure tube gap"] + bu_geometry["inner length"]
+        cop_extent = pin_inner_extent + self.geometry["coolant outlet plenum gap"] + self.cop_geometry["length"]
+
+        self.check_slope(distance_to_multiplier, multiplier_extent, "First wall collides with multiplier!")
+        self.check_slope(distance_to_pin_outer, pin_outer_extent, "First wall collides with pin!")
+        self.check_slope(distance_to_pin_inner, pin_inner_extent, "First wall collides with pin!")
+        self.check_slope(distance_to_cop, cop_extent, "First wall collides with coolant outlet plenum!")
+
+    def check_slope(self, distance_to_edge, vertical_extent, error_message):
+        fw_offset = (self.first_wall_geometry["outer width"] - self.first_wall_geometry["inner width"])/2
+        if fw_offset < 0:
+            if np.abs(self.first_wall_geometry["length"]/fw_offset) < np.abs(vertical_extent/distance_to_edge):
+                raise ValueError(error_message)
 
     def setup_assembly(self):
         pin_positions = self.__tile_breeder_units()
@@ -689,26 +712,30 @@ class HCPBBlanket(CreatedComponentAssembly):
     def __jsonify(self, geometry, start_z):
         return {"geometry": geometry, "material": self.first_wall_material, "origin": Vertex(0, 0, start_z)}
 
+    def __get_pin_start_params(self):
+        multiplier_side = self.breeder_geometry["multiplier side"]
+        pin_spacing = self.geometry["pin spacing"]
+        accessible_width = self.first_wall_geometry["inner width"] - 2*(self.geometry["pin horizontal offset"] + self.first_wall_geometry["bluntness"])
+
+        row_pins = int((accessible_width - 2*multiplier_side) // (pin_spacing * np.cos(np.pi/6))) + 1
+        horizontal_start_pos = -(row_pins-1)*pin_spacing*np.cos(np.pi/6) / 2
+        return row_pins, horizontal_start_pos
+
     def __tile_breeder_units(self):
         fw_geometry = self.first_wall_geometry
         # get parameters
         multiplier_side = self.breeder_geometry["multiplier side"]
         vertical_offset = self.geometry["pin vertical offset"]
-        horizontal_offset = self.geometry["pin horizontal offset"]
         pin_spacing = self.geometry["pin spacing"]
-        inner_width = fw_geometry["inner width"]
         length = fw_geometry["length"]
         height = fw_geometry["height"]
-        wall_bluntness = fw_geometry["bluntness"]
         wall_thickness = fw_geometry["thickness"]
 
         # 'accessible' for tiling breeder units
-        accessible_width = inner_width - 2*(horizontal_offset + wall_bluntness)
         accessible_height = height - 2*vertical_offset
         # hexagonally tiled breeder units are broken up into 'rows' and 'columns'
         # number of pins that will fit in a 'row'
-        row_pins = int((accessible_width - 2*multiplier_side) // (pin_spacing * np.cos(np.pi/6))) + 1
-        horizontal_start_pos = -(row_pins-1)*pin_spacing*np.cos(np.pi/6) / 2
+        row_pins, horizontal_start_pos = self.__get_pin_start_params() 
         self.first_wall_geometry["pin horizontal start"] = horizontal_start_pos
         # each column 'index' has breeder units at 2 different heights
         columns_indices = int((accessible_height - 2*multiplier_side*np.cos(np.pi/6)) // pin_spacing) + 1
