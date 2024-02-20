@@ -55,16 +55,19 @@ elif __name__ == "__main__":
     # track all components, materials, and boundaries as groups
     for component in universe:
         print(f"components being tracked in root {ComponentTracker(component).root_name}")
-    #cmd("imprint volume all")
-    #MaterialsTracker().merge_and_track_boundaries()
-    #cmd("merge volume all")
-    #MaterialsTracker().add_boundaries_to_sidesets()
-    #MaterialsTracker().organise_into_groups()
+    if IMPRINT_AND_MERGE:
+        materials_tracker = MaterialsTracker()
+        cmd("imprint volume all")
+        materials_tracker.merge_and_track_boundaries()
+        cmd("merge volume all")
+        materials_tracker.add_boundaries_to_sidesets()
+        materials_tracker.organise_into_groups()
 
     cmd('export cubit "please_work.cub5')
     # print this information if cli flag used
     if args.info == 'true':
         MaterialsTracker().print_info()
-#    cmd('volume all scheme auto')
-#    cmd('mesh volume all')
-#    cmd('export genesis "testblob.g"')
+    if MESH:
+        cmd('volume all scheme tet')
+        cmd('mesh volume all')
+        cmd('export genesis "hcpb_meshed.g"')

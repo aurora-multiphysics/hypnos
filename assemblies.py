@@ -468,7 +468,6 @@ class BreederUnitAssembly(CreatedComponentAssembly):
     def __get_breeder_parameters(self):
         geometry = self.geometry
         outer_length = geometry["outer length"]
-        #inner_length = geometry["inner length"]
         offset = geometry["offset"]
         coolant_inlet_radius = geometry["coolant inlet radius"]
         inner_cladding = geometry["inner cladding"]
@@ -630,7 +629,11 @@ class HCPBBlanket(CreatedComponentAssembly):
         if self.first_wall_geometry["length"] - distance_to_sep_plate < self.geometry["FW backplate thickness"]:
             raise ValueError("First wall length too short")
         
-        horizontal_start_pos = self.__get_pin_start_params()[1]
+        row_pins, horizontal_start_pos = self.__get_pin_start_params()
+        for pin_number in self.geometry["front rib positions"]:
+            if pin_number > row_pins:
+                raise ValueError(f"Specified parameters only tile {row_pins} pins in a row, but trying to place front rib after pin number {pin_number}")
+
         distance_to_pin_centre = self.first_wall_geometry["inner width"]/2 - np.abs(horizontal_start_pos)
         distance_to_multiplier = distance_to_pin_centre - bu_geometry["multiplier side"]
         distance_to_pin_inner = distance_to_pin_centre - (bu_geometry["coolant inlet radius"] + bu_geometry["inner cladding"])
@@ -709,10 +712,27 @@ class HCPBBlanket(CreatedComponentAssembly):
         height_dict = {"height": self.first_wall_geometry["height"]}
         return height_dict
     
-    def __jsonify(self, geometry, start_z):
-        return {"geometry": geometry, "material": self.first_wall_material, "origin": Vertex(0, 0, start_z)}
+    def __jsonify(self, geometry: dict, origin_z_coord: int):
+        '''Return dictonary with geometry, material, and origin keys. 
+        Material is the same as the assembly's first wall. 
+        Origin is along the z-axis.
+
+        :param geometry: dictionary with geometry information
+        :type geometry: dict
+        :param start_z: Origin z coordinate
+        :type start_z: int
+        :return: Dictionary in the input json style
+        :rtype: dict
+        '''
+        return {"geometry": geometry, "material": self.first_wall_material, "origin": Vertex(0, 0, origin_z_coord)}
 
     def __get_pin_start_params(self):
+        '''Calculate the number of pins that fit in a 'row' for tiling breeder pins on the first wall. 
+        Also calculate the x-coordinate of the furthest along the -x axis.
+
+        :return: Number of pins, x-coord
+        :rtype: (int, int)
+        '''
         multiplier_side = self.breeder_geometry["multiplier side"]
         pin_spacing = self.geometry["pin spacing"]
         accessible_width = self.first_wall_geometry["inner width"] - 2*(self.geometry["pin horizontal offset"] + self.first_wall_geometry["bluntness"])
@@ -734,7 +754,6 @@ class HCPBBlanket(CreatedComponentAssembly):
         # 'accessible' for tiling breeder units
         accessible_height = height - 2*vertical_offset
         # hexagonally tiled breeder units are broken up into 'rows' and 'columns'
-        # number of pins that will fit in a 'row'
         row_pins, horizontal_start_pos = self.__get_pin_start_params() 
         self.first_wall_geometry["pin horizontal start"] = horizontal_start_pos
         # each column 'index' has breeder units at 2 different heights
@@ -779,6 +798,16 @@ class HCPBBlanket(CreatedComponentAssembly):
         return filled_width
 
     def __get_plate_length_and_ext(self, distance_from_fw: int, thickness: int):
+        '''Calculate length of plate that fits into the assembly's first wall (FW), 
+        as well as how much longer the side of the plate further from the FW needs to be (on either end).
+
+        :param distance_from_fw: Distance of the near side of the plate from the FW
+        :type distance_from_fw: int
+        :param thickness: Thickness of plate
+        :type thickness: int
+        :return: length of plate, extension of plate
+        :rtype: (int, int)
+        '''
         back_distance_from_fw = distance_from_fw + thickness
         length = self.__fill_fw_width(distance_from_fw)
         extension = (self.__fill_fw_width(back_distance_from_fw) - length)/2
@@ -787,18 +816,18 @@ class HCPBBlanket(CreatedComponentAssembly):
     def __get_bz_backplate_json(self):
         fw_geometry = self.first_wall_geometry
         parameters = self.__start_with_height()
-        parameters["thickness"] = self.geometry["BZ backplate thickness"]
+        parameters["thickness"] = self.breeder_geometry["pressure tube length"] - self.breeder_geometry["multiplier length"]
         parameters["hole radius"] = self.breeder_geometry["pressure tube outer radius"]
 
         front_distance_from_fw = self.breeder_geometry["pressure tube length"] - parameters["thickness"]
         parameters["length"], parameters["extension"] = self.__get_plate_length_and_ext(front_distance_from_fw, parameters["thickness"])
         
         backplate_start_z = fw_geometry["length"] - (self.breeder_geometry["pressure tube length"] + fw_geometry["thickness"])
-        return {"geometry":parameters, "material": self.first_wall_material, "origin": Vertex(0, 0, backplate_start_z)}
+        return self.__jsonify(parameters, backplate_start_z)
     
     def __get_rib_positions(self, z_position):
         pin_spacing = self.geometry["pin spacing"]*np.sqrt(3/4)
-        horizontal_start = self.first_wall_geometry["pin horizontal start"] - pin_spacing/2
+        horizontal_start = self.__get_pin_start_params()[1] - pin_spacing/2
 
         positions = []
         for position_index in self.geometry["front rib positions"]:

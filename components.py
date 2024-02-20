@@ -11,7 +11,6 @@ class ExternalComponent(GenericCubitInstance):
         # track external components
         MaterialsTracker().add_geometry_to_material(GenericCubitInstance(self.cid, self.geometry_type), "external")
 
-# very basic implementations for complex components
 class ComplexComponent:
     # stores information about what materials exist. geometries can then be found from groups with the same name
     complexComponentMaterials = MaterialsTracker()

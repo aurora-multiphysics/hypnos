@@ -155,7 +155,7 @@ def from_bodies_to_volumes(component_list: list):
             return_list.append(component)
     return return_list
 
-def from_bodies_and_volumes_to_surfaces(component_list: list[GenericCubitInstance]):
+def from_bodies_and_volumes_to_surfaces(component_list: list[GenericCubitInstance]) -> list[GenericCubitInstance]:
     '''Turns references to bodies and volumes into references to their children surfaces.
 
     :param component_list: List of geometries
