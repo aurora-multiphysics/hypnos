@@ -113,9 +113,9 @@ def arctan(opposite: int, adjacent: int):
     :return: arctan(opposite/ adjacent)
     :rtype: int
     '''
-    if opposite == 0:
+    if adjacent == 0:
         arctan_angle = np.pi/2
-    elif opposite > 0:
+    elif adjacent > 0:
         arctan_angle = np.arctan(opposite/ adjacent)
     else:
         arctan_angle = np.pi + np.arctan(opposite/ adjacent)

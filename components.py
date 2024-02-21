@@ -462,12 +462,8 @@ class FirstWallComponent(ComplexComponent):
         height = geometry["height"]
 
         offset = (outer_width - inner_width)/2
-        if offset == 0:
-            slope_angle = np.pi/2
-        elif offset > 0:
-            slope_angle = np.arctan(length/offset)
-        else:
-            slope_angle = np.pi + np.arctan(length/offset)
+        slope_angle = arctan(length, offset)
+        sidewall_horizontal = sidewall_thickness/np.sin(slope_angle)
 
         # need less vertices when bluntness = 0 so treat as a special case
         if bluntness == 0:
@@ -478,16 +474,16 @@ class FirstWallComponent(ComplexComponent):
             vertices[2] = vertices[1] + Vertex(inner_width)
 
             vertices[3] = vertices[0] + Vertex(outer_width)
-            vertices[4] = vertices[3] + Vertex(-sidewall_thickness/np.sin(slope_angle))
+            vertices[4] = vertices[3] + Vertex(-sidewall_horizontal)
 
-            vertices[5] = vertices[2] + Vertex(-sidewall_thickness/np.sin(slope_angle)) + Vertex(thickness/np.tan(slope_angle), -thickness, 0)
-            vertices[6] = vertices[1] + Vertex(sidewall_thickness/np.sin(slope_angle)) + Vertex(-thickness/np.tan(slope_angle), -thickness, 0)
-            vertices[7] = vertices[0] + Vertex(sidewall_thickness/np.sin(slope_angle))
+            vertices[5] = vertices[2] + Vertex(-sidewall_horizontal) + Vertex(thickness/np.tan(slope_angle), -thickness, 0)
+            vertices[6] = vertices[1] + Vertex(sidewall_horizontal) + Vertex(-thickness/np.tan(slope_angle), -thickness, 0)
+            vertices[7] = vertices[0] + Vertex(sidewall_horizontal)
 
             face_to_sweep = make_surface(vertices, [])
         else:
             vertices = list(np.zeros(12))
-            vertices[0] = Vertex(0, 0)
+            vertices[0] = Vertex(0)
 
             left_ref = Vertex(offset, length)
             vertices[1] = left_ref + Vertex(bluntness).rotate(slope_angle-np.pi)
@@ -498,17 +494,17 @@ class FirstWallComponent(ComplexComponent):
             vertices[4] = right_ref + Vertex(bluntness).rotate(-slope_angle)
 
             vertices[5] = vertices[0] + Vertex(outer_width)
-            vertices[6] = vertices[5] + Vertex(-sidewall_thickness/np.sin(slope_angle))
+            vertices[6] = vertices[5] + Vertex(-sidewall_horizontal)
 
-            right_ref_inner = right_ref + Vertex(-sidewall_thickness/np.sin(slope_angle)) + Vertex(thickness/np.tan(slope_angle), -thickness, 0)
+            right_ref_inner = right_ref + Vertex(-sidewall_horizontal) + Vertex(thickness/np.tan(slope_angle), -thickness, 0)
             vertices[7] = right_ref_inner + Vertex(bluntness).rotate(-slope_angle)
             vertices[8] = right_ref_inner + Vertex(-bluntness)
 
-            left_ref_inner = left_ref + Vertex(sidewall_thickness/np.sin(slope_angle)) + Vertex(-thickness/np.tan(slope_angle), -thickness, 0)
+            left_ref_inner = left_ref + Vertex(sidewall_horizontal) + Vertex(-thickness/np.tan(slope_angle), -thickness, 0)
             vertices[9] = left_ref_inner + Vertex(bluntness)
             vertices[10] = left_ref_inner + Vertex(bluntness).rotate(slope_angle-np.pi)
 
-            vertices[11] = vertices[0] + Vertex(sidewall_thickness/np.sin(slope_angle))
+            vertices[11] = vertices[0] + Vertex(sidewall_horizontal)
 
             face_to_sweep = make_surface(vertices, [1, 3, 7, 9])
         

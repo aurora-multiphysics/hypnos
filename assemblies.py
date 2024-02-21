@@ -51,14 +51,14 @@ class GenericComponentAssembly:
                 instances_list += component.get_all_cubit_instances()
         return instances_list
 
-    # These refer to GenericCubitInstance objects
+    # 'geometries' refer to GenericCubitInstance objects
     def get_geometries_from(self, class_list: list) -> list[GenericCubitInstance]:
         '''Get list of geometries under given classnames
 
         :param classname_list: list of classnames to search under
         :type classname_list: list
-        :return: list of GenericCubitInstances
-        :rtype: list
+        :return: list of geometries
+        :rtype: list[GenericCubitInstance]
         '''
         component_list = []
         for component in self.get_components():
@@ -69,8 +69,21 @@ class GenericComponentAssembly:
                     elif isinstance(component, ComplexComponent):
                         component_list += component.subcomponents
                     elif isinstance(component, GenericComponentAssembly):
-                        component_list += component.get_generic_cubit_instances_from(class_list)
+                        component_list += component.get_geometries_from(class_list)
         return component_list
+    
+    def find_parent_component(self, geometry: GenericCubitInstance):
+        for component in self.get_components():
+            if isinstance(component, ComplexComponent):
+                for component_geometry in component.get_subcomponents():
+                    if isinstance(component_geometry, GenericCubitInstance):
+                        if geometry.cid == component_geometry.cid and geometry.geometry_type == component_geometry.geometry_type:
+                            return component
+            elif isinstance(component, GenericComponentAssembly):
+                found_component = component.find_parent_component(geometry)
+                if found_component:
+                    return found_component
+        return False
     
     def get_all_geometries(self) -> list[GenericCubitInstance]:
         '''get every geometry stored in this assembly instance recursively
@@ -142,6 +155,13 @@ class CreatedComponentAssembly(GenericComponentAssembly):
         # store instances
         self.setup_assembly()
         self.move(self.origin)
+    
+    def check_for_overlaps(self):
+        volume_ids_list = [i.cid for i in from_bodies_to_volumes(self.get_all_geometries())]
+        overlaps = cubit.get_overlapping_volumes(volume_ids_list)
+        if overlaps != ():
+            overlapping_components = {self.find_parent_component(GenericCubitInstance(overlap_vol_id, "volume")).classname for overlap_vol_id in overlaps}
+            raise CubismError(f"The following components have overlaps: {overlapping_components}")
 
     def enforce_structure(self):
         '''Make sure an instance of this class contains the required components. This looks at the classnames specified in the json file'''
@@ -621,6 +641,7 @@ class HCPBBlanket(CreatedComponentAssembly):
     def __init__(self, json_object: dict):
         self.geometry = json_object["geometry"]
         super().__init__("HCPB_blanket", HCPB_BLANKET_REQUIREMENTS, json_object)
+        #self.check_for_overlaps()
 
     def check_sanity(self):
         self.__add_component_attributes()
@@ -632,9 +653,10 @@ class HCPBBlanket(CreatedComponentAssembly):
         row_pins, horizontal_start_pos = self.__get_pin_start_params()
         for pin_number in self.geometry["front rib positions"]:
             if pin_number > row_pins:
-                raise ValueError(f"Specified parameters only tile {row_pins} pins in a row, but trying to place front rib after pin number {pin_number}")
+                raise ValueError(f"Specified parameters only tile {row_pins} pins in a row on the first wall, but trying to place front rib after pin number {pin_number}")
 
-        distance_to_pin_centre = self.first_wall_geometry["inner width"]/2 - np.abs(horizontal_start_pos)
+        first_wall_slope_angle = arctan(self.first_wall_geometry["length"], (self.first_wall_geometry["outer width"] - self.first_wall_geometry["inner width"])/2)
+        distance_to_pin_centre = self.first_wall_geometry["inner width"]/2 - (np.abs(horizontal_start_pos) - self.first_wall_geometry["sidewall thickness"]/np.sin(first_wall_slope_angle))
         distance_to_multiplier = distance_to_pin_centre - bu_geometry["multiplier side"]
         distance_to_pin_inner = distance_to_pin_centre - (bu_geometry["coolant inlet radius"] + bu_geometry["inner cladding"])
         distance_to_pin_outer = distance_to_pin_inner - (bu_geometry["breeder chamber thickness"] + bu_geometry["outer cladding"])
@@ -650,6 +672,16 @@ class HCPBBlanket(CreatedComponentAssembly):
         self.check_slope(distance_to_pin_outer, pin_outer_extent, "First wall collides with pin!")
         self.check_slope(distance_to_pin_inner, pin_inner_extent, "First wall collides with pin!")
         self.check_slope(distance_to_cop, cop_extent, "First wall collides with coolant outlet plenum!")
+
+        if not self.geometry["coolant outlet plenum gap"] + self.cop_geometry["thickness"] < self.back_ribs_geometry["side channel horizontal offset"] < self.geometry["coolant outlet plenum gap"] + self.cop_geometry["length"] - (self.cop_geometry["thickness"] + self.back_ribs_geometry["side channel width"]):
+            raise ValueError("Back rib side channels don't empty out into coolant outlet plenum")
+        
+        rib_positions = self.__get_rib_positions(0)
+        if rib_positions[0].x - self.back_ribs_geometry["thickness"]/2 <= -self.cop_geometry["width"]/2 or rib_positions[-1].x + self.back_ribs_geometry["thickness"]/2 >= self.cop_geometry["width"]/2:
+            raise ValueError("Coolant outlet plenum not wide enough to encapsulate back ribs")
+
+        if self.front_ribs_geometry["side channel horizontal offset"] + self.front_ribs_geometry["side channel width"] > bu_geometry["pressure tube thickness"] + bu_geometry["pressure tube gap"] + bu_geometry["offset"] + bu_geometry["outer length"] - bu_geometry["pressure tube length"]:
+            raise ValueError("Front rib side channel not within coolant inlet manifold")
 
     def check_slope(self, distance_to_edge, vertical_extent, error_message):
         fw_offset = (self.first_wall_geometry["outer width"] - self.first_wall_geometry["inner width"])/2
@@ -708,9 +740,8 @@ class HCPBBlanket(CreatedComponentAssembly):
             elif component["class"] == "coolant_outlet_plenum":
                 self.cop_geometry = component["geometry"]
 
-    def __start_with_height(self):
-        height_dict = {"height": self.first_wall_geometry["height"]}
-        return height_dict
+    def __dict_with_height(self):
+        return {"height": self.first_wall_geometry["height"]}
     
     def __jsonify(self, geometry: dict, origin_z_coord: int):
         '''Return dictonary with geometry, material, and origin keys. 
@@ -815,7 +846,7 @@ class HCPBBlanket(CreatedComponentAssembly):
 
     def __get_bz_backplate_json(self):
         fw_geometry = self.first_wall_geometry
-        parameters = self.__start_with_height()
+        parameters = self.__dict_with_height()
         parameters["thickness"] = self.breeder_geometry["pressure tube length"] - self.breeder_geometry["multiplier length"]
         parameters["hole radius"] = self.breeder_geometry["pressure tube outer radius"]
 
@@ -825,7 +856,7 @@ class HCPBBlanket(CreatedComponentAssembly):
         backplate_start_z = fw_geometry["length"] - (self.breeder_geometry["pressure tube length"] + fw_geometry["thickness"])
         return self.__jsonify(parameters, backplate_start_z)
     
-    def __get_rib_positions(self, z_position):
+    def __get_rib_positions(self, z_position)->list[Vertex]:
         pin_spacing = self.geometry["pin spacing"]*np.sqrt(3/4)
         horizontal_start = self.__get_pin_start_params()[1] - pin_spacing/2
 
@@ -878,7 +909,7 @@ class HCPBBlanket(CreatedComponentAssembly):
     def __get_pg_front_plate_json(self):
         fw_geometry = self.first_wall_geometry
         bu_geometry = self.breeder_geometry
-        parameters = self.__start_with_height()
+        parameters = self.__dict_with_height()
         parameters["thickness"] = self.geometry["PG front plate thickness"]
         plate_distance_from_fw = bu_geometry["pressure tube thickness"] + bu_geometry["pressure tube gap"] + bu_geometry["offset"] + bu_geometry["outer length"] - parameters["thickness"]
         parameters["hole radius"] = bu_geometry["inner cladding"] + bu_geometry["outer cladding"] + bu_geometry["breeder chamber thickness"] + bu_geometry["coolant inlet radius"]
@@ -890,7 +921,7 @@ class HCPBBlanket(CreatedComponentAssembly):
     def __get_pg_mid_plate_json(self):
         fw_geometry = self.first_wall_geometry
         bu_geometry = self.breeder_geometry
-        parameters = self.__start_with_height()
+        parameters = self.__dict_with_height()
         parameters["thickness"] = self.geometry["PG mid plate thickness"]
         parameters["hole radius"] = bu_geometry["inner cladding"] + bu_geometry["coolant inlet radius"]
         plate_distance_from_fw = bu_geometry["pressure tube thickness"] + bu_geometry["pressure tube gap"] + bu_geometry["offset"] + bu_geometry["outer length"] + self.geometry["PG mid plate gap"]
@@ -902,7 +933,7 @@ class HCPBBlanket(CreatedComponentAssembly):
     def __get_pg_back_plate_json(self):
         fw_geometry = self.first_wall_geometry
         bu_geometry = self.breeder_geometry
-        parameters = self.__start_with_height()
+        parameters = self.__dict_with_height()
         parameters["thickness"] = self.geometry["PG back plate thickness"]
         plate_distance_from_fw = bu_geometry["pressure tube thickness"] + bu_geometry["pressure tube gap"] + bu_geometry["inner length"] - parameters["thickness"]
         parameters["hole radius"] = bu_geometry["inner cladding"] + bu_geometry["coolant inlet radius"]
@@ -925,7 +956,7 @@ class HCPBBlanket(CreatedComponentAssembly):
         pg_backplate_distance = bu_geometry["pressure tube thickness"] + bu_geometry["pressure tube gap"] + bu_geometry["inner length"]
         distance_from_fw = pg_backplate_distance + self.geometry["coolant outlet plenum gap"] + self.cop_geometry["length"] + self.geometry["separator plate gap"]
 
-        parameters = self.__start_with_height()
+        parameters = self.__dict_with_height()
         parameters["thickness"] = self.geometry["separator plate thickness"]
         parameters["length"], parameters["extension"] = self.__get_plate_length_and_ext(distance_from_fw, parameters["thickness"])
         parameters["hole radius"] = 0
@@ -935,7 +966,7 @@ class HCPBBlanket(CreatedComponentAssembly):
     
     def __get_fw_backplate_params(self):
         fw_geom = self.first_wall_geometry
-        parameters = self.__start_with_height()
+        parameters = self.__dict_with_height()
         parameters["thickness"] = self.geometry["FW backplate thickness"]
         parameters["hole radius"] = 0
         distance_from_fw = fw_geom["length"] - (parameters["thickness"] + fw_geom["thickness"])
