@@ -676,12 +676,33 @@ class HCPBBlanket(CreatedComponentAssembly):
         if not self.geometry["coolant outlet plenum gap"] + self.cop_geometry["thickness"] < self.back_ribs_geometry["side channel horizontal offset"] < self.geometry["coolant outlet plenum gap"] + self.cop_geometry["length"] - (self.cop_geometry["thickness"] + self.back_ribs_geometry["side channel width"]):
             raise ValueError("Back rib side channels don't empty out into coolant outlet plenum")
         
-        rib_positions = self.__get_rib_positions(0)
-        if rib_positions[0].x - self.back_ribs_geometry["thickness"]/2 <= -self.cop_geometry["width"]/2 or rib_positions[-1].x + self.back_ribs_geometry["thickness"]/2 >= self.cop_geometry["width"]/2:
+        rib_positions = [rib_pos.x for rib_pos in self.__get_rib_positions(0)]
+        if rib_positions[0] - self.back_ribs_geometry["thickness"]/2 <= -self.cop_geometry["width"]/2 or rib_positions[-1] + self.back_ribs_geometry["thickness"]/2 >= self.cop_geometry["width"]/2:
             raise ValueError("Coolant outlet plenum not wide enough to encapsulate back ribs")
+        
 
         if self.front_ribs_geometry["side channel horizontal offset"] + self.front_ribs_geometry["side channel width"] > bu_geometry["pressure tube thickness"] + bu_geometry["pressure tube gap"] + bu_geometry["offset"] + bu_geometry["outer length"] - bu_geometry["pressure tube length"]:
             raise ValueError("Front rib side channel not within coolant inlet manifold")
+        
+        BZ_backplate_thickness = bu_geometry["pressure tube length"] - bu_geometry["multiplier length"]
+        if self.geometry["PG front plate thickness"] >= pin_outer_extent - (multiplier_extent + BZ_backplate_thickness):
+            raise ValueError("PG front plate too thick - overlapping/touching BZ backplate")
+        
+        if self.geometry["PG mid plate gap"] >= (pin_inner_extent - pin_outer_extent):
+            raise ValueError("PG mid plate touching/ out of bounds of front and back plates")
+        
+        if self.geometry["PG mid plate thickness"] >= (pin_inner_extent - pin_outer_extent) - (self.geometry["PG back plate thickness"] + self.geometry["PG mid plate gap"]):
+            raise ValueError("PG mid plate overlapping/touching backplate")
+        
+        FW_backplate_distance_from_FW = self.first_wall_geometry["length"] - self.geometry["FW backplate thickness"]
+        backplate_extent = self.__get_plate_length_and_ext(FW_backplate_distance_from_FW, 0)[0]/2
+        if np.abs(rib_positions[0]) + self.back_ribs_geometry["thickness"]/2 > backplate_extent:
+            raise ValueError("Left side of back rib too thick - overlapping with first wall")
+        elif np.abs(rib_positions[-1]) + self.back_ribs_geometry["thickness"]/2 > backplate_extent:
+            raise ValueError("Right side of back rib too thick - overlapping with first wall")
+        for i in range(len(rib_positions)-1):
+            if rib_positions[i+1] - rib_positions[i] <= self.back_ribs_geometry["thickness"]:
+                raise ValueError("Back ribs overlapping or touching each other")
 
     def check_slope(self, distance_to_edge, vertical_extent, error_message):
         fw_offset = (self.first_wall_geometry["outer width"] - self.first_wall_geometry["inner width"])/2
@@ -794,9 +815,8 @@ class HCPBBlanket(CreatedComponentAssembly):
         centering_vertical_offset = ((accessible_height- 2*multiplier_side*np.cos(np.pi/6)) - (distinct_pin_heights-1)*pin_spacing*np.sin(np.pi/6)) / 2
         vertical_start_pos = height - (vertical_offset + centering_vertical_offset + multiplier_side*np.cos(np.pi/6))
 
-        pin_positions = []
+        pin_positions = [[] for j in range(columns_indices)]
         for j in range(columns_indices):
-            pin_positions.append([])
             pin_pos = Vertex(horizontal_start_pos , vertical_start_pos, length-wall_thickness) + Vertex(0, -pin_spacing*j)
             for i in range(row_pins):
                 # stop tiling if we overshoot the number of column pins (each column index corresponds to 2 column pins)
@@ -861,7 +881,9 @@ class HCPBBlanket(CreatedComponentAssembly):
         horizontal_start = self.__get_pin_start_params()[1] - pin_spacing/2
 
         positions = []
-        for position_index in self.geometry["front rib positions"]:
+        front_rib_positions = self.geometry["front rib positions"]
+        front_rib_positions.sort()
+        for position_index in front_rib_positions:
             positions.append(Vertex(horizontal_start + position_index*pin_spacing, 0, z_position))
         
         return positions

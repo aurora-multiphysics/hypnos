@@ -119,7 +119,6 @@ HCPB_BLANKET = {
         "pin spacing": 135,
         "pin vertical offset": 0,
         "pin horizontal offset": 0,
-        "BZ backplate thickness": 15,
         "front rib positions": [3, 7],
         "PG front plate thickness": 5,
         "PG mid plate thickness": 5,
