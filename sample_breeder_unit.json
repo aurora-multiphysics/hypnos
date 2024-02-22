@@ -1,12 +1,12 @@
 {
     "class": "breeder_unit",
     "materials": {
-        "pin": "Steel",
-        "pressure tube": "Steel",
+        "pin": "EUROFER",
+        "pressure tube": "EUROFER",
         "multiplier": "Beryllium",
         "coolant": "Helium",
         "breeder": "KALOS",
-        "filter disk": "SteelMaybe"
+        "filter disk": "EUROFER"
     },
     "geometry": {
         "outer length": 370,

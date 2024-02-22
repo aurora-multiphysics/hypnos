@@ -1,12 +1,12 @@
 BREEDER_UNIT = {
     "class": "breeder_unit",
     "materials": {
-        "pin": "Steel",
-        "pressure tube": "Steel",
+        "pin": "EUROFER",
+        "pressure tube": "EUROFER",
         "multiplier": "Beryllium",
         "coolant": "Helium",
         "breeder": "KALOS",
-        "filter disk": "SteelMaybe"
+        "filter disk": "EUROFER"
     },
     "geometry": {
         "outer length": 370,
@@ -83,12 +83,12 @@ BLANKET_RING = {
         {
             "class": "breeder_unit",
             "materials": {
-                "pin": "Steel",
-                "pressure tube": "Steel",
+                "pin": "EUROFER",
+                "pressure tube": "EUROFER",
                 "multiplier": "Beryllium",
                 "coolant": "Helium",
                 "breeder": "KALOS",
-                "filter disk": "SteelMaybe"
+                "filter disk": "EUROFER"
             },
             "geometry": {
                 "outer length": 370,
@@ -137,12 +137,12 @@ HCPB_BLANKET = {
         {
     "class": "breeder_unit",
     "materials": {
-        "pin": "Steel",
-        "pressure tube": "Steel",
+        "pin": "EUROFER",
+        "pressure tube": "EUROFER",
         "multiplier": "Beryllium",
         "coolant": "Helium",
         "breeder": "KALOS",
-        "filter disk": "SteelMaybe"
+        "filter disk": "EUROFER"
     },
     "geometry": {
         "outer length": 370,
@@ -181,15 +181,12 @@ HCPB_BLANKET = {
                 "thickness": 30,
                 "side channel width": 10,
                 "side channel height": 10,
-                "side channel gap": 107,
-                "side channel vertical margin": 50,
                 "side channel horizontal offset": 0
             }
         },
         {
             "class": "back_rib",
             "geometry": {
-                "length": 360,
                 "thickness": 60,
                 "side channel width": 10,
                 "side channel height": 10,

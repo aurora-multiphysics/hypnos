@@ -43,16 +43,16 @@ class ParameterFiller():
             if key in dict_to_fill.keys():
                 self.add_log(f"{key} set to: {dict_to_fill[key]} (default: {default_value})")
             else:
-                dict_to_fill[default_value] = default_value
+                dict_to_fill[key] = default_value
                 self.add_log(f"{key} set to default: {default_value}")
         for key in dict_to_fill.keys():
-            if key not in default_dict:
-                print(f"Key not recognised: {key}")
+            if key not in default_dict.keys():
+                self.add_log(f"Key not recognised: {key}")
         return dict_to_fill
 
-    def process_defaults(self, json_object: dict):
-        default_object = self.__get_default_object(json_object)
-        self.add_log(f"Logging class: {json_object['class']}")
+    def process_defaults(self, json_object: dict, default_object: dict=False):
+        default_object = default_object if default_object else self.__get_default_object(json_object)
+        self.add_log(f"-----Logging class: {json_object['class']}-----")
         if default_object:
             for key, default_value in default_object.items():
                 if key in json_object.keys():
@@ -61,11 +61,14 @@ class ParameterFiller():
                     elif type(default_value) == list:
                         delved_list = delve(json_object[key])
                         for i in range(len(default_value)):
-                            json_object[key][i] = self.process_defaults(delved_list[i])
+                            if type(default_value[i]) == dict:
+                                json_object[key][i] = self.process_defaults(delved_list[i], default_value[i])
+                            else:
+                                json_object[key][i] = self.process_defaults(delved_list[i])
                 else:
                     json_object[key] = default_value
                     self.add_log(f"key {key} not specified. Added default configuration.")
         else:
             self.add_log(f"Default configuration not found for: {json_object['class']}")
-        self.add_log(f"Finished logging class: {json_object['class']}")
+        self.add_log(f"-----Finished logging class: {json_object['class']}-----")
         return json_object
