@@ -12,14 +12,10 @@ def make_everything(json_object):
     :return: list of all top-level components
     :rtype: list
     '''
-    universe = []
     if type(json_object) == list:
-        for json_component in json_object:
-            universe.append(construct(json_component))
-        return universe
+        return [construct(json_component) for json_component in json_object]
     elif type(json_object) == dict:
-        universe.append(construct(json_object))
-        return universe
+        return [construct(json_object)]
     raise CubismError("json object not recognised")
 
 if __name__ == '__coreformcubit__':
@@ -45,12 +41,12 @@ elif __name__ == "__main__":
                 pp.pprint(default_class)
         exit(0)
 
-    
     initialise_cubit()
 
     json_object = extract_data(args.file)
-    filled_json_object = ParameterFiller().process_defaults(json_object)
-    ParameterFiller().print_log()
+    parameter_filler = ParameterFiller()
+    filled_json_object = parameter_filler.process_defaults(json_object)
+    parameter_filler.print_log()
     universe = make_everything(filled_json_object)
     # track all components, materials, and boundaries as groups
     for component in universe:

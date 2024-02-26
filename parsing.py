@@ -18,9 +18,8 @@ def delve(component_list: list):
     return delved_list
 
 class ParameterFiller():
-    log = []
     def __init__(self):
-        pass
+        self.log = []
 
     def add_log(self, message: str):
         self.log.append(message)
@@ -45,9 +44,8 @@ class ParameterFiller():
             else:
                 dict_to_fill[key] = default_value
                 self.add_log(f"{key} set to default: {default_value}")
-        for key in dict_to_fill.keys():
-            if key not in default_dict.keys():
-                self.add_log(f"Key not recognised: {key}")
+        for key in list(set(dict_to_fill.keys())-set(default_dict.keys())):
+            self.add_log(f"Key not recognised: {key}")
         return dict_to_fill
 
     def process_defaults(self, json_object: dict, default_object: dict=False):
@@ -61,10 +59,7 @@ class ParameterFiller():
                     elif type(default_value) == list:
                         delved_list = delve(json_object[key])
                         for i in range(len(default_value)):
-                            if type(default_value[i]) == dict:
-                                json_object[key][i] = self.process_defaults(delved_list[i], default_value[i])
-                            else:
-                                json_object[key][i] = self.process_defaults(delved_list[i])
+                            json_object[key][i] = self.process_defaults(delved_list[i], default_value[i]) if type(default_value[i]) == dict else self.process_defaults(delved_list[i])  
                 else:
                     json_object[key] = default_value
                     self.add_log(f"key {key} not specified. Added default configuration.")
