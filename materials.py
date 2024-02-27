@@ -24,6 +24,9 @@ class Material:
     
     def get_surface_ids(self):
         return [i.cid for i in from_bodies_and_volumes_to_surfaces(self.geometries)]
+    
+    def get_volume_ids(self):
+        return [i.cid for i in from_bodies_to_volumes(self.geometries)]
 
 class MaterialsTracker:
     '''Tracks materials and boundaries between those materials (including nullspace)
@@ -265,6 +268,12 @@ class MaterialsTracker:
             if len(boundary.get_surface_ids()) > 0:
                 cmd(f"sideset {boundary.group_id} add surface {boundary.get_surface_ids()}")
                 cmd(f'sideset {boundary.group_id} name "{boundary.name}"')
+
+    def add_materials_to_blocks(self):
+        for material in self.materials:
+            cmd(f"block {material.group_id} add volume {material.get_volume_ids()}")
+            cmd(f'block {material.group_id} name "{material.name}"')
+
 
     def reset(self):
         self.materials = []

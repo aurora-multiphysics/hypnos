@@ -55,6 +55,7 @@ class GeometryMaker():
         cmd("imprint volume all")
         self.materials_tracker.merge_and_track_boundaries()
         cmd("merge volume all")
+        self.materials_tracker.add_materials_to_blocks()
         self.materials_tracker.add_boundaries_to_sidesets()
         self.materials_tracker.organise_into_groups()
         if self.print_boundary_info:
