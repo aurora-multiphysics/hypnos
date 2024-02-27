@@ -265,3 +265,7 @@ class MaterialsTracker:
             if len(boundary.get_surface_ids()) > 0:
                 cmd(f"sideset {boundary.group_id} add surface {boundary.get_surface_ids()}")
                 cmd(f'sideset {boundary.group_id} name "{boundary.name}"')
+
+    def reset(self):
+        self.materials = []
+        self.boundaries = []

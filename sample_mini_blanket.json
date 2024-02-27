@@ -5,8 +5,8 @@
         "vertical offset": 0,
         "horizontal offset": 0
     },
-    "components": [
-        {
+    "components": {
+        "first_wall": {
             "class": "first_wall",
             "material": "Tungsten",
             "geometry": {
@@ -18,7 +18,7 @@
                 "height": 580
             }
         },
-        {
+        "breeder_unit": {
             "class": "breeder_unit",
             "materials": {
                 "pin": "Steel",
@@ -46,5 +46,5 @@
                 "multiplier side": 72
             }
         }
-    ]
+    }
 }

@@ -4,7 +4,10 @@
         "pin spacing": 135,
         "pin vertical offset": 0,
         "pin horizontal offset": 0,
-        "front rib positions": [3, 7],
+        "front rib positions": [
+            3,
+            7
+        ],
         "PG front plate thickness": 5,
         "PG mid plate thickness": 5,
         "PG mid plate gap": 20,
@@ -18,10 +21,49 @@
         "separator plate thickness": 10,
         "FW backplate thickness": 100
     },
-    "components": [
-        "sample_breeder_unit.json",
-        "sample_first_wall.json",
-        {
+    "components": {
+        "breeder_unit": {
+            "class": "breeder_unit",
+            "materials": {
+                "pin": "EUROFER",
+                "pressure tube": "EUROFER",
+                "multiplier": "Beryllium",
+                "coolant": "Helium",
+                "breeder": "KALOS",
+                "filter disk": "EUROFER"
+            },
+            "geometry": {
+                "outer length": 370,
+                "inner length": 500,
+                "offset": 60,
+                "bluntness": 5,
+                "inner cladding": 6,
+                "outer cladding": 3,
+                "breeder chamber thickness": 16,
+                "coolant inlet radius": 8,
+                "filter disk thickness": 10,
+                "pressure tube gap": 20,
+                "pressure tube outer radius": 40,
+                "pressure tube thickness": 1,
+                "pressure tube length": 400,
+                "multiplier length": 385,
+                "multiplier side": 72
+            }
+        },
+        "first_wall": {
+            "class": "first_wall",
+            "material": "EUROFER",
+            "geometry": {
+                "inner width": 1480,
+                "outer width": 1600,
+                "bluntness": 100,
+                "length": 1000,
+                "thickness": 30,
+                "sidewall thickness": 25,
+                "height": 625
+            }
+        },
+        "front_rib": {
             "class": "front_rib",
             "geometry": {
                 "thickness": 30,
@@ -30,7 +72,7 @@
                 "side channel horizontal offset": 0
             }
         },
-        {
+        "back_rib": {
             "class": "back_rib",
             "geometry": {
                 "thickness": 60,
@@ -39,7 +81,7 @@
                 "side channel horizontal offset": 70
             }
         },
-        {
+        "coolant_outlet_plenum": {
             "class": "coolant_outlet_plenum",
             "geometry": {
                 "length": 120,
@@ -47,5 +89,5 @@
                 "thickness": 15
             }
         }
-    ]
+    }
 }

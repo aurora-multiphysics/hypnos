@@ -5,8 +5,8 @@
         "vertical offset": 0,
         "horizontal offset": 0
     },
-    "components": [
-        "sample_breeder_unit.json",
-        "sample_first_wall.json"
-    ]
+    "components": {
+        "breeder_unit": "sample_breeder_unit.json",
+        "first_wall": "sample_first_wall.json"
+    }
 }

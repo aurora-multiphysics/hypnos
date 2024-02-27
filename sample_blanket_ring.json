@@ -3,7 +3,7 @@
     "geometry": {
         "minimum radius": 580
     },
-    "components": [
-        "sample_mini_blanket.json"
-    ]
+    "components": {
+        "blanket_shell": "sample_mini_blanket.json"
+    }
 }
