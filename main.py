@@ -52,7 +52,6 @@ class GeometryMaker():
         return make_everything(self.design_tree)
     
     def imprint_and_merge(self):
-        self.materials_tracker.reset()
         cmd("imprint volume all")
         self.materials_tracker.merge_and_track_boundaries()
         cmd("merge volume all")
@@ -72,6 +71,10 @@ class GeometryMaker():
     def export_mesh(self, filename='out_mesh.e', destination='.'):
         cmd(f'export mesh "{filename}"')
         shutil.move(f"./{filename}", f"{destination}/{filename}")
+
+    def reset_cubit(self):
+        reset_cubit()
+        self.materials_tracker.reset()
 
 if __name__ == '__coreformcubit__':
     reset_cubit()
