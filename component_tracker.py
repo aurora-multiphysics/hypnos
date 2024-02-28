@@ -4,7 +4,10 @@ class ComponentTracker:
     '''Adds components to cubit groups recursively'''
     # this counter is to ensure every component is named uniquely
     counter = 0
-    def __init__(self, root_component) -> str:
+    def __init__(self) -> str:
+        self.root_name = "no root component"
+    
+    def track_component(self, root_component):
         self.root_name = self.__track_components_as_groups(root_component)
 
     def __track_components_as_groups(self, root_component):
@@ -57,3 +60,6 @@ class ComponentTracker:
             cmd(f'group {group} add group {entity}')
         elif isinstance(entity, GenericCubitInstance):
             cmd(f'group {group} add {entity.geometry_type} {entity.cid}')
+
+    def reset_counter(self):
+        self.counter = 0

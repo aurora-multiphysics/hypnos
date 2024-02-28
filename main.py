@@ -22,9 +22,12 @@ class GeometryMaker():
         initialise_cubit()
         self.parameter_filler = ParameterFiller()
         self.materials_tracker = MaterialsTracker()
+        self.component_tracker = ComponentTracker()
         self.design_tree = {}
+        self.constructed_geometry = GenericComponentAssembly()
         self.print_parameter_logs = False
         self.print_boundary_info = False
+        self.track_components = False
 
     def parse_json(self, filename):
         json_object = extract_data(filename)
@@ -47,7 +50,12 @@ class GeometryMaker():
         return param_dict
 
     def make_geometry(self):
-        return make_everything(self.design_tree)
+        self.constructed_geometry = make_everything(self.design_tree)
+        if self.track_components:
+            self.component_tracker.track_component(self.constructed_geometry)
+            print(f"components being tracked in root {self.component_tracker.root_name}")
+        return self.constructed_geometry
+    
     
     def imprint_and_merge(self):
         cmd("imprint volume all")
@@ -103,11 +111,9 @@ elif __name__ == "__main__":
     maker = GeometryMaker()
     maker.print_parameter_logs = True
     maker.parse_json(args.file)
+    maker.track_components = False
     universe = maker.make_geometry()
 
-    # track all components, materials, and boundaries as groups
-    for component in universe:
-        print(f"components being tracked in root {ComponentTracker(component).root_name}")
     if IMPRINT_AND_MERGE:
         maker.imprint_and_merge()
     maker.export_geometry(args.outputfilename, args.destination)
