@@ -1,8 +1,6 @@
 from generic_classes import *
 from components import *
 from cubit_functions import from_bodies_to_volumes, get_bodies_and_volumes_from_group
-from parsing import delve
-from constants import STANDARD_COMPONENTS
 
 class GenericComponentAssembly:
     '''
@@ -147,7 +145,7 @@ class CreatedComponentAssembly(GenericComponentAssembly):
         # this defines what components to require in every instance
         self.required_classnames = required_classnames
         self.components = []
-        self.component_list = delve(json_object["components"].values())
+        self.component_list = json_object["components"].values()
 
         # enforce given component_list based on required_classnames
         self.enforce_structure()
@@ -340,7 +338,7 @@ class BlanketAssembly(CreatedComponentAssembly):
 class RoomAssembly(CreatedComponentAssembly):
     '''Assembly class that requires surrounding walls and a blanket. Fills with air. Can add walls.'''
     def __init__(self, json_object):
-        component_list = json_object["components"].values()
+        component_list = list(json_object["components"].values())
 
         # Take out any walls from component list
         json_walls = []
@@ -621,7 +619,7 @@ class BlanketRingAssembly(CreatedComponentAssembly):
         for component in self.component_list:
             if component["class"] == "blanket shell":
                 blanket_shell["geometry"] = component["geometry"]
-                blanket_shell["components"] = delve(component["components"].values())
+                blanket_shell["components"] = component["components"]
                 for subcomponent in blanket_shell["components"]:
                     if subcomponent["class"] == "first wall":
                         sub_geometry = subcomponent["geometry"]

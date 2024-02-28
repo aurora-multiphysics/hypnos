@@ -4,3 +4,4 @@ cleanup_cubit.sh
 *.kra*
 __pycache__
 docs/build
+geometry_storage

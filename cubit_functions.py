@@ -133,7 +133,7 @@ def remove_overlaps_between_generic_cubit_instance_lists(from_list: list[Generic
                     # i have given up on my python api dreams. we all return to cubit cl in the end.
                     cmd(f"remove overlap volume {tool_volume.cid} {from_volume.cid} modify volume {from_volume.cid}")
 
-def from_bodies_to_volumes(component_list: list):
+def from_bodies_to_volumes(component_list: list) -> list[GenericCubitInstance]:
     '''Turns references to bodies into references to their children volumes.
 
     :param component_list: List of geometries

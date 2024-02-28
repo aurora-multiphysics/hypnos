@@ -28,9 +28,7 @@ class GeometryMaker():
 
     def parse_json(self, filename):
         json_object = extract_data(filename)
-        filled_json_object = json_object
-        #TODO: FIX PARAMETER FILLER
-        #filled_json_object = self.parameter_filler.process_defaults(json_object)
+        filled_json_object = self.parameter_filler.process_design_tree(json_object)
         if self.print_parameter_logs:
             self.parameter_filler.print_log()
         self.design_tree = filled_json_object
