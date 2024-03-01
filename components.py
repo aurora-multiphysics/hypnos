@@ -255,14 +255,21 @@ class PinComponent(ComplexComponent):
         inner_cladding = geometry["inner cladding"]
         breeder_chamber_thickness = geometry["breeder chamber thickness"]
         outer_cladding = geometry["outer cladding"]
+        purge_duct_thickness = geometry["purge duct thickness"]
+        purge_duct_cladding = geometry["purge duct cladding"]
+        purge_duct_offset = geometry["purge duct offset"]
+        distance_to_step = geometry["distance to step"]
+        distance_to_disk = geometry["distance to disk"]
         # helpful calculations
+        step_thickness = purge_duct_thickness + purge_duct_cladding
+        inner_less_purge_thickness = inner_cladding - step_thickness
         net_thickness = inner_cladding + breeder_chamber_thickness + outer_cladding
         slope_angle = arctan(net_thickness, offset)
 
-        pin_vertices = list(np.zeros(12))
+        pin_vertices = list(np.zeros(14))
         
         # set up points of face-to-sweep
-        pin_vertices[0] = Vertex(0, inner_cladding)
+        pin_vertices[0] = Vertex(0, inner_less_purge_thickness)
         pin_vertices[1] = Vertex(0)
 
         inner_cladding_ref1 = Vertex(-inner_length)
@@ -283,13 +290,28 @@ class PinComponent(ComplexComponent):
         inner_cladding_ref2 = inner_cladding_ref1 + Vertex(inner_cladding/np.tan(slope_angle) + outer_cladding/np.sin(slope_angle), inner_cladding)
         pin_vertices[10] = inner_cladding_ref2 + Vertex(inner_bluntness).rotate(slope_angle)
         pin_vertices[11] = inner_cladding_ref2 + Vertex(inner_bluntness)
+
+        pin_vertices[13] = pin_vertices[0] + Vertex(-distance_to_step)
+        pin_vertices[12] = pin_vertices[13] + Vertex(0, step_thickness)
              
         surface_to_sweep = make_surface(pin_vertices, [2, 4, 8, 10])
         cmd(f"sweep surface {surface_to_sweep.cid} axis 0 {-coolant_inlet_radius} 0 1 0 0 angle 360")
         pin = get_last_geometry("volume")
+
+        duct_vertices = list(np.zeros(4))
+        duct_vertices[0] = pin_vertices[0] + Vertex(-purge_duct_offset, purge_duct_thickness)
+        duct_vertices[1] = pin_vertices[0] + Vertex(-distance_to_disk, purge_duct_thickness)
+        duct_vertices[2] = duct_vertices[1] + Vertex(0, purge_duct_cladding)
+        duct_vertices[3] = duct_vertices[0] + Vertex(0, purge_duct_cladding)
+
+        duct_surface = make_surface(duct_vertices, [])
+        cmd(f"sweep surface {duct_surface.cid} axis 0 {-coolant_inlet_radius} 0 1 0 0 angle 360")
+        duct = get_last_geometry("volume")
+
         # realign with origin
         cubit.move(pin.cubitInstance, [inner_length, coolant_inlet_radius, 0])
-        return pin
+        cubit.move(duct.cubitInstance, [inner_length, coolant_inlet_radius, 0])
+        return [pin, duct]
 
 class BreederUnitCoolant(ComplexComponent):
     def __init__(self, json_object: dict):
@@ -355,6 +377,49 @@ class PressureTubeComponent(ComplexComponent):
         tube = get_last_geometry("volume")
         cmd(f"rotate volume {tube.cid} about Y angle -90")
         cmd(f"volume {tube.cid} move {length/2} 0 0")
+
+        return tube
+
+class FilterLidComponent(ComplexComponent):
+    def __init__(self, json_object):
+        super().__init__("filter_lid", json_object)
+    
+    def make_geometry(self):
+        length = self.geometry["length"]
+        outer_radius = self.geometry["outer radius"]
+        thickness = self.geometry["thickness"]
+
+        tube_vertices = list(np.zeros(4))
+        tube_vertices[0] = Vertex(0, outer_radius)
+        tube_vertices[1] = tube_vertices[0] + Vertex(length)
+        tube_vertices[2] = tube_vertices[1] + Vertex(0, -thickness)
+        tube_vertices[3] = tube_vertices[0] + Vertex(0, -thickness)
+
+        tube_surface = make_surface(tube_vertices, [])
+        cmd(f"sweep surface {tube_surface.cid} axis 0 0 0 1 0 0 angle 360")
+        tube = get_last_geometry("volume")
+
+        return tube
+    
+class PurgeGasComponent(ComplexComponent):
+    def __init__(self, json_object):
+        super().__init__("filter_lid", json_object)
+    
+    def make_geometry(self):
+        length = self.geometry["length"]
+        outer_radius = self.geometry["outer radius"]
+        thickness = self.geometry["thickness"]
+
+        tube_vertices = list(np.zeros(4))
+        tube_vertices[0] = Vertex(0, outer_radius)
+        tube_vertices[1] = tube_vertices[0] + Vertex(length)
+        tube_vertices[2] = tube_vertices[1] + Vertex(0, -thickness)
+        tube_vertices[3] = tube_vertices[0] + Vertex(0, -thickness)
+
+        tube_surface = make_surface(tube_vertices, [])
+        cmd(f"sweep surface {tube_surface.cid} axis 0 0 0 1 0 0 angle 360")
+        tube = get_last_geometry("volume")
+
         return tube
 
 class FilterDiskComponent(ComplexComponent):

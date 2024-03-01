@@ -274,7 +274,12 @@ class MaterialsTracker:
             cmd(f"block {material.group_id} add volume {material.get_volume_ids()}")
             cmd(f'block {material.group_id} name "{material.name}"')
 
-
     def reset(self):
         self.materials = []
         self.boundaries = []
+
+    def get_block_names(self):
+        return [material.name for material in self.materials]
+    
+    def get_sideset_names(self):
+        return [boundary.name for boundary in self.boundaries]

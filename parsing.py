@@ -68,7 +68,7 @@ class ParameterFiller():
             else:
                 self.design_tree[key] = default_value
                 self.add_log(f"key {key} not specified. Added default.")
-        self.__cleanup_tree(design_tree, config)
+        self.__cleanup_logs(design_tree, config)
         return design_tree
 
     def __setup_tree(self, design_tree: dict):
@@ -78,7 +78,7 @@ class ParameterFiller():
             design_tree["components"] = delve(design_tree["components"])
         return design_tree
 
-    def __cleanup_tree(self, design_tree: dict, config: dict):
+    def __cleanup_logs(self, design_tree: dict, config: dict):
         for key in list(set(design_tree.keys()) - set(config.keys())):
             self.add_log(f"key {key} not in default config")
         if "class" in design_tree.keys():
