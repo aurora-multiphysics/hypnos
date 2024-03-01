@@ -30,7 +30,9 @@
                 "multiplier": "Beryllium",
                 "coolant": "Helium",
                 "breeder": "KALOS",
-                "filter disk": "EUROFER"
+                "filter disk": "EUROFER",
+                "filter lid": "Perf_Steel",
+                "purge gas": "H_He"
             },
             "geometry": {
                 "outer length": 370,
@@ -47,7 +49,11 @@
                 "pressure tube thickness": 1,
                 "pressure tube length": 400,
                 "multiplier length": 385,
-                "multiplier side": 72
+                "multiplier side": 72,
+                "purge duct thickness": 1,
+                "purge duct cladding": 2,
+                "purge duct offset": 30,
+                "filter lid length": 300
             }
         },
         "first_wall": {

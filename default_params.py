@@ -6,7 +6,9 @@ BREEDER_UNIT = {
         "multiplier": "Beryllium",
         "coolant": "Helium",
         "breeder": "KALOS",
-        "filter disk": "EUROFER"
+        "filter disk": "EUROFER",
+        "filter lid": "Perf_Steel",
+        "purge gas": "H_He"
     },
     "geometry": {
         "outer length": 370,
@@ -21,9 +23,13 @@ BREEDER_UNIT = {
         "pressure tube gap": 20,
         "pressure tube outer radius": 40,
         "pressure tube thickness": 1,
-        "pressure tube length": 420,
-        "multiplier length": 420,
-        "multiplier side": 72
+        "pressure tube length": 400,
+        "multiplier length": 385,
+        "multiplier side": 72,
+        "purge duct thickness": 1,
+        "purge duct cladding": 2,
+        "purge duct offset": 30,
+        "filter lid length": 300
     }
 }
 
@@ -137,47 +143,8 @@ HCPB_BLANKET = {
         "FW backplate thickness": 100
     },
     "components": {
-        "breeder_unit": {
-            "class": "breeder_unit",
-            "materials": {
-                "pin": "EUROFER",
-                "pressure tube": "EUROFER",
-                "multiplier": "Beryllium",
-                "coolant": "Helium",
-                "breeder": "KALOS",
-                "filter disk": "EUROFER"
-            },
-            "geometry": {
-                "outer length": 370,
-                "inner length": 500,
-                "offset": 60,
-                "bluntness": 5,
-                "inner cladding": 6,
-                "outer cladding": 3,
-                "breeder chamber thickness": 16,
-                "coolant inlet radius": 8,
-                "filter disk thickness": 10,
-                "pressure tube gap": 20,
-                "pressure tube outer radius": 40,
-                "pressure tube thickness": 1,
-                "pressure tube length": 400,
-                "multiplier length": 385,
-                "multiplier side": 72
-            }
-        },
-        "first_wall": {
-            "class": "first_wall",
-            "material": "EUROFER",
-            "geometry": {
-                "inner width": 1480,
-                "outer width": 1600,
-                "bluntness": 100,
-                "length": 1000,
-                "thickness": 30,
-                "sidewall thickness": 25,
-                "height": 625
-            }
-        },
+        "breeder_unit": BREEDER_UNIT,
+        "first_wall": FIRST_WALL,
         "front_rib": {
             "class": "front_rib",
             "geometry": {
