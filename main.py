@@ -97,12 +97,14 @@ class GeometryMaker():
         self.materials_tracker.organise_into_groups()
         if self.print_boundary_info:
             self.materials_tracker.print_info()
+    
+    def set_mesh_size(self, size: int):
+        cmd(f'volume all size {size}')
 
-    def tetmesh(self, size: int='auto'):
+    def tetmesh(self):
         '''Mesh geometry in cubit
         '''
         cmd('volume all scheme tet')
-        cmd(f'volume all size {size}')
         cmd('mesh volume all')
     
     def export_geometry(self, filename= 'out_geometry.cub5', destination='.'):
@@ -128,12 +130,12 @@ class GeometryMaker():
 
 if __name__ == '__coreformcubit__':
     reset_cubit()
-    make_everything(extract_data("sample_morphology.json"))
+    make_everything(extract_data("sample_blanket.json"))
 elif __name__ == "__main__":
     # accept command line arguments
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--file", type=str, help="Name of json file describing geometry", default="sample_breeder_unit.json")
-    parser.add_argument("-i", "--info", type=str, help="Print cubit IDs of volumes in materials and surfaces in boundaries", default='false')
+    parser.add_argument("-i", "--info", type=str, help="Print cubit IDs of volumes in materials and surfaces in boundaries", action='storeTrue')
     parser.add_argument("-c", "--classname", type=str, help="Get available classes", default='none')
     parser.add_argument("-o", "--outputfilename", type=str, help="Name of output file", default='out_geometry.cub5')
     parser.add_argument("-d", "--destination", type=str, help="Path of directory to generate output file in", default='.')

@@ -122,6 +122,10 @@ class ComplexComponent:
     def check_sanity(self):
         pass
 
+    def set_mesh_size(self, size: int):
+        for subcomponent in self.get_subcomponents():
+            cmd(f"{subcomponent.geometry_type} {subcomponent.cid} size {size}")
+
 class SurroundingWallsComponent(ComplexComponent):
     '''Surrounding walls, filled with air'''
     def __init__(self, json_object: dict):

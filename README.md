@@ -8,6 +8,7 @@ Blobmaker is a parametric geometry engine to create meshes for structures involv
 The numpy python library: `pip install numpy`
 
 The oldest version of coreform cubit used with this code is Coreform Cubit 2021.8
+The cubit python library must be on your python path
 
 ## Usage
 Blobmaker uses json files to describe parameters of a component.
@@ -16,10 +17,12 @@ Json files containing a json object describing a component (ex. hcpb_breeder_uni
 
 Examples are given in sample json files
 
-To use blobmaker, run blobmaker.sh, passing the name of the json file to a -f flag:
-```./blobmaker.sh -f "sample_blanket.json"```
+To use blobmaker, run main.py, passing the name of the json file to a -f flag:
+```python main.py -f sample_blanket.json```
 
 The following flags are also available:
 -h: Print available flags for use
--c: To specify the path to cubit's python library if it isn't already in your pythonpath
+-c: Name of class to print default template for
+-o: Name of geometry file to export
+-d: Destination to create output file(s)
 -i: Print cubit IDs of volumes in materials and surfaces in boundaries

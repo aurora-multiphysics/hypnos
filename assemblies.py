@@ -133,6 +133,15 @@ class GenericComponentAssembly:
     def move(self, vector: Vertex):
         for component in self.get_components():
             component.move(vector)
+    
+    def set_mesh_size(self, component_classes: list, size: int):
+        component_classes = [globals()[CLASS_MAPPING[classname]] for classname in component_classes]
+        components = self.get_components_of_class(component_classes)
+        for component in components:
+            if isinstance(component, ComplexComponent):
+                component.set_mesh_size(size)
+            elif isinstance(component, GenericComponentAssembly):
+                component.set_mesh_size(component_classes, size)
 
 class CreatedComponentAssembly(GenericComponentAssembly):
     '''
