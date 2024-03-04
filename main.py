@@ -82,8 +82,9 @@ class GeometryMaker():
         '''
         self.constructed_geometry = make_everything(self.design_tree)
         if self.track_components:
-            self.component_tracker.track_component(self.constructed_geometry)
-            print(f"components being tracked in root {self.component_tracker.root_name}")
+            for component in self.constructed_geometry:
+                self.component_tracker.track_component(component)
+                print(f"components being tracked in root {self.component_tracker.root_name}")
         return self.constructed_geometry
     
     def imprint_and_merge(self):
@@ -135,7 +136,7 @@ elif __name__ == "__main__":
     # accept command line arguments
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--file", type=str, help="Name of json file describing geometry", default="sample_breeder_unit.json")
-    parser.add_argument("-i", "--info", type=str, help="Print cubit IDs of volumes in materials and surfaces in boundaries", action='storeTrue')
+    parser.add_argument("-i", "--info", help="Print cubit IDs of volumes in materials and surfaces in boundaries", action='store_true')
     parser.add_argument("-c", "--classname", type=str, help="Get available classes", default='none')
     parser.add_argument("-o", "--outputfilename", type=str, help="Name of output file", default='out_geometry.cub5')
     parser.add_argument("-d", "--destination", type=str, help="Path of directory to generate output file in", default='.')
@@ -157,7 +158,7 @@ elif __name__ == "__main__":
     maker = GeometryMaker()
     maker.print_parameter_logs = True
     maker.parse_json(args.file)
-    maker.track_components = False
+    maker.track_components = True
     universe = maker.make_geometry()
 
     if IMPRINT_AND_MERGE:

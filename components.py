@@ -17,9 +17,7 @@ class ComplexComponent:
     def __init__(self, classname, json_object: dict):
         self.subcomponents = []
         self.classname = classname
-        self.geometry = json_object["geometry"]
-        self.material = json_object["material"]
-        self.origin = json_object["origin"] if "origin" in json_object.keys() else Vertex(0)
+        self.geometry, self.material, self.origin = self.__get_top_level_info(json_object)
         self.check_sanity()
 
         self.add_to_subcomponents(self.make_geometry())
@@ -29,8 +27,35 @@ class ComplexComponent:
         for subcomponent in self.subcomponents:
             self.complexComponentMaterials.add_geometry_to_material(subcomponent, self.material)
     
-    def add_to_subcomponents(self, subcomponents):
-        '''Add GenericCubitInstance or list of GenericCubitInstances to subcomponents attribute'''
+    def __get_top_level_info(self, json_object: dict):
+        '''Get top-level information and ensure proper types
+
+        :param json_object: Input json-formatted info
+        :type json_object: dict
+        :return: Geometry, material, and origin
+        :rtype: dict, str, Vertex
+        '''
+        if not "geometry" in json_object.keys():
+            raise CubismError(f"Component {self.classname} requires geometry")
+        elif type(json_object["geometry"]) != dict:
+            raise TypeError("Geometry info should be represented as a dictionary")
+        elif not "material" in json_object.keys():
+            raise CubismError(f"Component {self.classname} requires a material")
+        elif type(json_object["material"]) != str:
+            raise TypeError("Material should be given as a string")
+        origin = json_object["origin"] if "origin" in json_object.keys() else Vertex(0)
+        if type(origin) == list:
+            origin = Vertex(origin[0], origin[1], origin[2])
+        elif type(origin) != Vertex:
+            raise TypeError("Origin should be represented using a Vertex")
+        return json_object["geometry"], json_object["material"], origin
+
+    def add_to_subcomponents(self, subcomponents: GenericCubitInstance | list[GenericCubitInstance]):
+        '''Add geometry/ies to subcomponents attribute
+
+        :param subcomponents: Geometry or geometries
+        :type subcomponents: GenericCubitInstance | list[GenericCubitInstance]
+        '''
         if isinstance(subcomponents, GenericCubitInstance):
             self.subcomponents.append(subcomponents)
         elif type(subcomponents) == list:
@@ -39,7 +64,7 @@ class ComplexComponent:
                     self.subcomponents.append(subcomponent)
 
     def make_geometry(self):
-        '''create geometry in cubit. if the class is a blob or walls, make those. otherwise break.'''
+        '''create geometry in cubit. if the class is a blob, make it. otherwise break.'''
         if self.classname in BLOB_CLASSES:
             return self.__create_cubit_blob(self.geometry)
         else:
@@ -96,7 +121,7 @@ class ComplexComponent:
         '''convert any references to bodies in the subcomponents to references to their composing volumes'''
         self.update_reference_and_tracking(from_bodies_to_volumes(self.subcomponents))
 
-    def get_subcomponents(self):
+    def get_subcomponents(self) -> list[GenericCubitInstance]:
         return self.subcomponents
 
     def get_parameters(self, parameters: list):
@@ -242,6 +267,7 @@ class PinComponent(ComplexComponent):
                 raise ValueError("Pin inner bluntness larger than inner length")
             elif geom["outer bluntness"] >= geom["outer length"]:
                 raise ValueError("Pin outer bluntness larger than outer length")
+        
 
     def make_geometry(self):
         # get params

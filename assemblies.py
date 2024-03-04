@@ -154,7 +154,7 @@ class CreatedComponentAssembly(GenericComponentAssembly):
         # this defines what components to require in every instance
         self.required_classnames = required_classnames
         self.components = []
-        self.component_list = json_object["components"].values()
+        self.component_list = json_object["components"].values() if type(json_object["components"]) == dict else json_object["components"]
 
         # enforce given component_list based on required_classnames
         self.enforce_structure()
@@ -453,7 +453,7 @@ class BreederUnitAssembly(CreatedComponentAssembly):
             raise ValueError("Pin radius larger than pressure tube radius")
     
     def setup_assembly(self):
-        pin_geometry, pin_origin = self.__get_pin_parameters()
+        pin_json = self.__get_pin_parameters()
         pressure_tube_geometry = self.__extract_parameters({
             "pressure tube outer radius": "outer radius",
             "pressure tube thickness": "thickness",
@@ -464,26 +464,26 @@ class BreederUnitAssembly(CreatedComponentAssembly):
             "multiplier side": "side",
             "pressure tube outer radius": "inner radius"
         })
-        breeder_geometry, breeder_origin = self.__get_breeder_parameters()
-        filter_disk_geometry, filter_disk_origin = self.__get_filter_disk_parameters()
-        filter_lid_geometry, filter_lid_origin = self.__get_filter_lid_parameters()
-        coolant_geometry, coolant_origin = self.__get_coolant_parameters()
-        purge_gas_geometry, purge_gas_origin = self.__get_purge_gas_parameters()
+        breeder_json = self.__get_breeder_parameters()
+        filter_disk_json = self.__get_filter_disk_parameters()
+        filter_lid_json = self.__get_filter_lid_parameters()
+        coolant_json = self.__get_coolant_parameters()
+        purge_gas_json = self.__get_purge_gas_parameters()
         
-        pin = PinComponent({"geometry":pin_geometry, "material":self.materials["pin"], "origin":pin_origin})
-        pressure_tube = PressureTubeComponent({"geometry":pressure_tube_geometry, "material":self.materials["pressure tube"]})
-        multiplier = MultiplierComponent({"geometry":multiplier_geometry, "material":self.materials["multiplier"]})
-        breeder = BreederChamber({"geometry":breeder_geometry, "material":self.materials["breeder"], "origin":breeder_origin})
-        filter_disk = FilterDiskComponent({"geometry": filter_disk_geometry, "material": self.materials["filter disk"], "origin":filter_disk_origin})
-        filter_lid = FilterLidComponent({"geometry": filter_lid_geometry, "material": self.materials["filter lid"], "origin": filter_lid_origin})
-        coolant = BreederUnitCoolant({"geometry": coolant_geometry, "material": self.materials["coolant"], "origin": coolant_origin})
-        purge_gas = PurgeGasComponent({"geometry": purge_gas_geometry, "material": self.materials["purge gas"], "origin": purge_gas_origin})
+        pin = PinComponent(pin_json)
+        pressure_tube = PressureTubeComponent(self.__jsonify(pressure_tube_geometry, "pressure tube", 0))
+        multiplier = MultiplierComponent(self.__jsonify(multiplier_geometry, "multiplier", 0))
+        breeder = BreederChamber(breeder_json)
+        filter_disk = FilterDiskComponent(filter_disk_json)
+        filter_lid = FilterLidComponent(filter_lid_json)
+        coolant = BreederUnitCoolant(coolant_json)
+        purge_gas = PurgeGasComponent(purge_gas_json)
 
         self.components.extend([pin, pressure_tube, multiplier, breeder, filter_disk, filter_lid, coolant, purge_gas])
         # align with z-axis properly
         self.rotate(90, Vertex(0, 0, 0), Vertex(0, 1, 0))
     
-    def __extract_parameters(self, parameters):
+    def __extract_parameters(self, parameters: list | dict):
         out_dict = {}
         if type(parameters) == list:
             for parameter in parameters:
@@ -501,7 +501,7 @@ class BreederUnitAssembly(CreatedComponentAssembly):
         parameters["distance to disk"] = parameters["distance to step"] - self.geometry["filter lid length"]
         start_x = self.geometry["pressure tube gap"] + self.geometry["pressure tube thickness"]
 
-        return parameters, Vertex(start_x)
+        return self.__jsonify(parameters, "pin", start_x)
 
     def __get_breeder_parameters(self):
         geometry = self.geometry
@@ -524,7 +524,7 @@ class BreederUnitAssembly(CreatedComponentAssembly):
 
         start_x = parameters["chamber offset"] + geometry["pressure tube gap"] + geometry["pressure tube thickness"]
 
-        return parameters, Vertex(start_x)
+        return self.__jsonify(parameters, "breeder", start_x)
 
     def __get_filter_disk_parameters(self):
         geometry = self.geometry
@@ -539,7 +539,7 @@ class BreederUnitAssembly(CreatedComponentAssembly):
         parameters["outer radius"] = coolant_inlet_radius + inner_cladding + breeder_chamber_thickness
         start_x = geometry["pressure tube gap"] + geometry["pressure tube thickness"] + geometry["offset"] + geometry["outer length"] - parameters["length"]
 
-        return parameters, Vertex(start_x)
+        return self.__jsonify(parameters, "filter disk", start_x)
 
     def __get_filter_lid_parameters(self):
         parameters = self.__extract_parameters({"purge duct cladding": "thickness", 
@@ -549,7 +549,7 @@ class BreederUnitAssembly(CreatedComponentAssembly):
         start_x = self.geometry["pressure tube gap"] + self.geometry["pressure tube thickness"]
         start_x = start_x + self.geometry["outer length"] + self.geometry["offset"] - (self.geometry["filter disk thickness"] + self.geometry["filter lid length"])
 
-        return parameters, Vertex(start_x)
+        return self.__jsonify(parameters, "filter lid", start_x)
 
     def __get_purge_gas_parameters(self):
         parameters = self.__extract_parameters({"purge duct thickness": "thickness"})
@@ -560,7 +560,7 @@ class BreederUnitAssembly(CreatedComponentAssembly):
         start_x = self.geometry["pressure tube gap"] + self.geometry["pressure tube thickness"]
         start_x = start_x + self.geometry["outer length"] + self.geometry["offset"] - (self.geometry["filter disk thickness"] + self.geometry["filter lid length"])
 
-        return parameters, Vertex(start_x)
+        return self.__jsonify(parameters, "purge gas", start_x)
 
     def __get_coolant_parameters(self):
         geometry = self.geometry
@@ -575,7 +575,25 @@ class BreederUnitAssembly(CreatedComponentAssembly):
         parameters["pressure tube radius"] = pressure_tube_outer_radius - pressure_tube_thickness
         parameters["pin thickness"] = geometry["inner cladding"] + geometry["breeder chamber thickness"] + geometry["outer cladding"]
 
-        return parameters, Vertex(pressure_tube_thickness)
+        return self.__jsonify(parameters, "coolant", pressure_tube_thickness)
+    
+    def __jsonify(self, geometry: dict, material: str, start_x: int):
+        '''Create dictionary with geometry, material, and origin keys.
+
+        :param geometry: Json dictionary of geometrical parameters
+        :type geometry: dict
+        :param material: Name of component
+        :type material: str
+        :param start_x: x coordinate of component origin
+        :type start_x: int
+        :return: dictionary in the input json style
+        :rtype: dict
+        '''
+        try:
+            material_obj = self.materials[material.lower()]
+        except KeyError:
+            raise CubismError(f"Component {self.classname} should contain material of {material}")
+        return {"geometry": geometry, "material": material_obj, "origin": Vertex(start_x)}
 
 class BlanketShellAssembly(CreatedComponentAssembly):
     '''First wall with tiled breeder units'''
