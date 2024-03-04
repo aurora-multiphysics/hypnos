@@ -58,7 +58,7 @@
         },
         "first_wall": {
             "class": "first_wall",
-            "material": "EUROFER",
+            "material": "Tungsten",
             "geometry": {
                 "inner width": 1480,
                 "outer width": 1600,

@@ -1,6 +1,5 @@
 from constants import *
 from generic_classes import *
-from materials import MaterialsTracker
 from cubit_functions import from_bodies_to_volumes, from_everything_to_bodies, cubit_cmd_check, get_last_geometry
 from geometry import make_cylinder_along, Vertex, make_surface, hypotenuse, arctan
 import numpy as np
@@ -9,11 +8,9 @@ class ExternalComponent(GenericCubitInstance):
     def __init__(self, cid: int, geometry_type: str) -> None:
         super().__init__(cid, geometry_type)
         # track external components
-        MaterialsTracker().add_geometry_to_material(GenericCubitInstance(self.cid, self.geometry_type), "external")
 
 class ComplexComponent:
     # stores information about what materials exist. geometries can then be found from groups with the same name
-    complexComponentMaterials = MaterialsTracker()
     def __init__(self, classname, json_object: dict):
         self.subcomponents = []
         self.classname = classname
@@ -23,9 +20,6 @@ class ComplexComponent:
         self.add_to_subcomponents(self.make_geometry())
         if not self.origin == Vertex(0):
             self.move(self.origin)
-        # add geometries to material tracker
-        for subcomponent in self.subcomponents:
-            self.complexComponentMaterials.add_geometry_to_material(subcomponent, self.material)
     
     def __get_top_level_info(self, json_object: dict):
         '''Get top-level information and ensure proper types

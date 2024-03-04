@@ -1,4 +1,4 @@
-from component_tracker import ComponentTracker
+from tracking import ComponentTracker, MaterialsTracker
 from assemblies import *
 from cubit_functions import initialise_cubit, reset_cubit
 from parsing import extract_data, ParameterFiller
@@ -90,6 +90,8 @@ class GeometryMaker():
     def imprint_and_merge(self):
         '''Imprint and merge geometry in cubit. Add materials to blocks and material-material interfaces to sidesets.
         '''
+        for component in self.constructed_geometry:
+            self.materials_tracker.track_component(component)
         cmd("imprint volume all")
         self.materials_tracker.merge_and_track_boundaries()
         cmd("merge volume all")
