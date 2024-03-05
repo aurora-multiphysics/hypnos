@@ -1,5 +1,5 @@
-from generic_classes import GenericCubitInstance, CubismError, cmd
-from cubit_functions import cubit_cmd_check, get_id_string
+from .generic_classes import GenericCubitInstance, CubismError, cmd
+from .cubit_functions import cubit_cmd_check, get_id_string
 import numpy as np
 
 def create_2d_vertex(x, y):

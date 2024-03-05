@@ -1,4 +1,4 @@
-from main import GeometryMaker
+from blobmaker import GeometryMaker
 
 multiplier_lengths = [385, 355, 325, 295, 265]
 
@@ -29,4 +29,5 @@ def make_breeder_unit():
     maker.export_mesh("breeder_unit.e", ".")
 
 if __name__ == "__main__":
-    build()
+    make_breeder_unit()
+    

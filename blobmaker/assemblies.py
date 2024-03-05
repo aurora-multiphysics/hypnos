@@ -1,6 +1,6 @@
-from generic_classes import *
-from components import *
-from cubit_functions import from_bodies_to_volumes, get_bodies_and_volumes_from_group
+from .generic_classes import *
+from .components import *
+from .cubit_functions import from_bodies_to_volumes, get_bodies_and_volumes_from_group
 
 class GenericComponentAssembly:
     '''

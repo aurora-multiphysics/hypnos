@@ -1,4 +1,4 @@
-from assemblies import *
+from .assemblies import *
 
 class ComponentTracker:
     '''Adds components to cubit groups recursively'''

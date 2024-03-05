@@ -1,7 +1,5 @@
-import sys
-sys.path.append('/opt/Coreform-Cubit-2023.8/bin')
 import cubit
-from constants import *
+from .constants import *
 
 def cmd(command: str):
     cubit.silent_cmd(command)

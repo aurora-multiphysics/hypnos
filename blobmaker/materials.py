@@ -1,5 +1,5 @@
-from generic_classes import *
-from cubit_functions import from_bodies_and_volumes_to_surfaces, from_bodies_to_volumes, cubit_cmd_check
+from .generic_classes import *
+from .cubit_functions import from_bodies_and_volumes_to_surfaces, from_bodies_to_volumes, cubit_cmd_check
 
 # Classes to track materials and geometries made of those materials
 class Material:
