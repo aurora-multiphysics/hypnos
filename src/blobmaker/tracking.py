@@ -1,5 +1,5 @@
-from assemblies import *
-from cubit_functions import from_bodies_and_volumes_to_surfaces
+from blobmaker.assemblies import *
+from blobmaker.cubit_functions import from_bodies_and_volumes_to_surfaces
 
 # Classes to track materials and geometries made of those materials
 class Group:

@@ -1,4 +1,4 @@
-from generic_classes import *
+from blobmaker.generic_classes import *
 
 def initialise_cubit():
     '''Wrapper for initialising cubit'''

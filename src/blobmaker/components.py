@@ -1,7 +1,7 @@
-from constants import *
-from generic_classes import *
-from cubit_functions import from_bodies_to_volumes, from_everything_to_bodies, cubit_cmd_check, get_last_geometry
-from geometry import make_cylinder_along, Vertex, make_surface, hypotenuse, arctan
+from blobmaker.constants import *
+from blobmaker.generic_classes import *
+from blobmaker.cubit_functions import from_bodies_to_volumes, from_everything_to_bodies, cubit_cmd_check, get_last_geometry
+from blobmaker.geometry import make_cylinder_along, Vertex, make_surface, hypotenuse, arctan
 import numpy as np
 
 class ExternalComponent(GenericCubitInstance):

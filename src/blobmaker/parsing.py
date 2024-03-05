@@ -1,6 +1,6 @@
 import json
-from default_params import DEFAULTS
-from generic_classes import CubismError
+from blobmaker.default_params import DEFAULTS
+from blobmaker.generic_classes import CubismError
 
 def extract_data(filename):
     with open(filename) as jsonFile:

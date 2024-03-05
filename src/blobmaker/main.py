@@ -1,8 +1,8 @@
-from tracking import ComponentTracker, MaterialsTracker
-from assemblies import *
-from cubit_functions import initialise_cubit, reset_cubit
-from parsing import extract_data, ParameterFiller
-from default_params import DEFAULTS
+from blobmaker.tracking import ComponentTracker, MaterialsTracker
+from blobmaker.assemblies import *
+from blobmaker.cubit_functions import initialise_cubit, reset_cubit
+from blobmaker.parsing import extract_data, ParameterFiller
+from blobmaker.default_params import DEFAULTS
 import pprint, argparse, shutil
 
 def make_everything(json_object):
