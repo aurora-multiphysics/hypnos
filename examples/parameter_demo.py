@@ -12,7 +12,7 @@ def build():
         maker.make_geometry()
         maker.imprint_and_merge()
         # change destination path!
-        maker.export_geometry(f"multiplier_length_{length}.cub5", "./parameter_demo_files/geometry_files")
+        maker.export_geometry(f"multiplier_length_{length}.cub5", ".")
         # this will take a while
         #maker.tetmesh()
         #maker.export_mesh(f"multiplier_length_{length}.e", "./parameter_demo_files/mesh_files")

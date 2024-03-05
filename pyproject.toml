@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "blobmaker"
+version = "0.1.0"
+description = "Blobmaker is a parametric geometry engine to create meshes for structures involved in the analysis of breeder blankets."
+authors = [
+  { name = "Sid Mungale", email = "sid.mungale@ukaea.uk" }
+]
+# license = { file = "LICENSE" }  # no license selected yet
+readme = "README.md"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+requires-python = ">=3.10"
+dependencies = [
+  "numpy>=1.26.0",
+]
+
+[project.urls]
+"Repository" = "https://github.com/sid-mungale/blobmaker"
+"Issue Tracker" = "https://github.com/sid-mungale/blobmaker/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]

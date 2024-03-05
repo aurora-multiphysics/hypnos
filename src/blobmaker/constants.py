@@ -38,5 +38,5 @@ CLASS_MAPPING = {
 STANDARD_COMPONENTS = ["first wall", "multiplier", "pressure tube", "pin", "structure", "breeder", ]
 
 # some flags because i am lazy
-IMPRINT_AND_MERGE = False
+IMPRINT_AND_MERGE = True
 MESH = False
