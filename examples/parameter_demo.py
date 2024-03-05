@@ -1,4 +1,4 @@
-from main import GeometryMaker
+from blobmaker import GeometryMaker
 
 multiplier_lengths = [385, 355, 325, 295, 265]
 
