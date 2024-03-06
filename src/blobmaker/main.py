@@ -125,6 +125,7 @@ class GeometryMaker():
         '''Imprint and merge geometry in cubit. Add materials to blocks and material-material interfaces to sidesets.
         '''
         for component in self.constructed_geometry:
+            self.component_tracker.give_identifiers(component)
             self.materials_tracker.track_component(component)
         cmd("imprint volume all")
         self.materials_tracker.merge_and_track_boundaries()

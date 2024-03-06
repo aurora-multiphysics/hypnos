@@ -17,6 +17,7 @@ class ComplexComponent:
     def __init__(self, classname, json_object: dict):
         self.subcomponents = []
         self.classname = classname
+        self.identifier = classname
         self.geometry, self.material, self.origin = self.__get_top_level_info(json_object)
         self.check_sanity()
 

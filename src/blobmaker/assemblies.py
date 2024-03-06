@@ -11,6 +11,7 @@ class GenericComponentAssembly:
     '''
     def __init__(self, classname):
         self.classname = classname
+        self.identifier = classname
         self.components = []
 
     # These refer to cubit handles
