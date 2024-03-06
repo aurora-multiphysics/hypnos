@@ -1,6 +1,7 @@
-from blobmaker.generic_classes import GenericCubitInstance, CubismError, cmd
-from blobmaker.cubit_functions import cubit_cmd_check, get_id_string
+from blobmaker.generic_classes import CubitInstance, CubismError, cmd
+from blobmaker.cubit_functions import cmd_check, get_id_string
 import numpy as np
+
 
 def create_2d_vertex(x, y):
     '''Create a vertex in the x-y plane
@@ -11,53 +12,62 @@ def create_2d_vertex(x, y):
     :type y: int
     :raises CubismError: If unable to create vertex
     :return: created vertex
-    :rtype: GenericCubitInstance
+    :rtype: CubitInstance
     '''
-    vertex = cubit_cmd_check(f"create vertex {x} {y} 0", "vertex")
+    vertex = cmd_check(f"create vertex {x} {y} 0", "vertex")
     if vertex:
         return vertex
     else:
         raise CubismError("Failed to create vertex")
 
-def connect_vertices_straight(vertex1: GenericCubitInstance, vertex2: GenericCubitInstance):
+
+def connect_vertices_straight(vertex1: CubitInstance, vertex2: CubitInstance):
     '''Connect 2 vertices with a straight curve
 
     :param vertex1: Vertex to connect
-    :type vertex1: GenericCubitInstance
+    :type vertex1: CubitInstance
     :param vertex2: Vertex to connect
-    :type vertex2: GenericCubitInstance
+    :type vertex2: CubitInstance
     :return: Connection curve or False if connection fails
-    :rtype: GenericCubitInstance/ bool
+    :rtype: CubitInstance/ bool
     '''
-    assert vertex1.geometry_type == "vertex" and vertex2.geometry_type == "vertex" 
-    connection = cubit_cmd_check(f"create curve vertex {vertex1.cid} {vertex2.cid}", "curve")
+    if vertex1.geometry_type == "vertex" and vertex2.geometry_type == "vertex":
+        connection = cmd_check(f"create curve vertex {vertex1.cid} {vertex2.cid}", "curve")
+    else:
+        raise CubismError("Given geometries are not vertices")
     return connection
 
-def connect_curves_tangentially(vertex1: GenericCubitInstance, vertex2: GenericCubitInstance):
-    '''Connect 2 curves at the given vertices, with the connection tangent to both curves. 
+
+def connect_curves_tangentially(vertex1: CubitInstance, vertex2: CubitInstance):
+    '''Connect 2 curves at the given vertices,
+    with the connection tangent to both curves.
 
     :param vertex1: Vertex to connect
-    :type vertex1: GenericCubitInstance
+    :type vertex1: CubitInstance
     :param vertex2: Vertex to connect
-    :type vertex2: GenericCubitInstance
+    :type vertex2: CubitInstance
     :return: Connection curve or False if connection fails
-    :rtype: GenericCubitInstance/ bool
+    :rtype: CubitInstance/ bool
     '''
-    assert vertex1.geometry_type == "vertex" and vertex2.geometry_type == "vertex"
-    connection = cubit_cmd_check(f"create curve tangent vertex {vertex1.cid} vertex {vertex2.cid}", "curve")
+    if vertex1.geometry_type == "vertex" and vertex2.geometry_type == "vertex":
+        connection = cmd_check(f"create curve tangent vertex {vertex1.cid} vertex {vertex2.cid}", "curve")
+    else:
+        raise CubismError("Given geometries are not vertices")
     return connection
 
-def make_surface_from_curves(curves_list: list[GenericCubitInstance]):
+
+def make_surface_from_curves(curves_list: list[CubitInstance]):
     '''Make surface from bounding curves
 
     :param curves_list: List of bounding curves
-    :type curves_list: list[GenericCubitInstance]
+    :type curves_list: list[CubitInstance]
     :return: surface geometry/ false
-    :rtype: GenericCubitInstance/ bool
+    :rtype: CubitInstance/ bool
     '''
-    curve_id_string= get_id_string(curves_list)
-    surface = cubit_cmd_check(f"create surface curve {curve_id_string}", "surface")
+    curve_id_string = get_id_string(curves_list)
+    surface = cmd_check(f"create surface curve {curve_id_string}", "surface")
     return surface
+
 
 def make_cylinder_along(radius: int, length: int, axis: str):
     '''Make a cylinder along one of the cartesian axes
@@ -69,29 +79,30 @@ def make_cylinder_along(radius: int, length: int, axis: str):
     :param axis: axes to create cylinder along: x, y, or z
     :type axis: str
     :return: cylinder geometry
-    :rtype: GenericCubitInstance
+    :rtype: CubitInstance
     '''
-    cylinder = cubit_cmd_check(f"create cylinder radius {radius} height {length}", "volume")
+    cylinder = cmd_check(f"create cylinder radius {radius} height {length}", "volume")
     if axis == "x":
         cmd(f"rotate volume {cylinder.cid} about Y angle -90")
     elif axis == "y":
         cmd(f"rotate volume {cylinder.cid} about X angle -90")
     return cylinder
 
-def make_loop(vertices: list[GenericCubitInstance], tangent_indices: list[int]):
-    '''Connect vertices with straight curves. 
+
+def make_loop(vertices: list[CubitInstance], tangent_indices: list[int]):
+    '''Connect vertices with straight curves.
     For specified indices connect with curves tangential to adjacent curves.
 
     :param vertices: Vertices to connect
-    :type vertices: list[GenericCubitInstance]
+    :type vertices: list[CubitInstance]
     :param tangent_indices: Vertices to start tangent curves from
     :type tangent_indices: list[int]
     :return: curve geometries
-    :rtype: list[GenericCubitInstance]
+    :rtype: list[CubitInstance]
     '''
     curves = list(np.zeros(len(vertices)))
     for i in range(len(vertices)-1):
-         if not i in tangent_indices:
+        if i not in tangent_indices:
             curves[i] = connect_vertices_straight(vertices[i], vertices[i+1])
     curves[-1] = connect_vertices_straight(vertices[-1], vertices[0])
     # need to do this after straight connections for tangents to actually exist
@@ -99,9 +110,16 @@ def make_loop(vertices: list[GenericCubitInstance], tangent_indices: list[int]):
         curves[i] = connect_curves_tangentially(vertices[i], vertices[i+1])
     return curves
 
+
 def hypotenuse(*sides: int):
+    '''Take root of sum of squares
+
+    :return: hypotenuse
+    :rtype: float
+    '''
     squared = [np.square(side) for side in sides]
     return np.sqrt(np.sum(squared))
+
 
 def arctan(opposite: int, adjacent: int):
     '''Arctan with range 0, 2pi. Takes triangle side lengths.
@@ -116,39 +134,40 @@ def arctan(opposite: int, adjacent: int):
     if adjacent == 0:
         arctan_angle = np.pi/2
     elif adjacent > 0:
-        arctan_angle = np.arctan(opposite/ adjacent)
+        arctan_angle = np.arctan(opposite / adjacent)
     else:
-        arctan_angle = np.pi + np.arctan(opposite/ adjacent)
+        arctan_angle = np.pi + np.arctan(opposite / adjacent)
     return arctan_angle
+
 
 class Vertex():
     '''Representation of a vertex'''
-    def __init__(self, x: int, y= 0, z= 0) -> None:
+    def __init__(self, x: int, y=0, z=0) -> None:
         self.x = x
         self.y = y
         self.z = z
-    
+
     def __add__(self, other):
         x = self.x + other.x
         y = self.y + other.y
         z = self.z + other.z
         return Vertex(x, y, z)
-    
+
     def __str__(self) -> str:
         return f"{self.x} {self.y} {self.z}"
-    
+
     def create(self):
         '''Create this vertex in cubit.
 
         :return: created vertex
-        :rtype: GenericCubitInstance
+        :rtype: CubitInstance
         '''
-        vertex = cubit_cmd_check(f"create vertex {self.x} {self.y} {self.z}", "vertex")
+        vertex = cmd_check(f"create vertex {str(self)}", "vertex")
         if vertex:
             return vertex
         else:
             raise CubismError("Failed to create vertex")
-    
+
     def rotate(self, z: int, y=0, x=0):
         '''Rotate about z, then y, and then x axes.
 
@@ -165,7 +184,7 @@ class Vertex():
         y_rotated = (self.x*np.sin(z)*np.cos(y)) + (self.y*(np.sin(z)*np.sin(y)*np.sin(x) + np.cos(z)*np.cos(x))) + (self.z*(np.sin(z)*np.sin(y)*np.cos(x) - np.cos(z)*np.sin(x)))
         z_rotated = (-self.z*np.sin(y)) + (self.y*np.cos(y)*np.sin(x)) + (self.z*np.cos(y)*np.cos(x))
         return Vertex(x_rotated, y_rotated, z_rotated)
-    
+
     def distance(self):
         '''Return distance from (0, 0, 0)
 
@@ -173,6 +192,7 @@ class Vertex():
         :rtype: np.float64
         '''
         return np.sqrt(np.square(self.x)+np.square(self.y)+np.square(self.z))
+
 
 def make_surface(vertices: list[Vertex], tangent_indices: list[int]):
     vertices = [vertex.create() for vertex in vertices]

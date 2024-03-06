@@ -11,7 +11,7 @@ ROOM_CLASSES = ["surrounding_walls"]
 WALL_CLASSES = ["wall"]
 
 # currently only supports exclusive, inclusive, and overlap
-FACILITY_MORPHOLOGIES= ["exclusive", "inclusive", "overlap", "wall"]
+FACILITY_MORPHOLOGIES = ["exclusive", "inclusive", "overlap", "wall"]
 
 # mapping from json class names to python class names
 CLASS_MAPPING = {
@@ -31,7 +31,7 @@ CLASS_MAPPING = {
     "first_wall": "FirstWallComponent",
     "blanket_shell": "BlanketShellAssembly",
     "blanket_ring": "BlanketRingAssembly",
-    "HCPB_blanket":"HCPBBlanket"
+    "HCPB_blanket": "HCPBBlanket"
 }
 
 # components requiring only geometry and material parameters

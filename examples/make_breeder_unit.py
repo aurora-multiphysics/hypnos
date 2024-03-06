@@ -1,5 +1,6 @@
 from blobmaker import GeometryMaker
 
+
 def make_breeder_unit():
     maker = GeometryMaker()
 
@@ -13,14 +14,15 @@ def make_breeder_unit():
     maker.imprint_and_merge()
 
     # replace the . with destination path
-    maker.export_geometry(f"breeder_unit.cub5", ".")
+    maker.export_geometry("breeder_unit.cub5", ".")
 
     # global mesh setting
     maker.set_mesh_size(4)
-    #maker.tetmesh()
+    # maker.tetmesh()
 
     # again, replace the . with destination path
-    #maker.export_mesh("breeder_unit.e", ".")
+    # maker.export_mesh("breeder_unit.e", ".")
+
 
 if __name__ == "__main__":
     make_breeder_unit()

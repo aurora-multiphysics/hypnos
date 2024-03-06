@@ -1,6 +1,9 @@
 from blobmaker.generic_classes import *
 from blobmaker.components import *
-from blobmaker.cubit_functions import from_bodies_to_volumes, get_bodies_and_volumes_from_group
+from blobmaker.cubit_functions import to_volumes, get_bodies_and_volumes_from_group
+from blobmaker.constants import *
+import numpy as np
+
 
 class GenericComponentAssembly:
     '''
@@ -24,7 +27,7 @@ class GenericComponentAssembly:
             for component_class in class_list:
                 if isinstance(component, component_class):
                     # fetches instances
-                    if isinstance(component, GenericCubitInstance):
+                    if isinstance(component, CubitInstance):
                         instances_list.append(component.cubitInstance)
                     elif isinstance(component, ComplexComponent):
                         instances_list += component.subcomponents
@@ -32,7 +35,7 @@ class GenericComponentAssembly:
                         # This feels very scuffed
                         instances_list += component.get_cubit_instances_from_class(class_list)
         return instances_list
-    
+
     def get_all_cubit_instances(self) -> list:
         '''get every cubit instance stored in this assembly instance recursively
 
@@ -41,7 +44,7 @@ class GenericComponentAssembly:
         '''
         instances_list = []
         for component in self.get_components():
-            if isinstance(component, GenericCubitInstance):
+            if isinstance(component, CubitInstance):
                 instances_list.append(component.cubitInstance)
             elif isinstance(component, ComplexComponent):
                 instances_list += [subcomp.cubitInstance for subcomp in component.subcomponents]
@@ -49,32 +52,32 @@ class GenericComponentAssembly:
                 instances_list += component.get_all_cubit_instances()
         return instances_list
 
-    # 'geometries' refer to GenericCubitInstance objects
-    def get_geometries_from(self, class_list: list) -> list[GenericCubitInstance]:
+    # 'geometries' refer to CubitInstance objects
+    def get_geometries_from(self, class_list: list) -> list[CubitInstance]:
         '''Get list of geometries under given classnames
 
         :param classname_list: list of classnames to search under
         :type classname_list: list
         :return: list of geometries
-        :rtype: list[GenericCubitInstance]
+        :rtype: list[CubitInstance]
         '''
         component_list = []
         for component in self.get_components():
             for component_class in class_list:
                 if isinstance(component, component_class):
-                    if isinstance(component, GenericCubitInstance):
+                    if isinstance(component, CubitInstance):
                         component_list.append(component)
                     elif isinstance(component, ComplexComponent):
                         component_list += component.subcomponents
                     elif isinstance(component, GenericComponentAssembly):
                         component_list += component.get_geometries_from(class_list)
         return component_list
-    
-    def find_parent_component(self, geometry: GenericCubitInstance):
+
+    def find_parent_component(self, geometry: CubitInstance):
         for component in self.get_components():
             if isinstance(component, ComplexComponent):
                 for component_geometry in component.get_subcomponents():
-                    if isinstance(component_geometry, GenericCubitInstance):
+                    if isinstance(component_geometry, CubitInstance):
                         if geometry.cid == component_geometry.cid and geometry.geometry_type == component_geometry.geometry_type:
                             return component
             elif isinstance(component, GenericComponentAssembly):
@@ -82,8 +85,8 @@ class GenericComponentAssembly:
                 if found_component:
                     return found_component
         return False
-    
-    def get_all_geometries(self) -> list[GenericCubitInstance]:
+
+    def get_all_geometries(self) -> list[CubitInstance]:
         '''get every geometry stored in this assembly instance recursively
 
         :return: list of GenericCubitInstances
@@ -91,7 +94,7 @@ class GenericComponentAssembly:
         '''
         instances_list = []
         for component in self.get_components():
-            if isinstance(component, GenericCubitInstance):
+            if isinstance(component, CubitInstance):
                 instances_list.append(component)
             elif isinstance(component,ComplexComponent):
                 instances_list += component.subcomponents 
@@ -100,7 +103,7 @@ class GenericComponentAssembly:
         return instances_list
 
     def get_volumes_list(self) -> list[int]:
-        volumes_list = from_bodies_to_volumes(self.get_all_geometries())
+        volumes_list = to_volumes(self.get_all_geometries())
         return [volume.cid for volume in volumes_list]
 
     def get_components(self) -> list:
@@ -120,7 +123,7 @@ class GenericComponentAssembly:
         :rtype: list
         '''
         component_list = []
-        if type(class_list) != list:
+        if type(class_list) is not list:
             class_list = [class_list]
         for component in self.get_components():
             for component_class in class_list:
@@ -133,7 +136,7 @@ class GenericComponentAssembly:
     def move(self, vector: Vertex):
         for component in self.get_components():
             component.move(vector)
-    
+
     def set_mesh_size(self, component_classes: list, size: int):
         component_classes = [globals()[CLASS_MAPPING[classname]] for classname in component_classes]
         components = self.get_components_of_class(component_classes)
@@ -142,6 +145,7 @@ class GenericComponentAssembly:
                 component.set_mesh_size(size)
             elif isinstance(component, GenericComponentAssembly):
                 component.set_mesh_size(component_classes, size)
+
 
 class CreatedComponentAssembly(GenericComponentAssembly):
     '''
@@ -154,7 +158,7 @@ class CreatedComponentAssembly(GenericComponentAssembly):
         # this defines what components to require in every instance
         self.required_classnames = required_classnames
         self.components = []
-        self.component_list = json_object["components"].values() if type(json_object["components"]) == dict else json_object["components"]
+        self.component_list = json_object["components"].values() if type(json_object["components"]) is dict else json_object["components"]
 
         # enforce given component_list based on required_classnames
         self.enforce_structure()
@@ -162,12 +166,12 @@ class CreatedComponentAssembly(GenericComponentAssembly):
         # store instances
         self.setup_assembly()
         self.move(self.origin)
-    
+
     def check_for_overlaps(self):
-        volume_ids_list = [i.cid for i in from_bodies_to_volumes(self.get_all_geometries())]
+        volume_ids_list = [i.cid for i in to_volumes(self.get_all_geometries())]
         overlaps = cubit.get_overlapping_volumes(volume_ids_list)
         if overlaps != ():
-            overlapping_components = {self.find_parent_component(GenericCubitInstance(overlap_vol_id, "volume")).classname for overlap_vol_id in overlaps}
+            overlapping_components = {self.find_parent_component(CubitInstance(overlap_vol_id, "volume")).classname for overlap_vol_id in overlaps}
             raise CubismError(f"The following components have overlaps: {overlapping_components}")
 
     def enforce_structure(self):
@@ -177,13 +181,13 @@ class CreatedComponentAssembly(GenericComponentAssembly):
             if classes_required not in class_list:
                 # Can change this to a warning, for now it just throws an error
                 raise CubismError(f"This assembly must contain: {self.required_classnames}. Currently contains: {class_list}")
-    
+
     def setup_assembly(self):
         '''Add components to attributes according to their class'''
         for component_json_dict in self.component_list:
             self.components.append(construct(component_json_dict))
-    
-    def rotate(self, angle, origin: Vertex, axis=Vertex(0,0,1)):
+
+    def rotate(self, angle, origin: Vertex, axis=Vertex(0, 0, 1)):
         '''Rotate about a point+axis (IN DEGREES)
 
         :param angle: Angle to rotate by in degrees
@@ -195,7 +199,7 @@ class CreatedComponentAssembly(GenericComponentAssembly):
         '''
         if origin == "origin":
             origin = self.origin
-    
+
         for component in self.get_components():
             if isinstance(component, CreatedComponentAssembly):
                 component.rotate(angle, origin, axis)
@@ -205,6 +209,7 @@ class CreatedComponentAssembly(GenericComponentAssembly):
 
     def check_sanity(self):
         pass
+
 
 class NeutronTestFacility(CreatedComponentAssembly):
     '''
@@ -240,17 +245,17 @@ class NeutronTestFacility(CreatedComponentAssembly):
             raise CubismError(f"Morphology not supported by this facility: {self.morphology}")
         
         # Get the net source, blanket, and the union of both
-        source_object= unionise(self.get_components_of_class(SourceAssembly))
+        source_object = unionise(self.get_components_of_class(SourceAssembly))
         blanket_components = []
         for i in self.get_components_of_class(RoomAssembly):
             blanket_components += i.get_components_of_class(BlanketAssembly) 
-        blanket_object= unionise(blanket_components)
-        union_object= unionise([source_object, blanket_object])
+        blanket_object = unionise(blanket_components)
+        union_object = unionise([source_object, blanket_object])
 
         # get their volumes
-        source_volume= source_object.cubitInstance.volume()
-        blanket_volume= blanket_object.cubitInstance.volume()
-        union_volume= union_object.cubitInstance.volume()
+        source_volume = source_object.cubitInstance.volume()
+        blanket_volume = blanket_object.cubitInstance.volume()
+        union_volume = union_object.cubitInstance.volume()
 
         # cleanup
         source_object.destroy_cubit_instance()
@@ -271,22 +276,22 @@ class NeutronTestFacility(CreatedComponentAssembly):
         '''If the morphology is inclusive/overlap, remove the parts of the blanket inside the neutron source'''
         if self.morphology in ["inclusive", "overlap"]:
             # convert everything to volumes in case of stray bodies
-            source_volumes = from_bodies_to_volumes(self.get_geometries_from([SourceAssembly, ExternalComponent]))
+            source_volumes = to_volumes(self.get_geometries_from([SourceAssembly, ExternalComponent]))
             blanket_volumes = []
             for room in self.get_components_of_class(RoomAssembly):
                 for blanket in room.get_components_of_class(BlanketAssembly):
-                    blanket_volumes += from_bodies_to_volumes(blanket.get_all_geometries())
+                    blanket_volumes += to_volumes(blanket.get_all_geometries())
             # if there is an overlap, remove it
             for source_volume in source_volumes:
                 for blanket_volume in blanket_volumes:
-                    if isinstance(source_volume, GenericCubitInstance) and isinstance(blanket_volume, GenericCubitInstance):
+                    if isinstance(source_volume, CubitInstance) and isinstance(blanket_volume, CubitInstance):
                         if not (cubit.get_overlapping_volumes([source_volume.cid, blanket_volume.cid]) == ()):
                             # i have given up on my python api dreams. we all return to cubit ccl in the end.
                             cmd(f"remove overlap volume {source_volume.cid} {blanket_volume.cid} modify volume {blanket_volume.cid}")
             print(f"{self.morphology} morphology applied")
 
     def check_for_overlaps(self):
-        volume_ids_list = [i.cid for i in from_bodies_to_volumes(self.get_all_geometries())]
+        volume_ids_list = [i.cid for i in to_volumes(self.get_all_geometries())]
         overlaps = cubit.get_overlapping_volumes(volume_ids_list)
         if overlaps != ():
             raise CubismError(f"Here be overlaps: {overlaps}")
@@ -303,8 +308,8 @@ class NeutronTestFacility(CreatedComponentAssembly):
             # walls are set up to be subtracted from air on creation so need to add them in manually
             for walls in room.get_components_of_class(WallComponent):
                 room_bounding_boxes += walls.get_subcomponents()
-        
-        # get a union defining the 'bounding boxes' for all rooms, and a union of every geometry in the facility. 
+
+        # get a union defining the 'bounding boxes' for all rooms, and a union of every geometry in the facility.
         # as well as the union of those two unions
         room_bounding_box = unionise(room_bounding_boxes)
         all_geometries = unionise(self.get_all_geometries())
@@ -321,7 +326,7 @@ class NeutronTestFacility(CreatedComponentAssembly):
         # if any part of the geometries are sticking out of a room, the volume of their union with the room will be greater than the volume of the room
         if union_volume > bounding_volume:
             raise CubismError("Everything not inside a room!")
-        
+
         # there is probably a better way of doing this
         # if a room is filled with air, subtract the union of all non-air geometries from it
         for surrounding_walls in self.get_components_of_class(SurroundingWallsComponent):
@@ -338,11 +343,13 @@ class NeutronTestFacility(CreatedComponentAssembly):
         for surrounding_walls in self.get_components_of_class(SurroundingWallsComponent):
             surrounding_walls.air_as_volumes()
 
+
 # replace this at some point
 class BlanketAssembly(CreatedComponentAssembly):
     '''Assembly class that requires at least one breeder and structure. Additionally stores coolants separately'''
     def __init__(self, json_object: dict):
         super().__init__("Blanket", BLANKET_REQUIREMENTS, json_object)
+
 
 class RoomAssembly(CreatedComponentAssembly):
     '''Assembly class that requires surrounding walls and a blanket. Fills with air. Can add walls.'''
@@ -377,6 +384,7 @@ class RoomAssembly(CreatedComponentAssembly):
                     for t_w in temp_wall.get_subcomponents():
                         cmd(f"subtract {t_w.geometry_type} {t_w.cid} from {air.geometry_type} {air.cid}")
 
+
 class ExternalComponentAssembly(GenericComponentAssembly):
     '''
     Assembly to store and manage bodies imported from an external file
@@ -405,7 +413,7 @@ class ExternalComponentAssembly(GenericComponentAssembly):
         temp_group_id = cubit.get_id_from_name(temp_group_name)
 
         # convert everything to volumes
-        volumes_list = from_bodies_to_volumes(get_bodies_and_volumes_from_group(temp_group_id))
+        volumes_list = to_volumes(get_bodies_and_volumes_from_group(temp_group_id))
         for volume in volumes_list:
             cmd(f'group "{self.group}" add {volume.geometry_type} {volume.cid}')
         print(f"volumes imported in group {self.group}")
@@ -419,7 +427,7 @@ class ExternalComponentAssembly(GenericComponentAssembly):
             if group_name == self.group:
                 return group_id
         raise CubismError("Can't find group ID?????")
-    
+
     def add_volumes_and_bodies(self):
         '''Add volumes and bodies in group to this assembly as ExternalComponent objects'''
         source_volume_ids = cubit.get_group_volumes(self.group_id)
@@ -429,11 +437,13 @@ class ExternalComponentAssembly(GenericComponentAssembly):
         for body_id in source_body_ids:
             self.components.append(ExternalComponent(body_id, "body"))
 
+
 # in case we need to do source-specific actions
 class SourceAssembly(ExternalComponentAssembly):
     '''Assembly of external components, created when a json object has class= source'''
     def __init__(self, json_object: dict):
         super().__init__(json_object)
+
 
 # more detailed components
 class BreederUnitAssembly(CreatedComponentAssembly):
@@ -446,12 +456,12 @@ class BreederUnitAssembly(CreatedComponentAssembly):
         self.origin = json_object["origin"] if "origin" in json_object.keys() else Vertex(0)
         self.setup_assembly()
         self.move(self.origin)
-    
+
     def check_sanity(self):
         pin_radius = self.geometry["coolant inlet radius"] + self.geometry["inner cladding"] + self.geometry["breeder chamber thickness"] + self.geometry["outer cladding"]
         if self.geometry["pressure tube outer radius"] - self.geometry["pressure tube thickness"] < pin_radius:
             raise ValueError("Pin radius larger than pressure tube radius")
-    
+
     def setup_assembly(self):
         pin_json = self.__get_pin_parameters()
         pressure_tube_geometry = self.__extract_parameters({
@@ -469,7 +479,7 @@ class BreederUnitAssembly(CreatedComponentAssembly):
         filter_lid_json = self.__get_filter_lid_parameters()
         coolant_json = self.__get_coolant_parameters()
         purge_gas_json = self.__get_purge_gas_parameters()
-        
+
         pin = PinComponent(pin_json)
         pressure_tube = PressureTubeComponent(self.__jsonify(pressure_tube_geometry, "pressure tube", 0))
         multiplier = MultiplierComponent(self.__jsonify(multiplier_geometry, "multiplier", 0))
@@ -482,13 +492,13 @@ class BreederUnitAssembly(CreatedComponentAssembly):
         self.components.extend([pin, pressure_tube, multiplier, breeder, filter_disk, filter_lid, coolant, purge_gas])
         # align with z-axis properly
         self.rotate(90, Vertex(0, 0, 0), Vertex(0, 1, 0))
-    
+
     def __extract_parameters(self, parameters: list | dict):
         out_dict = {}
-        if type(parameters) == list:
+        if type(parameters) is list:
             for parameter in parameters:
                 out_dict[parameter] = self.geometry[parameter]
-        elif type(parameters) == dict:
+        elif type(parameters) is dict:
             for fetch_parameter, out_parameter in parameters.items():
                 out_dict[out_parameter] = self.geometry[fetch_parameter]
         else:
@@ -576,7 +586,7 @@ class BreederUnitAssembly(CreatedComponentAssembly):
         parameters["pin thickness"] = geometry["inner cladding"] + geometry["breeder chamber thickness"] + geometry["outer cladding"]
 
         return self.__jsonify(parameters, "coolant", pressure_tube_thickness)
-    
+
     def __jsonify(self, geometry: dict, material: str, start_x: int):
         '''Create dictionary with geometry, material, and origin keys.
 
@@ -595,12 +605,13 @@ class BreederUnitAssembly(CreatedComponentAssembly):
             raise CubismError(f"Component {self.classname} should contain material of {material}")
         return {"geometry": geometry, "material": material_obj, "origin": Vertex(start_x)}
 
+
 class BlanketShellAssembly(CreatedComponentAssembly):
     '''First wall with tiled breeder units'''
     def __init__(self, json_object):
         self.geometry = json_object["geometry"]
         super().__init__("blanket_shell", BLANKET_SHELL_REQUIREMENTS, json_object)
-    
+
     def setup_assembly(self):
         for component in self.component_list:
             if component["class"] == "first_wall":
@@ -610,7 +621,7 @@ class BlanketShellAssembly(CreatedComponentAssembly):
                 breeder_materials = component["materials"]
                 breeder_geometry = component["geometry"]
                 multiplier_side = breeder_geometry["multiplier side"]
-        
+
         vertical_offset = self.geometry["vertical offset"]
         horizontal_offset = self.geometry["horizontal offset"]
         pin_spacing = self.geometry["pin spacing"]
@@ -641,15 +652,16 @@ class BlanketShellAssembly(CreatedComponentAssembly):
                 if (j*2)+1 + (i%2) <= distinct_pin_heights:
                     self.components.append(BreederUnitAssembly({"materials":breeder_materials, "geometry":breeder_geometry, "origin":pin_pos}))
                 pin_pos = pin_pos + Vertex(pin_spacing).rotate(((-1)**(i+1))*np.pi/6)
-            
+
         self.components.append(FirstWallComponent(first_wall_object))
+
 
 class BlanketRingAssembly(CreatedComponentAssembly):
     '''Makes a ring of blanket shells'''
     def __init__(self, json_object: dict):
         self.geometry = json_object["geometry"]
         super().__init__("blanket_ring", ["blanket shell"], json_object)
-    
+
     def setup_assembly(self):
         blanket_shell, min_radius, blanket_segment, blanket_length, ring_thickness = self.__get_data()
         radius = self.__tweak_radius(blanket_segment, min_radius)
@@ -660,7 +672,7 @@ class BlanketRingAssembly(CreatedComponentAssembly):
             blanket.rotate(-90, "origin", Vertex(0, 1, 0))
             blanket.rotate(180*(angle_subtended*i)/np.pi, midpoint_vertices[i])
             self.components.append(blanket)
-        
+
     def __tweak_radius(self, blanket_segment, min_radius):
         angle_subtended = 2*np.arcsin(blanket_segment/(2*min_radius))
         if not 2*np.pi % angle_subtended == 0:
@@ -670,7 +682,7 @@ class BlanketRingAssembly(CreatedComponentAssembly):
             return radius
         else:
             return min_radius
-    
+
     def __get_data(self):
         geometry = self.geometry
         min_radius = geometry["minimum radius"]
@@ -694,11 +706,12 @@ class BlanketRingAssembly(CreatedComponentAssembly):
         midpoint_vertices = [midpoint_vertex.rotate(angle_subtended*i) for i in range(segments_needed)]
         return midpoint_vertices, angle_subtended
 
+
 class HCPBBlanket(CreatedComponentAssembly):
     def __init__(self, json_object: dict):
         self.geometry = json_object["geometry"]
         super().__init__("HCPB_blanket", HCPB_BLANKET_REQUIREMENTS, json_object)
-        #self.check_for_overlaps()
+        # self.check_for_overlaps()
 
     def check_sanity(self):
         self.__add_component_attributes()
@@ -706,7 +719,7 @@ class HCPBBlanket(CreatedComponentAssembly):
         distance_to_sep_plate = self.first_wall_geometry["thickness"] + bu_geometry["pressure tube gap"] + bu_geometry["pressure tube thickness"] + bu_geometry["inner length"] + self.geometry["coolant outlet plenum gap"] + self.cop_geometry["length"] + self.geometry["separator plate gap"] + self.geometry["separator plate thickness"]
         if self.first_wall_geometry["length"] - distance_to_sep_plate < self.geometry["FW backplate thickness"]:
             raise ValueError("First wall length too short")
-        
+
         row_pins, horizontal_start_pos = self.__get_pin_start_params()
         for pin_number in self.geometry["front rib positions"]:
             if pin_number > row_pins:
@@ -732,25 +745,24 @@ class HCPBBlanket(CreatedComponentAssembly):
 
         if not self.geometry["coolant outlet plenum gap"] + self.cop_geometry["thickness"] < self.back_ribs_geometry["side channel horizontal offset"] < self.geometry["coolant outlet plenum gap"] + self.cop_geometry["length"] - (self.cop_geometry["thickness"] + self.back_ribs_geometry["side channel width"]):
             raise ValueError("Back rib side channels don't empty out into coolant outlet plenum")
-        
+
         rib_positions = [rib_pos.x for rib_pos in self.__get_rib_positions(0)]
         if rib_positions[0] - self.back_ribs_geometry["thickness"]/2 <= -self.cop_geometry["width"]/2 or rib_positions[-1] + self.back_ribs_geometry["thickness"]/2 >= self.cop_geometry["width"]/2:
             raise ValueError("Coolant outlet plenum not wide enough to encapsulate back ribs")
-        
 
         if self.front_ribs_geometry["side channel horizontal offset"] + self.front_ribs_geometry["side channel width"] > bu_geometry["pressure tube thickness"] + bu_geometry["pressure tube gap"] + bu_geometry["offset"] + bu_geometry["outer length"] - bu_geometry["pressure tube length"]:
             raise ValueError("Front rib side channel not within coolant inlet manifold")
-        
+
         BZ_backplate_thickness = bu_geometry["pressure tube length"] - bu_geometry["multiplier length"]
         if self.geometry["PG front plate thickness"] >= pin_outer_extent - (multiplier_extent + BZ_backplate_thickness):
             raise ValueError("PG front plate too thick - overlapping/touching BZ backplate")
-        
+
         if self.geometry["PG mid plate gap"] >= (pin_inner_extent - pin_outer_extent):
             raise ValueError("PG mid plate touching/ out of bounds of front and back plates")
-        
+
         if self.geometry["PG mid plate thickness"] >= (pin_inner_extent - pin_outer_extent) - (self.geometry["PG back plate thickness"] + self.geometry["PG mid plate gap"]):
             raise ValueError("PG mid plate overlapping/touching backplate")
-        
+
         FW_backplate_distance_from_FW = self.first_wall_geometry["length"] - self.geometry["FW backplate thickness"]
         backplate_extent = self.__get_plate_length_and_ext(FW_backplate_distance_from_FW, 0)[0]/2
         if np.abs(rib_positions[0]) + self.back_ribs_geometry["thickness"]/2 > backplate_extent:
@@ -793,7 +805,7 @@ class HCPBBlanket(CreatedComponentAssembly):
         back_rib_geometry, back_rib_positions = self.__get_back_ribs_params()
         for back_rib_pos in back_rib_positions:
             self.components.append(BackRib({"geometry": back_rib_geometry, "material": self.first_wall_material, "origin": back_rib_pos}))
-        
+
         co_plenum_json = self.__get_cop_json()
         self.components.append(CoolantOutletPlenum(co_plenum_json, back_rib_positions, self.back_ribs_geometry["thickness"]))
 
@@ -820,7 +832,7 @@ class HCPBBlanket(CreatedComponentAssembly):
 
     def __dict_with_height(self):
         return {"height": self.first_wall_geometry["height"]}
-    
+
     def __jsonify(self, geometry: dict, origin_z_coord: int):
         '''Return dictonary with geometry, material, and origin keys. 
         Material is the same as the assembly's first wall. 
@@ -869,12 +881,12 @@ class HCPBBlanket(CreatedComponentAssembly):
         columns_indices = int((accessible_height - 2*multiplier_side*np.cos(np.pi/6)) // pin_spacing) + 1
         # number of distinct heights we can place breeder units
         distinct_pin_heights = int((accessible_height - 2*multiplier_side*np.cos(np.pi/6)) // (pin_spacing*np.sin(np.pi/6))) + 1
-        centering_vertical_offset = ((accessible_height- 2*multiplier_side*np.cos(np.pi/6)) - (distinct_pin_heights-1)*pin_spacing*np.sin(np.pi/6)) / 2
+        centering_vertical_offset = ((accessible_height - 2*multiplier_side*np.cos(np.pi/6)) - (distinct_pin_heights-1)*pin_spacing*np.sin(np.pi/6)) / 2
         vertical_start_pos = height - (vertical_offset + centering_vertical_offset + multiplier_side*np.cos(np.pi/6))
 
         pin_positions = [[] for j in range(columns_indices)]
         for j in range(columns_indices):
-            pin_pos = Vertex(horizontal_start_pos , vertical_start_pos, length-wall_thickness) + Vertex(0, -pin_spacing*j)
+            pin_pos = Vertex(horizontal_start_pos, vertical_start_pos, length-wall_thickness) + Vertex(0, -pin_spacing*j)
             for i in range(row_pins):
                 # stop tiling if we overshoot the number of column pins (each column index corresponds to 2 column pins)
                 if (j*2)+1 + (i%2) <= distinct_pin_heights:
@@ -888,7 +900,7 @@ class HCPBBlanket(CreatedComponentAssembly):
     def __fill_fw_width(self, distance_from_fw):
         fw_length = self.first_wall_geometry["length"]
         fw_outer_width = self.first_wall_geometry["outer width"]
-        z_position = fw_length -(distance_from_fw + self.first_wall_geometry["thickness"])
+        z_position = fw_length - (distance_from_fw + self.first_wall_geometry["thickness"])
         offset = (fw_outer_width - self.first_wall_geometry["inner width"])/2
 
         if offset == 0:
@@ -898,7 +910,7 @@ class HCPBBlanket(CreatedComponentAssembly):
         else:
             slope_angle = np.pi + np.arctan(fw_length/offset)
 
-        fw_sidewall_horizontal = self.first_wall_geometry["sidewall thickness"]/np.sin(slope_angle)
+        fw_sidewall_horizontal = self.first_wall_geometry["sidewall thickness"] / np.sin(slope_angle)
         position_fraction = z_position/fw_length
 
         filled_width = fw_outer_width - 2*(position_fraction*offset + fw_sidewall_horizontal)
@@ -929,11 +941,11 @@ class HCPBBlanket(CreatedComponentAssembly):
 
         front_distance_from_fw = self.breeder_geometry["pressure tube length"] - parameters["thickness"]
         parameters["length"], parameters["extension"] = self.__get_plate_length_and_ext(front_distance_from_fw, parameters["thickness"])
-        
+
         backplate_start_z = fw_geometry["length"] - (self.breeder_geometry["pressure tube length"] + fw_geometry["thickness"])
         return self.__jsonify(parameters, backplate_start_z)
-    
-    def __get_rib_positions(self, z_position)->list[Vertex]:
+
+    def __get_rib_positions(self, z_position) -> list[Vertex]:
         pin_spacing = self.geometry["pin spacing"]*np.sqrt(3/4)
         horizontal_start = self.__get_pin_start_params()[1] - pin_spacing/2
 
@@ -942,9 +954,9 @@ class HCPBBlanket(CreatedComponentAssembly):
         front_rib_positions.sort()
         for position_index in front_rib_positions:
             positions.append(Vertex(horizontal_start + position_index*pin_spacing, 0, z_position))
-        
+
         return positions
-    
+
     def __add_common_rib_params(self, params: dict):
         params["height"] = self.first_wall_geometry["height"]
         params["connection height"] = self.geometry["rib connection height"]
@@ -952,7 +964,7 @@ class HCPBBlanket(CreatedComponentAssembly):
         params["side channel gap"] = self.geometry["rib side channel gap"]
         params["side channel vertical margin"] = self.geometry["rib side channel vertical margin"]
         return params
-    
+
     def __get_front_ribs_params(self):
         bu_geometry = self.breeder_geometry
 
@@ -963,7 +975,7 @@ class HCPBBlanket(CreatedComponentAssembly):
         z_position = self.first_wall_geometry["length"] - (self.first_wall_geometry["thickness"] + self.breeder_geometry["pressure tube length"])
         rib_positions = self.__get_rib_positions(z_position)
         return params, rib_positions
-    
+
     def __get_back_ribs_params(self):
         bu_geometry = self.breeder_geometry
 
@@ -996,7 +1008,7 @@ class HCPBBlanket(CreatedComponentAssembly):
 
         start_z = fw_geometry["length"] - (fw_geometry["thickness"] + plate_distance_from_fw + parameters["thickness"])
         return self.__jsonify(parameters, start_z)
-    
+
     def __get_pg_mid_plate_json(self):
         fw_geometry = self.first_wall_geometry
         bu_geometry = self.breeder_geometry
@@ -1008,7 +1020,7 @@ class HCPBBlanket(CreatedComponentAssembly):
 
         start_z = fw_geometry["length"] - (fw_geometry["thickness"] + plate_distance_from_fw + parameters["thickness"])
         return self.__jsonify(parameters, start_z)
-    
+
     def __get_pg_back_plate_json(self):
         fw_geometry = self.first_wall_geometry
         bu_geometry = self.breeder_geometry
@@ -1042,7 +1054,7 @@ class HCPBBlanket(CreatedComponentAssembly):
 
         start_z = self.first_wall_geometry["length"] - (distance_from_fw + parameters["thickness"] + self.first_wall_geometry["thickness"])
         return self.__jsonify(parameters, start_z)
-    
+
     def __get_fw_backplate_params(self):
         fw_geom = self.first_wall_geometry
         parameters = self.__dict_with_height()
@@ -1052,16 +1064,18 @@ class HCPBBlanket(CreatedComponentAssembly):
         parameters["length"], parameters["extension"] = self.__get_plate_length_and_ext(distance_from_fw, parameters["thickness"])
         return parameters
 
-def get_all_geometries_from_components(component_list) -> list[GenericCubitInstance]:
+
+def get_all_geometries_from_components(component_list) -> list[CubitInstance]:
     instances = []
     for component in component_list:
-        if isinstance(component, GenericCubitInstance):
+        if isinstance(component, CubitInstance):
             instances.append(component)
         elif isinstance(component, ComplexComponent):
             instances += component.subcomponents
         elif isinstance(component, GenericComponentAssembly):
             instances += component.get_all_geometries()
     return instances
+
 
 # wrapper for cubit.union
 def unionise(component_list: list):
@@ -1070,16 +1084,16 @@ def unionise(component_list: list):
     :param component_list: list of components
     :type component_list: list
     :return: Geometry of union
-    :rtype: GenericCubitInstance
+    :rtype: CubitInstance
     '''
     if len(component_list) == 0:
         raise CubismError("This is an empty list you have given me")
 
     # get all GenericCubitInstances from components
     instances_to_union = get_all_geometries_from_components(component_list)
-    
+
     # convert to bodies :(
-    instances_to_union = from_everything_to_bodies(instances_to_union)
+    instances_to_union = to_bodies(instances_to_union)
 
     # check whether a union is possible
     if len(instances_to_union) == 0:
@@ -1089,7 +1103,7 @@ def unionise(component_list: list):
 
     # get cubit handles
     instances_to_union = [i.cubitInstance for i in instances_to_union]
-    
+
     # need old and new volumes to check what the union creates
     old_volumes = cubit.get_entities("volume")
     old_bodies = cubit.get_entities("body")
@@ -1097,11 +1111,12 @@ def unionise(component_list: list):
     new_volumes = cubit.get_entities("volume")
     new_bodies = cubit.get_entities("body")
     if len(new_bodies) == len(old_bodies) + 1:
-        return GenericCubitInstance(cubit.get_last_id("body"), "body")
+        return CubitInstance(cubit.get_last_id("body"), "body")
     elif len(new_volumes) == len(old_volumes) + 1:
-        return GenericCubitInstance(cubit.get_last_id("volume"), "volume")
+        return CubitInstance(cubit.get_last_id("volume"), "volume")
     else:
         raise CubismError("Something unknowable was created in this union. Or worse, a surface.")
+
 
 def construct(json_object: dict, *args):
     constructor = globals()[CLASS_MAPPING[json_object["class"]]]

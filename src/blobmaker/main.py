@@ -1,9 +1,12 @@
 from blobmaker.tracking import ComponentTracker, MaterialsTracker
-from blobmaker.assemblies import *
+from blobmaker.assemblies import construct
+from blobmaker.generic_classes import CubismError, cmd
 from blobmaker.cubit_functions import initialise_cubit, reset_cubit
 from blobmaker.parsing import extract_data, ParameterFiller
 from blobmaker.default_params import DEFAULTS
+from blobmaker.constants import IMPRINT_AND_MERGE, MESH
 import pprint, argparse, shutil
+
 
 def make_everything(json_object):
     '''Construct all specified components
@@ -11,11 +14,12 @@ def make_everything(json_object):
     :return: list of all top-level components
     :rtype: list
     '''
-    if type(json_object) == list:
+    if type(json_object) is list:
         return [construct(json_component) for json_component in json_object]
-    elif type(json_object) == dict:
+    elif type(json_object) is dict:
         return [construct(json_object)]
     raise CubismError("json object not recognised")
+
 
 class GeometryMaker():
     def __init__(self) -> None:
@@ -45,7 +49,8 @@ class GeometryMaker():
         return filled_json_object
 
     def change_params(self, updated_params: dict):
-        '''Change parameters in stored design tree. A parameter is referenced using it's path.
+        '''Change parameters in stored design tree.
+        A parameter is referenced using it's path.
         This path is a string of the keys that are used to access that parameter in the json file.
 
         For example to change the value of the parameter 'pin spacing' to 135 here:
@@ -62,9 +67,38 @@ class GeometryMaker():
         :type updated_params: dict
         '''
         for param_path, updated_value in updated_params.items():
-            assert type(param_path) == str
+            assert type(param_path) is str
             key_route = param_path.split('/')
             self.design_tree = self.__build_param_dict(key_route, self.design_tree, updated_value)
+
+    def get_param(self, param_path: str):
+        '''Get parameter in stored design tree.
+        A parameter is referenced using it's path.
+
+        For example to get the value of the parameter 'pin spacing' here:
+        {
+            "class": "hcpb_blanket",
+            "geometry": {
+            "pin spacing": 100
+            }
+        }
+
+        The argument provided here would have to be "geometry/pin spacing"
+
+        :param param_path: path to parameter
+        :type param_path: str
+        :return: Value of parameter
+        :rtype: any
+        '''
+        key_route = param_path.split('/')
+        return self.__follow_key_route(key_route, self.design_tree)
+
+    def __follow_key_route(self, key_route: list[str], param_dict: dict):
+        if key_route[0] not in param_dict.keys():
+            raise CubismError("Path given does not correspond to existing parameters")
+        if len(key_route) == 1:
+            return param_dict[key_route[0]]
+        return self.__follow_key_route(key_route[1:], param_dict[key_route[0]])
 
     def __build_param_dict(self, key_route: list, param_dict: dict, updated_value):
         if len(key_route) == 0:
@@ -86,7 +120,7 @@ class GeometryMaker():
                 self.component_tracker.track_component(component)
                 print(f"components being tracked in root {self.component_tracker.root_name}")
         return self.constructed_geometry
-    
+
     def imprint_and_merge(self):
         '''Imprint and merge geometry in cubit. Add materials to blocks and material-material interfaces to sidesets.
         '''
@@ -100,7 +134,7 @@ class GeometryMaker():
         self.materials_tracker.organise_into_groups()
         if self.print_boundary_info:
             self.materials_tracker.print_info()
-    
+
     def set_mesh_size(self, size: int):
         cmd(f'volume all size {size}')
 
@@ -109,11 +143,11 @@ class GeometryMaker():
         '''
         cmd('volume all scheme tet')
         cmd('mesh volume all')
-    
+
     def export_geometry(self, filename= 'out_geometry.cub5', destination='.'):
         cmd(f'export cubit "{filename}"')
         shutil.move(f"./{filename}", f"{destination}/{filename}")
-    
+
     def export_mesh(self, filename='out_mesh.e', destination='.'):
         '''export exodus II file of mesh, as well as blocks and sidesets.
 
@@ -130,6 +164,8 @@ class GeometryMaker():
         reset_cubit()
         self.materials_tracker.reset()
         self.component_tracker.reset_counter()
+        self.constructed_geometry = []
+
 
 if __name__ == '__coreformcubit__':
     reset_cubit()
@@ -142,7 +178,7 @@ elif __name__ == "__main__":
     parser.add_argument("-c", "--classname", type=str, help="Get available classes", default='none')
     parser.add_argument("-o", "--outputfilename", type=str, help="Name of output file", default='out_geometry.cub5')
     parser.add_argument("-d", "--destination", type=str, help="Path of directory to generate output file in", default='.')
-    #parser.add_argument("-p", "--cubitpath", type=str, help="Add cubit path to pythonpath")
+    # parser.add_argument("-p", "--cubitpath", type=str, help="Add cubit path to pythonpath")
     args = parser.parse_args()
 
     if args.classname != 'none':
@@ -156,7 +192,7 @@ elif __name__ == "__main__":
                 pp = pprint.PrettyPrinter(indent=4)
                 pp.pprint(default_class)
         exit(0)
-    
+
     maker = GeometryMaker()
     maker.print_parameter_logs = True
     maker.parse_json(args.file)

@@ -66,56 +66,56 @@ BLANKET_RING = {
         "minimum radius": 580
     },
     "components": {
-    "blanket_shell": {
-    "class": "blanket_shell",
-    "geometry": {
-        "pin spacing": 135,
-        "vertical offset": 0,
-        "horizontal offset": 0
-    },
-    "components": {
-        "first_wall": {
-            "class": "first_wall",
-            "material": "Tungsten",
+        "blanket_shell": {
+            "class": "blanket_shell",
             "geometry": {
-                "inner width": 480,
-                "outer width": 600,
-                "bluntness": 0,
-                "length": 500,
-                "thickness": 30,
-                "height": 580
-            }
-        },
-        "breeder_unit": {
-            "class": "breeder_unit",
-            "materials": {
-                "pin": "EUROFER",
-                "pressure tube": "EUROFER",
-                "multiplier": "Beryllium",
-                "coolant": "Helium",
-                "breeder": "KALOS",
-                "filter disk": "EUROFER"
+                "pin spacing": 135,
+                "vertical offset": 0,
+                "horizontal offset": 0
             },
-            "geometry": {
-                "outer length": 370,
-                "inner length": 500,
-                "offset": 60,
-                "bluntness": 5,
-                "inner cladding": 6,
-                "outer cladding": 3,
-                "breeder chamber thickness": 16,
-                "coolant inlet radius": 8,
-                "filter disk thickness": 10,
-                "pressure tube gap": 20,
-                "pressure tube outer radius": 40,
-                "pressure tube thickness": 1,
-                "pressure tube length": 300,
-                "multiplier length": 200,
-                "multiplier side": 72
+            "components": {
+                "first_wall": {
+                    "class": "first_wall",
+                    "material": "Tungsten",
+                    "geometry": {
+                        "inner width": 480,
+                        "outer width": 600,
+                        "bluntness": 0,
+                        "length": 500,
+                        "thickness": 30,
+                        "height": 580
+                    }
+                },
+                "breeder_unit": {
+                    "class": "breeder_unit",
+                    "materials": {
+                            "pin": "EUROFER",
+                            "pressure tube": "EUROFER",
+                            "multiplier": "Beryllium",
+                            "coolant": "Helium",
+                            "breeder": "KALOS",
+                            "filter disk": "EUROFER"
+                        },
+                    "geometry": {
+                        "outer length": 370,
+                        "inner length": 500,
+                        "offset": 60,
+                        "bluntness": 5,
+                        "inner cladding": 6,
+                        "outer cladding": 3,
+                        "breeder chamber thickness": 16,
+                        "coolant inlet radius": 8,
+                        "filter disk thickness": 10,
+                        "pressure tube gap": 20,
+                        "pressure tube outer radius": 40,
+                        "pressure tube thickness": 1,
+                        "pressure tube length": 300,
+                        "multiplier length": 200,
+                        "multiplier side": 72
+                    }
+                }
             }
         }
-    }
-}
     }
 }
 

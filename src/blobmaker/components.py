@@ -1,16 +1,19 @@
-from blobmaker.constants import *
-from blobmaker.generic_classes import *
-from blobmaker.cubit_functions import from_bodies_to_volumes, from_everything_to_bodies, cubit_cmd_check, get_last_geometry
+from blobmaker.constants import BLOB_CLASSES
+from blobmaker.generic_classes import CubismError, CubitInstance, cmd, cubit
+from blobmaker.cubit_functions import to_volumes, to_bodies, cmd_check, get_last_geometry
 from blobmaker.geometry import make_cylinder_along, Vertex, make_surface, hypotenuse, arctan
 import numpy as np
 
-class ExternalComponent(GenericCubitInstance):
+
+class ExternalComponent(CubitInstance):
     def __init__(self, cid: int, geometry_type: str) -> None:
         super().__init__(cid, geometry_type)
         # track external components
 
+
 class ComplexComponent:
-    # stores information about what materials exist. geometries can then be found from groups with the same name
+    # stores information about what materials exist.
+    # geometries can then be found from groups with the same name
     def __init__(self, classname, json_object: dict):
         self.subcomponents = []
         self.classname = classname
@@ -20,7 +23,7 @@ class ComplexComponent:
         self.add_to_subcomponents(self.make_geometry())
         if not self.origin == Vertex(0):
             self.move(self.origin)
-    
+
     def __get_top_level_info(self, json_object: dict):
         '''Get top-level information and ensure proper types
 
@@ -29,43 +32,43 @@ class ComplexComponent:
         :return: Geometry, material, and origin
         :rtype: dict, str, Vertex
         '''
-        if not "geometry" in json_object.keys():
+        if "geometry" not in json_object.keys():
             raise CubismError(f"Component {self.classname} requires geometry")
-        elif type(json_object["geometry"]) != dict:
+        elif type(json_object["geometry"]) is not dict:
             raise TypeError("Geometry info should be represented as a dictionary")
-        elif not "material" in json_object.keys():
+        elif "material" not in json_object.keys():
             raise CubismError(f"Component {self.classname} requires a material")
-        elif type(json_object["material"]) != str:
+        elif type(json_object["material"]) is not str:
             raise TypeError("Material should be given as a string")
         origin = json_object["origin"] if "origin" in json_object.keys() else Vertex(0)
-        if type(origin) == list:
+        if type(origin) is list:
             origin = Vertex(origin[0], origin[1], origin[2])
-        elif type(origin) != Vertex:
+        elif type(origin) is not Vertex:
             raise TypeError("Origin should be represented using a Vertex")
         return json_object["geometry"], json_object["material"], origin
 
-    def add_to_subcomponents(self, subcomponents: GenericCubitInstance | list[GenericCubitInstance]):
+    def add_to_subcomponents(self, subcomponents: CubitInstance | list[CubitInstance]):
         '''Add geometry/ies to subcomponents attribute
 
         :param subcomponents: Geometry or geometries
-        :type subcomponents: GenericCubitInstance | list[GenericCubitInstance]
+        :type subcomponents: CubitInstance | list[CubitInstance]
         '''
-        if isinstance(subcomponents, GenericCubitInstance):
+        if isinstance(subcomponents, CubitInstance):
             self.subcomponents.append(subcomponents)
-        elif type(subcomponents) == list:
+        elif type(subcomponents) is list:
             for subcomponent in subcomponents:
-                if isinstance(subcomponent, GenericCubitInstance):
+                if isinstance(subcomponent, CubitInstance):
                     self.subcomponents.append(subcomponent)
 
     def make_geometry(self):
-        '''create geometry in cubit. if the class is a blob, make it. otherwise break.'''
+        '''create geometry in cubit. if the class is a blob, make it.'''
         if self.classname in BLOB_CLASSES:
             return self.__create_cubit_blob(self.geometry)
         else:
             raise CubismError("Wrong class name somewhere?: " + self.classname)
 
     def convert_to_3d_vector(self, dim):
-        if type(dim) == int:
+        if type(dim) is int:
             return_vector = [dim for i in range(3)]
         elif len(dim) == 1:
             return_vector = [dim[0] for i in range(3)]
@@ -76,74 +79,65 @@ class ComplexComponent:
         return return_vector
 
     def __create_cubit_blob(self, geometry: dict):
-        '''create cube (if scalar/1D) or cuboid (if 3D) with dimensions. 
-        Rotate it about the y-axis, x-axis, y-axis if euler_angles are specified. 
+        '''create cube (if scalar/1D) or cuboid (if 3D) with dimensions.
+        Rotate it about the y-axis, x-axis, y-axis if euler_angles are specified.
         Move it to position if specified'''
         # setup variables
-        dims= self.convert_to_3d_vector(geometry["dimensions"])
-        pos= geometry["position"] if "position" in geometry.keys() else [0, 0, 0]
-        euler_angles= geometry["euler_angles"] if "euler_angles" in geometry.keys() else [0, 0, 0]
+        dims = self.convert_to_3d_vector(geometry["dimensions"])
+        pos = geometry["position"] if "position" in geometry.keys() else [0, 0, 0]
+        euler_angles = geometry["euler_angles"] if "euler_angles" in geometry.keys() else [0, 0, 0]
         # create a cube or cuboid.
         blob = cubit.brick(dims[0], dims[1], dims[2])
         cid = cubit.get_last_id("volume")
         # orientate according to euler angles
         axis_list = ['y', 'x', 'y']
-        for i in range(3): # hard-coding in 3D?
+        for i in range(3):  # hard-coding in 3D?
             if not euler_angles[i] == 0:
                 cmd(f'rotate volume {cid} angle {euler_angles[i]} about {axis_list[i]}')
         # move to specified position
         cubit.move(blob, pos)
         # return instance for further manipulation
-        return GenericCubitInstance(cid, "volume")
-
-    def update_reference_and_tracking(self, geometry_list):
-        '''Change what geometries this instance refers to'''
-        self.complexComponentMaterials.update_tracking_list(self.subcomponents, geometry_list, self.material)
-        self.subcomponents = geometry_list
-    
-    def stop_tracking(self):
-        '''stop tracking the material of this component'''
-        for subcomponent in self.subcomponents:
-            self.complexComponentMaterials.stop_tracking_in_material(subcomponent, self.material)
+        return CubitInstance(cid, "volume")
 
     def as_bodies(self):
         '''convert subcomponent references to references to their owning bodies'''
-        owning_bodies = from_everything_to_bodies(self.subcomponents)
-        self.update_reference_and_tracking(owning_bodies)
-    
-    def as_volumes(self):
-        '''convert any references to bodies in the subcomponents to references to their composing volumes'''
-        self.update_reference_and_tracking(from_bodies_to_volumes(self.subcomponents))
+        self.subcomponents = to_bodies(self.subcomponents)
 
-    def get_subcomponents(self) -> list[GenericCubitInstance]:
+    def as_volumes(self):
+        '''convert any references to bodies in the subcomponents
+        to references to their composing volumes'''
+        self.subcomponents = to_volumes(self.subcomponents)
+
+    def get_subcomponents(self) -> list[CubitInstance]:
         return self.subcomponents
 
     def get_parameters(self, parameters: list):
         return [self.geometry[parameter] for parameter in parameters]
-    
+
     def move(self, vector: Vertex):
         for subcomponent in self.subcomponents:
-            if isinstance(subcomponent, GenericCubitInstance):
+            if isinstance(subcomponent, CubitInstance):
                 cmd(f"{str(subcomponent)} move {str(vector)}")
-    
+
     def extract_parameters(self, parameters):
         out_dict = {}
-        if type(parameters) == list:
+        if type(parameters) is list:
             for parameter in parameters:
                 out_dict[parameter] = self.geometry[parameter]
-        elif type(parameters) == dict:
+        elif type(parameters) is dict:
             for fetch_parameter, out_parameter in parameters.items():
                 out_dict[out_parameter] = self.geometry[fetch_parameter]
         else:
             raise CubismError(f"parameters type not recognised: {type(parameters)}")
         return out_dict
-    
+
     def check_sanity(self):
         pass
 
     def set_mesh_size(self, size: int):
         for subcomponent in self.get_subcomponents():
             cmd(f"{subcomponent.geometry_type} {subcomponent.cid} size {size}")
+
 
 class SurroundingWallsComponent(ComplexComponent):
     '''Surrounding walls, filled with air'''
@@ -153,30 +147,31 @@ class SurroundingWallsComponent(ComplexComponent):
         # fill room with air
         self.air_material = json_object["air"]
         self.air = AirComponent(self.geometry, self.air_material) if self.air_material != "none" else False
-    
+
     def is_air(self):
         '''Does this room have air in it?'''
         return isinstance(self.air, AirComponent)
-    
+
     def air_as_volumes(self):
         '''reference air as volume entities instead of body entities'''
         if self.is_air():
             self.air.as_volumes()
-    
+
     def get_air_subcomponents(self):
         return self.air.get_subcomponents()
-    
+
     def make_geometry(self):
         '''create 3d room with outer dimensions dimensions (int or list) and thickness (int or list)'''
         # get variables
-        outer_dims= self.convert_to_3d_vector(self.geometry["dimensions"])
-        thickness= self.convert_to_3d_vector(self.geometry["thickness"])
+        outer_dims = self.convert_to_3d_vector(self.geometry["dimensions"])
+        thickness = self.convert_to_3d_vector(self.geometry["thickness"])
         # create room
         subtract_vol = cubit.brick(outer_dims[0]-2*thickness[0], outer_dims[1]-2*thickness[1], outer_dims[2]-2*thickness[2])
         block = cubit.brick(outer_dims[0], outer_dims[1], outer_dims[2])
-        room = cubit.subtract([subtract_vol], [block])
+        cubit.subtract([subtract_vol], [block])
         room_id = cubit.get_last_id("volume")
-        return GenericCubitInstance(room_id, "volume")
+        return CubitInstance(room_id, "volume")
+
 
 class AirComponent(ComplexComponent):
     '''Air, stored as body'''
@@ -185,9 +180,11 @@ class AirComponent(ComplexComponent):
         # cubit subtract only keeps body ID invariant, so i will store air as a body
         self.as_bodies()
 
+
 class BreederComponent(ComplexComponent):
     def __init__(self, json_object):
         super().__init__("breeder", json_object)
+
 
 class StructureComponent(ComplexComponent):
     def __init__(self, json_object):
@@ -201,44 +198,45 @@ class WallComponent(ComplexComponent):
         # get variables
         # wall
         geometry = self.geometry
-        thickness= geometry["wall thickness"]
-        plane= geometry["wall plane"] if "wall plane" in geometry.keys() else "x"
-        pos= geometry["wall position"] if "wall position" in geometry.keys() else 0
+        thickness = geometry["wall thickness"]
+        plane = geometry["wall plane"] if "wall plane" in geometry.keys() else "x"
+        pos = geometry["wall position"] if "wall position" in geometry.keys() else 0
         # hole
-        hole_pos= geometry["wall hole position"] if "wall hole position" in geometry.keys() else [0, 0]
-        hole_radius= geometry["wall hole radius"]
+        hole_pos = geometry["wall hole position"] if "wall hole position" in geometry.keys() else [0, 0]
+        hole_radius = geometry["wall hole radius"]
         # wall fills room
-        room_dims= self.convert_to_3d_vector(geometry["dimensions"])
-        room_thickness= self.convert_to_3d_vector(geometry["thickness"])
+        room_dims = self.convert_to_3d_vector(geometry["dimensions"])
+        room_thickness = self.convert_to_3d_vector(geometry["thickness"])
         wall_dims = [room_dims[i]-2*room_thickness[i] for i in range(3)]
 
         # volume to subtract to create a hole
         cmd(f"create cylinder height {thickness} radius {hole_radius}")
-        subtract_vol = GenericCubitInstance(cubit.get_last_id("volume"), "volume")
+        subtract_vol = CubitInstance(cubit.get_last_id("volume"), "volume")
 
         # depending on what plane the wall needs to be in, create wall + make hole at right place
         if plane == "x":
             cubit.brick(thickness, wall_dims[1], wall_dims[2])
-            wall = GenericCubitInstance(cubit.get_last_id("volume"), "volume")
+            wall = CubitInstance(cubit.get_last_id("volume"), "volume")
             cmd(f"rotate volume {subtract_vol.cid} angle 90 about Y")
             cmd(f"move volume {subtract_vol.cid} y {hole_pos[1]} z {hole_pos[0]}")
         elif plane == "y":
-            cubit.brick( wall_dims[0], thickness, wall_dims[2])
-            wall = GenericCubitInstance(cubit.get_last_id("volume"), "volume")
+            cubit.brick(wall_dims[0], thickness, wall_dims[2])
+            wall = CubitInstance(cubit.get_last_id("volume"), "volume")
             cmd(f"rotate volume {subtract_vol.cid} angle 90 about X")
             cmd(f"move volume {subtract_vol.cid} x {hole_pos[0]} z {hole_pos[1]}")
         elif plane == "z":
-            cubit.brick( wall_dims[0], wall_dims[1], thickness)
-            wall = GenericCubitInstance(cubit.get_last_id("volume"), "volume")
+            cubit.brick(wall_dims[0], wall_dims[1], thickness)
+            wall = CubitInstance(cubit.get_last_id("volume"), "volume")
             cmd(f"move volume {subtract_vol.cid} x {hole_pos[0]} y {hole_pos[1]}")
         else:
             raise CubismError("unrecognised plane specified")
-        
+
         cmd(f"subtract volume {subtract_vol.cid} from volume {wall.cid}")
         # move wall
         cmd(f"move volume {wall.cid} {plane} {pos}")
-        
-        return GenericCubitInstance(wall.cid, wall.geometry_type)            
+
+        return CubitInstance(wall.cid, wall.geometry_type)
+
 
 class PinComponent(ComplexComponent):
     def __init__(self, json_object):
@@ -261,7 +259,6 @@ class PinComponent(ComplexComponent):
                 raise ValueError("Pin inner bluntness larger than inner length")
             elif geom["outer bluntness"] >= geom["outer length"]:
                 raise ValueError("Pin outer bluntness larger than outer length")
-        
 
     def make_geometry(self):
         # get params
@@ -291,7 +288,7 @@ class PinComponent(ComplexComponent):
         slope_angle = arctan(net_thickness, offset)
 
         pin_vertices = list(np.zeros(14))
-        
+
         # set up points of face-to-sweep
         pin_vertices[0] = Vertex(0, inner_less_purge_thickness)
         pin_vertices[1] = Vertex(0)
@@ -317,7 +314,7 @@ class PinComponent(ComplexComponent):
 
         pin_vertices[13] = pin_vertices[0] + Vertex(-distance_to_step)
         pin_vertices[12] = pin_vertices[13] + Vertex(0, step_thickness)
-             
+
         surface_to_sweep = make_surface(pin_vertices, [2, 4, 8, 10])
         cmd(f"sweep surface {surface_to_sweep.cid} axis 0 {-coolant_inlet_radius} 0 1 0 0 angle 360")
         pin = get_last_geometry("volume")
@@ -337,12 +334,13 @@ class PinComponent(ComplexComponent):
         cubit.move(duct.cubitInstance, [inner_length, coolant_inlet_radius, 0])
         return [pin, duct]
 
+
 class BreederUnitCoolant(ComplexComponent):
     def __init__(self, json_object: dict):
         super().__init__("coolant", json_object)
-    
+
     def make_geometry(self):
-        geometry=self.geometry
+        geometry = self.geometry
         inner_length = geometry["inner length"]
         if "bluntness" in geometry.keys():
             inner_bluntness = geometry["bluntness"]
@@ -384,18 +382,19 @@ class BreederUnitCoolant(ComplexComponent):
         cubit.move(coolant.cubitInstance, [inner_length+pressure_tube_gap, 0, 0])
         return coolant
 
+
 class PressureTubeComponent(ComplexComponent):
     def __init__(self, json_object):
         super().__init__("pressure_tube", json_object)
-    
+
     def make_geometry(self):
         length = self.geometry["length"]
         outer_radius = self.geometry["outer radius"]
         thickness = self.geometry["thickness"]
 
-        subtract_vol = cubit_cmd_check(f"create cylinder height {length-thickness} radius {outer_radius-thickness}", "volume")
+        subtract_vol = cmd_check(f"create cylinder height {length-thickness} radius {outer_radius-thickness}", "volume")
         cmd(f"volume {subtract_vol.cid} move 0 0 {-thickness/2}")
-        cylinder = cubit_cmd_check(f"create cylinder height {length} radius {outer_radius}", "volume")
+        cylinder = cmd_check(f"create cylinder height {length} radius {outer_radius}", "volume")
 
         cmd(f"subtract volume {subtract_vol.cid} from volume {cylinder.cid}")
         tube = get_last_geometry("volume")
@@ -403,11 +402,12 @@ class PressureTubeComponent(ComplexComponent):
         cmd(f"volume {tube.cid} move {length/2} 0 0")
 
         return tube
+
 
 class FilterLidComponent(ComplexComponent):
     def __init__(self, json_object):
         super().__init__("filter_lid", json_object)
-    
+
     def make_geometry(self):
         length = self.geometry["length"]
         outer_radius = self.geometry["outer radius"]
@@ -424,11 +424,12 @@ class FilterLidComponent(ComplexComponent):
         tube = get_last_geometry("volume")
 
         return tube
-    
+
+
 class PurgeGasComponent(ComplexComponent):
     def __init__(self, json_object):
         super().__init__("filter_lid", json_object)
-    
+
     def make_geometry(self):
         length = self.geometry["length"]
         outer_radius = self.geometry["outer radius"]
@@ -445,18 +446,19 @@ class PurgeGasComponent(ComplexComponent):
         tube = get_last_geometry("volume")
 
         return tube
+
 
 class FilterDiskComponent(ComplexComponent):
     def __init__(self, json_object):
         super().__init__("filter_disk", json_object)
-    
+
     def make_geometry(self):
         length = self.geometry["length"]
         outer_radius = self.geometry["outer radius"]
         thickness = self.geometry["thickness"]
 
-        subtract_vol = cubit_cmd_check(f"create cylinder height {length} radius {outer_radius-thickness}", "volume")
-        cylinder = cubit_cmd_check(f"create cylinder height {length} radius {outer_radius}", "volume")
+        subtract_vol = cmd_check(f"create cylinder height {length} radius {outer_radius-thickness}", "volume")
+        cylinder = cmd_check(f"create cylinder height {length} radius {outer_radius}", "volume")
 
         cmd(f"subtract volume {subtract_vol.cid} from volume {cylinder.cid}")
         tube = get_last_geometry("volume")
@@ -464,14 +466,15 @@ class FilterDiskComponent(ComplexComponent):
         cmd(f"volume {tube.cid} move {length/2} 0 0")
         return tube
 
+
 class MultiplierComponent(ComplexComponent):
     def __init__(self, json_object):
         super().__init__("multiplier", json_object)
-    
+
     def check_sanity(self):
         if self.geometry["side"] <= np.sqrt(4/3) * self.geometry["inner radius"]:
             raise ValueError("Multiplier side length not big enough to make multiplier around pressure tube")
-    
+
     def make_geometry(self):
         inner_radius = self.geometry["inner radius"]
         length = self.geometry["length"]
@@ -481,7 +484,7 @@ class MultiplierComponent(ComplexComponent):
         cmd(f"volume {subtract_vol.cid} move 0 0 {length/2}")
 
         # hexagonal face
-        face_vertex_positions= [Vertex(side_length).rotate(i*np.pi/3) for i in range(6)]
+        face_vertex_positions = [Vertex(side_length).rotate(i*np.pi/3) for i in range(6)]
         face = make_surface(face_vertex_positions, [])
         cmd(f"sweep surface {face.cid} vector 0 0 1 distance {length}")
         hex_prism = get_last_geometry("volume")
@@ -492,10 +495,11 @@ class MultiplierComponent(ComplexComponent):
 
         return multiplier
 
+
 class BreederChamber(ComplexComponent):
     def __init__(self, json_object):
         super().__init__("breeder", json_object)
-    
+
     def make_geometry(self):
         geometry = self.geometry
         inner_radius = geometry["inner radius"]
@@ -510,8 +514,8 @@ class BreederChamber(ComplexComponent):
         offset = self.geometry["offset"]
 
         thickness = outer_radius - inner_radius
-        slope_angle = np.arctan(thickness/ offset)
-        
+        slope_angle = np.arctan(thickness / offset)
+
         breeder_vertices = list(np.zeros(6))
         breeder_vertices[0] = Vertex(length)
         breeder_vertices[1] = Vertex(inner_bluntness)
@@ -529,17 +533,18 @@ class BreederChamber(ComplexComponent):
 
         return breeder
 
+
 class FirstWallComponent(ComplexComponent):
     def __init__(self, json_object):
         super().__init__("first_wall", json_object)
-    
+
     def check_sanity(self):
         if self.geometry["bluntness"] >= self.geometry["inner width"]/2:
             raise ValueError("Bluntness too large")
         offset = (self.geometry["outer width"]-self.geometry["inner width"])/2
         if self.geometry["bluntness"] >= hypotenuse(offset, self.geometry["length"]):
             raise ValueError("Bluntness larger than side wall")
-    
+
     def make_geometry(self):
         geometry = self.geometry
         inner_width = geometry["inner width"]
@@ -596,22 +601,23 @@ class FirstWallComponent(ComplexComponent):
             vertices[11] = vertices[0] + Vertex(sidewall_horizontal)
 
             face_to_sweep = make_surface(vertices, [1, 3, 7, 9])
-        
+
         # line up sweep direction along y axis
         cmd(f"surface {face_to_sweep.cid} move -{outer_width/2} 0 0")
         cmd(f"surface {face_to_sweep.cid} rotate 90 about x")
 
         cmd(f"sweep surface {face_to_sweep.cid} vector 0 1 0 distance {height}")
         first_wall = get_last_geometry("volume")
-        #cubit.move(first_wall.cubitInstance, [0,0,length])
+        # cubit.move(first_wall.cubitInstance, [0,0,length])
         return first_wall
 
+
 class Plate(ComplexComponent):
-    def __init__(self, classname, json_object: dict, plate_type, pin_positions= [[]]):
+    def __init__(self, classname, json_object: dict, plate_type, pin_positions=[[]]):
         self.plate_type = plate_type
         self.pin_pos = pin_positions
         super().__init__(classname, json_object)
-    
+
     def __get_back_vertices(self):
         if self.plate_type != "mid":
             extension = self.geometry["extension"]
@@ -639,23 +645,25 @@ class Plate(ComplexComponent):
         cmd(f"{str(plate)} move {self.origin.x} 0 0")
         plate = self.__make_holes(plate)
         cmd(f"{str(plate)} move {Vertex(-self.origin.x).x} 0 0")
-        return from_bodies_to_volumes([plate])
+        return to_volumes([plate])
 
-    def __make_holes(self, plate: GenericCubitInstance):
+    def __make_holes(self, plate: CubitInstance):
         plate_thickness = self.geometry["thickness"]
         hole_radius = self.geometry["hole radius"]
 
         for row in self.pin_pos:
             for position in row:
                 hole_position = Vertex(position.x, position.y, 0)
-                hole_to_be = cubit_cmd_check(f"create cylinder radius {hole_radius} height {plate_thickness*3}", "volume")
+                hole_to_be = cmd_check(f"create cylinder radius {hole_radius} height {plate_thickness*3}", "volume")
                 cmd(f"{hole_to_be.geometry_type} {hole_to_be.cid} move {str(hole_position)}")
                 cmd(f"subtract {hole_to_be.geometry_type} {hole_to_be.cid} from {plate.geometry_type} {plate.cid}")
         return plate
 
+
 class BZBackplate(Plate):
     def __init__(self, json_object: dict, pin_positions):
         super().__init__("BZ_backplate", json_object, "full", pin_positions)
+
 
 class PurgeGasPlate(ComplexComponent):
     def __init__(self, classname, json_object: dict, rib_positions: list[Vertex], rib_thickness: int, plate_hole_positions: list):
@@ -664,7 +672,7 @@ class PurgeGasPlate(ComplexComponent):
         self.rib_pos.sort()
         self.rib_thickness = rib_thickness
         super().__init__(classname, json_object)
-    
+
     def make_geometry(self):
         plates = []
 
@@ -686,17 +694,18 @@ class PurgeGasPlate(ComplexComponent):
         geometry["length"] = (total_length/2 - np.abs(self.rib_pos[rib_index])) - self.rib_thickness/2
         origin = Vertex((geometry["length"] - total_length)/2) if rib_index == 0 else Vertex((-geometry["length"] + total_length)/2)
         return {"geometry": geometry, "material": self.material, "origin": origin}
-    
+
     def __make_mid_plate_json(self, left_rib_index):
         geometry = self.extract_parameters(["thickness", "height", "extension", "hole radius"])
         geometry["length"] = np.abs(self.rib_pos[left_rib_index] - self.rib_pos[left_rib_index+1]) - self.rib_thickness
         origin = Vertex((self.rib_pos[left_rib_index] + self.rib_pos[left_rib_index+1])/2)
         return {"geometry": geometry, "material": self.material, "origin": origin}
 
+
 class Rib(ComplexComponent):
     def __init__(self, classname, json_object: dict):
         super().__init__(classname, json_object)
-    
+
     def check_sanity(self):
         if self.geometry["side channel width"] >= self.geometry["length"]:
             raise ValueError("Rib side channel wider than rib")
@@ -710,21 +719,21 @@ class Rib(ComplexComponent):
             raise ValueError("connection height larger than vertical margin")
         elif self.geometry["connection height"] > self.geometry["side channel gap"]:
             raise ValueError("Rib connections overlapping, connection height too large")
-    
+
     def make_geometry(self):
         height = self.geometry["height"]
         length = self.geometry["length"]
         thickness = self.geometry["thickness"]
 
-        structure = cubit_cmd_check(f"create brick x {thickness} y {height} z {length}", "body")
+        structure = cmd_check(f"create brick x {thickness} y {height} z {length}", "body")
         cmd(f"{structure.geometry_type} {structure.cid} move 0 {height/2} {-length/2}")
 
         structure, number_of_channels = self.__make_side_channels(structure)
         rib = self.make_rib_connections(structure, number_of_channels)
 
-        return from_bodies_to_volumes([rib])
+        return to_volumes([rib])
 
-    def __make_side_channels(self, structure: GenericCubitInstance):
+    def __make_side_channels(self, structure: CubitInstance):
 
         structure_height = self.geometry["height"]
         length = self.geometry["thickness"]
@@ -741,10 +750,10 @@ class Rib(ComplexComponent):
 
         channel_dims = Vertex(length, height, width)
         structure = self.tile_channels_vertically(structure, channel_dims, number_of_channels, y_margin, z_offset, spacing)
-        
+
         return structure, number_of_channels
 
-    def make_rib_connections(self, structure: GenericCubitInstance, number_of_channels: int):
+    def make_rib_connections(self, structure: CubitInstance, number_of_channels: int):
         height = self.geometry["connection height"]
         length = self.geometry["length"] - self.geometry["side channel horizontal offset"]
         connection_dims = Vertex(self.geometry["connection width"], height, length)
@@ -757,30 +766,32 @@ class Rib(ComplexComponent):
 
         return structure
 
-    def tile_channels_vertically(self, structure: GenericCubitInstance, channel_dims: Vertex, number_of_channels: int, y_margin: int, z_offset: int, spacing: int):
+    def tile_channels_vertically(self, structure: CubitInstance, channel_dims: Vertex, number_of_channels: int, y_margin: int, z_offset: int, spacing: int):
         for i in range(number_of_channels):
-            hole_to_be = cubit_cmd_check(f"create brick x {channel_dims.x} y {channel_dims.y} z {channel_dims.z}", "volume")
+            hole_to_be = cmd_check(f"create brick x {channel_dims.x} y {channel_dims.y} z {channel_dims.z}", "volume")
             hole_name = str(hole_to_be)
             cmd(f"{hole_name} move 0 {channel_dims.y/2} {-channel_dims.z/2}")
             cmd(f"{hole_name} move 0 {y_margin + i*spacing} {-z_offset}")
             cmd(f"subtract {hole_name} from {str(structure)}")
-        
+
         return structure
+
 
 class FrontRib(Rib):
     def __init__(self, json_object: dict):
         super().__init__("front_rib", json_object)
 
+
 class BackRib(Rib):
     def __init__(self, json_object: dict):
         super().__init__("back_rib", json_object)
-    
-    def make_rib_connections(self, structure: GenericCubitInstance, number_of_channels: int):
+
+    def make_rib_connections(self, structure: CubitInstance, number_of_channels: int):
         height = self.geometry["connection height"]
         # runs from connection point with front rib to the side channel
         length = self.geometry["side channel horizontal offset"]
         connection_dims = Vertex(self.geometry["connection width"], height, length)
-        
+
         # this is 0 to connect to the front ribs
         z_offset = 0
         spacing = self.geometry["side channel gap"] + self.geometry["side channel height"]
@@ -790,17 +801,18 @@ class BackRib(Rib):
 
         return structure
 
+
 class CoolantOutletPlenum(ComplexComponent):
     def __init__(self, json_object: dict, rib_positions: list[Vertex], rib_thickness):
         self.rib_pos = [i.x for i in rib_positions]
         self.rib_pos.sort()
         self.rib_thickness = rib_thickness
         super().__init__("coolant_outlet_plenum", json_object)
-    
+
     def check_sanity(self):
         if self.geometry["length"] <= 2*self.geometry["thickness"]:
             raise ValueError("Coolant outlet plenum 'thickness' calculated inward from width, width too small")
-    
+
     def make_geometry(self):
         height = self.geometry["height"]
         length = self.geometry["length"]
@@ -814,7 +826,7 @@ class CoolantOutletPlenum(ComplexComponent):
         for i in range(len(self.rib_pos)-1):
             plenum.extend(self.__make_mid_plates(self.rib_pos[i] + self.rib_thickness/2, self.rib_pos[i+1] - self.rib_thickness/2, length, height, thickness))
         return plenum
-    
+
     def __make_mid_plates(self, start_x, end_x, length, height, thickness):
         front_plate = list(np.zeros(4))
         front_plate[0] = Vertex(start_x)
@@ -837,7 +849,7 @@ class CoolantOutletPlenum(ComplexComponent):
         back_plate = get_last_geometry("volume")
 
         return [front_plate, back_plate]
-    
+
     def __make_side_plenum(self, start_x, end_x, length, height, thickness):
         side = list(np.zeros(8))
         side[0] = Vertex(start_x)
@@ -854,9 +866,11 @@ class CoolantOutletPlenum(ComplexComponent):
         plenum = get_last_geometry("volume")
         return plenum
 
+
 class SeparatorPlate(PurgeGasPlate):
     def __init__(self, json_object: dict, rib_positions: list[Vertex], rib_thickness: int):
         super().__init__("separator_plate", json_object, rib_positions, rib_thickness, [[[]] for i in rib_positions])
+
 
 class FWBackplate(Plate):
     def __init__(self, json_object: dict):
