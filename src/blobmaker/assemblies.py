@@ -98,9 +98,9 @@ class GenericComponentAssembly:
             if isinstance(component, CubitInstance):
                 instances_list.append(component)
             elif isinstance(component,ComplexComponent):
-                instances_list += component.subcomponents 
+                instances_list.extend(component.get_subcomponents())
             elif isinstance(component, GenericComponentAssembly):
-                instances_list += component.get_all_geometries()
+                instances_list.extend(component.get_all_geometries())
         return instances_list
 
     def get_volumes_list(self) -> list[int]:
@@ -110,10 +110,26 @@ class GenericComponentAssembly:
     def get_components(self) -> list:
         '''Return all components stored in this assembly at the top-level
 
-        :return: List of all components
+        :return: List of components
         :rtype: list
         '''
         return self.components
+    
+    def get_all_components(self) -> list[ComplexComponent]:
+        '''Return all components stored in this assembly recursively
+
+        :return: List of components
+        :rtype: list[ComplexComponent]
+        '''
+        instances_list = []
+        for component in self.get_components():
+            if isinstance(component,ComplexComponent):
+                instances_list.append(component)
+            elif isinstance(component, GenericComponentAssembly):
+                instances_list.extend(component.get_all_components())
+            else:
+                raise CubismError(f"Assembly {self.identifier} not trackable")
+        return instances_list
 
     def get_components_of_class(self, class_list: list) -> list:
         '''Find components of given classes recursively
@@ -452,6 +468,7 @@ class BreederUnitAssembly(CreatedComponentAssembly):
     def __init__(self, json_object: dict):
         self.components = []
         self.classname = "breeder_unit"
+        self.identifier = self.classname
         self.materials = json_object["materials"]
         self.geometry = json_object["geometry"]
         self.origin = json_object["origin"] if "origin" in json_object.keys() else Vertex(0)

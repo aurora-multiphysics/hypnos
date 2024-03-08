@@ -55,10 +55,7 @@ def get_id_string(geometry_list: list[CubitInstance]):
     :return: string of IDs
     :rtype: str
     '''
-    id_string = ""
-    for geometry in geometry_list:
-        id_string += f"{geometry.cid} "
-    return id_string
+    return " ".join([str(geometry.cid) for geometry in geometry_list])
 
 
 # functions to delete and copy lists
@@ -205,6 +202,34 @@ def to_bodies(component_list: list) -> list[CubitInstance]:
                 if owning_body_id not in [i.cid for i in bodies_list]:
                     bodies_list.append(CubitInstance(owning_body_id, "body"))
     return bodies_list
+
+def get_entities_from_group(group_identifier: int | str, entity_type: str):
+    if type(group_identifier) == str:
+        group_identifier = cubit.get_id_from_name(group_identifier)
+        if group_identifier == 0:
+            raise CubismError("could not find group corresponding to name")
+    if entity_type == "surface":
+        return cubit.get_group_surfaces(group_identifier)
+    elif entity_type == "volume":
+        return cubit.get_group_volumes(group_identifier)
+    elif entity_type == "body":
+        return cubit.get_group_bodies(group_identifier)
+    elif entity_type == "vertex":
+        return cubit.get_group_vertices(group_identifier)
+    elif entity_type == "group":
+        return cubit.get_group_groups(group_identifier)
+
+def create_new_entity(entity_type: str, name: str):
+    if entity_type in ["block", "sideset"]:
+        exo_id = cubit.get_next_block_id()
+        cmd(f'create {entity_type} {exo_id}')
+        cmd(f'{entity_type} {exo_id} name "{name}"')
+        return exo_id
+    if entity_type == "group":
+        group_id = cmd_check(f"create group '{name}'", "group")
+        if group_id == 0:
+            group_id = cubit.get_id_from_name(name)
+        return group_id
 
 # unionise is in Assemblies.py as it needs to know about the
 # ComplexComponent and Assembly classes

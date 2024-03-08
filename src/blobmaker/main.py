@@ -30,7 +30,6 @@ class GeometryMaker():
         self.design_tree = {}
         self.constructed_geometry = []
         self.print_parameter_logs = False
-        self.print_boundary_info = False
         self.track_components = False
 
     def parse_json(self, filename: str):
@@ -126,15 +125,13 @@ class GeometryMaker():
         '''
         for component in self.constructed_geometry:
             self.component_tracker.give_identifiers(component)
-            self.materials_tracker.track_component(component)
+            self.materials_tracker.extract_components(component)
         cmd("imprint volume all")
-        self.materials_tracker.merge_and_track_boundaries()
+        self.materials_tracker.merge_components()
         cmd("merge volume all")
-        self.materials_tracker.add_materials_to_blocks()
-        self.materials_tracker.add_boundaries_to_sidesets()
+        self.materials_tracker.add_blocks()
+        self.materials_tracker.add_sidesets()
         self.materials_tracker.organise_into_groups()
-        if self.print_boundary_info:
-            self.materials_tracker.print_info()
 
     def set_mesh_size(self, size: int):
         cmd(f'volume all size {size}')

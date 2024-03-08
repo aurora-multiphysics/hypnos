@@ -138,6 +138,10 @@ class ComplexComponent:
     def set_mesh_size(self, size: int):
         for subcomponent in self.get_subcomponents():
             cmd(f"{subcomponent.geometry_type} {subcomponent.cid} size {size}")
+    
+    def volume_id_string(self):
+        self.as_volumes()
+        return " ".join(str(subcomponent.cid) for subcomponent in self.get_subcomponents()) 
 
 
 class SurroundingWallsComponent(ComplexComponent):
