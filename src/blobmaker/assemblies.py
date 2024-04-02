@@ -452,6 +452,7 @@ class BreederUnitAssembly(CreatedComponentAssembly):
     def __init__(self, json_object: dict):
         self.components = []
         self.classname = "breeder_unit"
+        self.identifier = "breeder_unit"
         self.materials = json_object["materials"]
         self.geometry = json_object["geometry"]
         self.origin = json_object["origin"] if "origin" in json_object.keys() else Vertex(0)

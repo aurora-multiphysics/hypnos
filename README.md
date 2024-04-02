@@ -18,7 +18,7 @@ Json files containing a json object describing a component (ex. hcpb_breeder_uni
 Examples are given in sample json files
 
 To use blobmaker, run main.py, passing the name of the json file to a -f flag:
-```python main.py -f sample_blanket.json```
+```python main.py -f examples/sample_blanket.json```
 
 The following flags are also available:
 -h: Print available flags for use
