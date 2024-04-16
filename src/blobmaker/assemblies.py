@@ -30,10 +30,9 @@ class GenericComponentAssembly:
                     # fetches instances
                     if isinstance(component, CubitInstance):
                         instances_list.append(component.cubitInstance)
-                    elif isinstance(component, ComplexComponent):
+                    elif isinstance(component, SimpleComponent):
                         instances_list += component.subcomponents
                     elif isinstance(component, GenericComponentAssembly):
-                        # This feels very scuffed
                         instances_list += component.get_cubit_instances_from_class(class_list)
         return instances_list
 
@@ -47,7 +46,7 @@ class GenericComponentAssembly:
         for component in self.get_components():
             if isinstance(component, CubitInstance):
                 instances_list.append(component.cubitInstance)
-            elif isinstance(component, ComplexComponent):
+            elif isinstance(component, SimpleComponent):
                 instances_list += [subcomp.cubitInstance for subcomp in component.subcomponents]
             elif isinstance(component, GenericComponentAssembly):
                 instances_list += component.get_all_cubit_instances()
@@ -68,7 +67,7 @@ class GenericComponentAssembly:
                 if isinstance(component, component_class):
                     if isinstance(component, CubitInstance):
                         component_list.append(component)
-                    elif isinstance(component, ComplexComponent):
+                    elif isinstance(component, SimpleComponent):
                         component_list += component.subcomponents
                     elif isinstance(component, GenericComponentAssembly):
                         component_list += component.get_geometries_from(class_list)
@@ -76,7 +75,7 @@ class GenericComponentAssembly:
 
     def find_parent_component(self, geometry: CubitInstance):
         for component in self.get_components():
-            if isinstance(component, ComplexComponent):
+            if isinstance(component, SimpleComponent):
                 for component_geometry in component.get_subcomponents():
                     if isinstance(component_geometry, CubitInstance):
                         if geometry.cid == component_geometry.cid and geometry.geometry_type == component_geometry.geometry_type:
@@ -97,7 +96,7 @@ class GenericComponentAssembly:
         for component in self.get_components():
             if isinstance(component, CubitInstance):
                 instances_list.append(component)
-            elif isinstance(component,ComplexComponent):
+            elif isinstance(component,SimpleComponent):
                 instances_list.extend(component.get_subcomponents())
             elif isinstance(component, GenericComponentAssembly):
                 instances_list.extend(component.get_all_geometries())
@@ -115,7 +114,7 @@ class GenericComponentAssembly:
         '''
         return self.components
     
-    def get_all_components(self) -> list[ComplexComponent]:
+    def get_all_components(self) -> list[SimpleComponent]:
         '''Return all components stored in this assembly recursively
 
         :return: List of components
@@ -123,7 +122,7 @@ class GenericComponentAssembly:
         '''
         instances_list = []
         for component in self.get_components():
-            if isinstance(component,ComplexComponent):
+            if isinstance(component,SimpleComponent):
                 instances_list.append(component)
             elif isinstance(component, GenericComponentAssembly):
                 instances_list.extend(component.get_all_components())
@@ -158,7 +157,7 @@ class GenericComponentAssembly:
         component_classes = [globals()[CLASS_MAPPING[classname]] for classname in component_classes]
         components = self.get_components_of_class(component_classes)
         for component in components:
-            if isinstance(component, ComplexComponent):
+            if isinstance(component, SimpleComponent):
                 component.set_mesh_size(size)
             elif isinstance(component, GenericComponentAssembly):
                 component.set_mesh_size(component_classes, size)
@@ -186,10 +185,10 @@ class CreatedComponentAssembly(GenericComponentAssembly):
 
     def check_for_overlaps(self):
         volume_ids_list = [i.cid for i in to_volumes(self.get_all_geometries())]
-        overlaps = cubit.get_overlapping_volumes(volume_ids_list)
+        overlaps = cubit.get_overlapcladdingg_volumes(volume_ids_list)
         if overlaps != ():
-            overlapping_components = {self.find_parent_component(CubitInstance(overlap_vol_id, "volume")).classname for overlap_vol_id in overlaps}
-            raise CubismError(f"The following components have overlaps: {overlapping_components}")
+            overlapcladdingg_components = {self.find_parent_component(CubitInstance(overlap_vol_id, "volume")).classname for overlap_vol_id in overlaps}
+            raise CubismError(f"The following components have overlaps: {overlapcladdingg_components}")
 
     def enforce_structure(self):
         '''Make sure an instance of this class contains the required components. This looks at the classnames specified in the json file'''
@@ -220,7 +219,7 @@ class CreatedComponentAssembly(GenericComponentAssembly):
         for component in self.get_components():
             if isinstance(component, CreatedComponentAssembly):
                 component.rotate(angle, origin, axis)
-            elif isinstance(component, ComplexComponent):
+            elif isinstance(component, SimpleComponent):
                 for subcomponent in component.get_subcomponents():
                     cmd(f"rotate {subcomponent.geometry_type} {subcomponent.cid} about origin {str(origin)} direction {str(axis)} angle {angle}")
 
@@ -285,7 +284,7 @@ class NeutronTestFacility(CreatedComponentAssembly):
         elif (self.morphology == "exclusive") & (not (union_volume == blanket_volume + source_volume)):
             raise CubismError("Source not completely outside blanket")
         elif (self.morphology == "overlap") & (not (union_volume < blanket_volume + source_volume)):
-            raise CubismError("Source and blanket not partially overlapping")
+            raise CubismError("Source and blanket not partially overlapcladdingg")
         else:
             print(f"{self.morphology} morphology enforced")
 
@@ -302,14 +301,14 @@ class NeutronTestFacility(CreatedComponentAssembly):
             for source_volume in source_volumes:
                 for blanket_volume in blanket_volumes:
                     if isinstance(source_volume, CubitInstance) and isinstance(blanket_volume, CubitInstance):
-                        if not (cubit.get_overlapping_volumes([source_volume.cid, blanket_volume.cid]) == ()):
+                        if not (cubit.get_overlapcladdingg_volumes([source_volume.cid, blanket_volume.cid]) == ()):
                             # i have given up on my python api dreams. we all return to cubit ccl in the end.
                             cmd(f"remove overlap volume {source_volume.cid} {blanket_volume.cid} modify volume {blanket_volume.cid}")
             print(f"{self.morphology} morphology applied")
 
     def check_for_overlaps(self):
         volume_ids_list = [i.cid for i in to_volumes(self.get_all_geometries())]
-        overlaps = cubit.get_overlapping_volumes(volume_ids_list)
+        overlaps = cubit.get_overlapcladdingg_volumes(volume_ids_list)
         if overlaps != ():
             raise CubismError(f"Here be overlaps: {overlaps}")
 
@@ -319,7 +318,7 @@ class NeutronTestFacility(CreatedComponentAssembly):
         # collect geometries that define the complete space of the facility
         room_bounding_boxes = []
         for room in self.get_components_of_class(RoomAssembly):
-            # get all air (it is set up to be overlapping with the surrounding walls at this stage)
+            # get all air (it is set up to be overlapcladdingg with the surrounding walls at this stage)
             for surrounding_walls in room.get_components_of_class(SurroundingWallsComponent):
                 room_bounding_boxes += surrounding_walls.get_air_subcomponents()
             # walls are set up to be subtracted from air on creation so need to add them in manually
@@ -464,7 +463,7 @@ class SourceAssembly(ExternalComponentAssembly):
 
 # more detailed components
 class BreederUnitAssembly(CreatedComponentAssembly):
-    '''Pin filled with breeder capped by a filter disc. Enclosed in a pressure surrounded by a hexagonal prism of multiplier'''
+    '''cladding filled with breeder capped by a filter disc. Enclosed in a pressure surrounded by a hexagonal prism of multiplier'''
     def __init__(self, json_object: dict):
         self.components = []
         self.classname = "breeder_unit"
@@ -476,12 +475,12 @@ class BreederUnitAssembly(CreatedComponentAssembly):
         self.move(self.origin)
 
     def check_sanity(self):
-        pin_radius = self.geometry["coolant inlet radius"] + self.geometry["inner cladding"] + self.geometry["breeder chamber thickness"] + self.geometry["outer cladding"]
-        if self.geometry["pressure tube outer radius"] - self.geometry["pressure tube thickness"] < pin_radius:
-            raise ValueError("Pin radius larger than pressure tube radius")
+        cladding_radius = self.geometry["coolant inlet radius"] + self.geometry["inner cladding"] + self.geometry["breeder chamber thickness"] + self.geometry["outer cladding"]
+        if self.geometry["pressure tube outer radius"] - self.geometry["pressure tube thickness"] < cladding_radius:
+            raise ValueError("cladding radius larger than pressure tube radius")
 
     def setup_assembly(self):
-        pin_json = self.__get_pin_parameters()
+        cladding_json = self.__get_cladding_parameters()
         pressure_tube_geometry = self.__extract_parameters({
             "pressure tube outer radius": "outer radius",
             "pressure tube thickness": "thickness",
@@ -498,7 +497,7 @@ class BreederUnitAssembly(CreatedComponentAssembly):
         coolant_json = self.__get_coolant_parameters()
         purge_gas_json = self.__get_purge_gas_parameters()
 
-        pin = PinComponent(pin_json)
+        cladding = CladdingComponent(cladding_json)
         pressure_tube = PressureTubeComponent(self.__jsonify(pressure_tube_geometry, "pressure tube", 0))
         multiplier = MultiplierComponent(self.__jsonify(multiplier_geometry, "multiplier", 0))
         breeder = BreederChamber(breeder_json)
@@ -507,7 +506,7 @@ class BreederUnitAssembly(CreatedComponentAssembly):
         coolant = BreederUnitCoolant(coolant_json)
         purge_gas = PurgeGasComponent(purge_gas_json)
 
-        self.components.extend([pin, pressure_tube, multiplier, breeder, filter_disk, filter_lid, coolant, purge_gas])
+        self.components.extend([cladding, pressure_tube, multiplier, breeder, filter_disk, filter_lid, coolant, purge_gas])
         # align with z-axis properly
         self.rotate(90, Vertex(0, 0, 0), Vertex(0, 1, 0))
 
@@ -523,13 +522,13 @@ class BreederUnitAssembly(CreatedComponentAssembly):
             raise CubismError(f"parameters type not recognised: {type(parameters)}")
         return out_dict
 
-    def __get_pin_parameters(self):
+    def __get_cladding_parameters(self):
         parameters = self.__extract_parameters(["outer length", "inner length", "offset", "bluntness", "inner cladding", "outer cladding", "breeder chamber thickness", "coolant inlet radius", "purge duct thickness", "purge duct cladding", "purge duct offset", "filter disk thickness"])
         parameters["distance to step"] = self.geometry["filter lid length"] + self.geometry["filter disk thickness"] + self.geometry["inner length"] - (self.geometry["offset"] + self.geometry["outer length"])
         parameters["distance to disk"] = parameters["distance to step"] - self.geometry["filter lid length"]
         start_x = self.geometry["pressure tube gap"] + self.geometry["pressure tube thickness"]
 
-        return self.__jsonify(parameters, "pin", start_x)
+        return self.__jsonify(parameters, "cladding", start_x)
 
     def __get_breeder_parameters(self):
         geometry = self.geometry
@@ -601,7 +600,7 @@ class BreederUnitAssembly(CreatedComponentAssembly):
         parameters["pressure tube length"] = pressure_tube_length - pressure_tube_thickness
         parameters["pressure tube gap"] = pressure_tube_gap - pressure_tube_thickness
         parameters["pressure tube radius"] = pressure_tube_outer_radius - pressure_tube_thickness
-        parameters["pin thickness"] = geometry["inner cladding"] + geometry["breeder chamber thickness"] + geometry["outer cladding"]
+        parameters["cladding thickness"] = geometry["inner cladding"] + geometry["breeder chamber thickness"] + geometry["outer cladding"]
 
         return self.__jsonify(parameters, "coolant", pressure_tube_thickness)
 
@@ -642,7 +641,7 @@ class BlanketShellAssembly(CreatedComponentAssembly):
 
         vertical_offset = self.geometry["vertical offset"]
         horizontal_offset = self.geometry["horizontal offset"]
-        pin_spacing = self.geometry["pin spacing"]
+        cladding_spacing = self.geometry["cladding spacing"]
         inner_width = first_wall_geometry["inner width"]
         length = first_wall_geometry["length"]
         height = first_wall_geometry["height"]
@@ -653,23 +652,23 @@ class BlanketShellAssembly(CreatedComponentAssembly):
         accessible_width = inner_width - 2*(horizontal_offset + wall_bluntness)
         accessible_height = height - 2*vertical_offset
         # hexagonally tiled breeder units are broken up into 'rows' and 'columns'
-        # number of pins that will fit in a 'row'
-        row_pins = int((accessible_width - 2*multiplier_side) // (pin_spacing * np.cos(np.pi/6))) + 1
-        horizontal_start_pos = -(row_pins-1)*pin_spacing*np.cos(np.pi/6) / 2
+        # number of claddings that will fit in a 'row'
+        row_claddings = int((accessible_width - 2*multiplier_side) // (cladding_spacing * np.cos(np.pi/6))) + 1
+        horizontal_start_pos = -(row_claddings-1)*cladding_spacing*np.cos(np.pi/6) / 2
         # each column 'index' has breeder units at 2 different heights
-        columns_indices = int((accessible_height - 2*multiplier_side*np.cos(np.pi/6)) // pin_spacing) + 1
+        columns_indices = int((accessible_height - 2*multiplier_side*np.cos(np.pi/6)) // cladding_spacing) + 1
         # number of distinct heights we can place breeder units
-        distinct_pin_heights = int((accessible_height - 2*multiplier_side*np.cos(np.pi/6)) // (pin_spacing*np.sin(np.pi/6))) + 1
-        centering_vertical_offset = ((accessible_height- 2*multiplier_side*np.cos(np.pi/6)) - (distinct_pin_heights-1)*pin_spacing*np.sin(np.pi/6)) / 2
+        distinct_cladding_heights = int((accessible_height - 2*multiplier_side*np.cos(np.pi/6)) // (cladding_spacing*np.sin(np.pi/6))) + 1
+        centering_vertical_offset = ((accessible_height- 2*multiplier_side*np.cos(np.pi/6)) - (distinct_cladding_heights-1)*cladding_spacing*np.sin(np.pi/6)) / 2
         vertical_start_pos = height - (vertical_offset + centering_vertical_offset + multiplier_side*np.cos(np.pi/6))
 
         for j in range(columns_indices):
-            pin_pos = Vertex(horizontal_start_pos , vertical_start_pos, length-wall_thickness) + Vertex(0, -pin_spacing*j)
-            for i in range(row_pins):
-                # stop tiling if we overshoot the number of column pins (each column index corresponds to 2 column pins)
-                if (j*2)+1 + (i%2) <= distinct_pin_heights:
-                    self.components.append(BreederUnitAssembly({"materials":breeder_materials, "geometry":breeder_geometry, "origin":pin_pos}))
-                pin_pos = pin_pos + Vertex(pin_spacing).rotate(((-1)**(i+1))*np.pi/6)
+            cladding_pos = Vertex(horizontal_start_pos , vertical_start_pos, length-wall_thickness) + Vertex(0, -cladding_spacing*j)
+            for i in range(row_claddings):
+                # stop tiling if we overshoot the number of column claddings (each column index corresponds to 2 column claddings)
+                if (j*2)+1 + (i%2) <= distinct_cladding_heights:
+                    self.components.append(BreederUnitAssembly({"materials":breeder_materials, "geometry":breeder_geometry, "origin":cladding_pos}))
+                cladding_pos = cladding_pos + Vertex(cladding_spacing).rotate(((-1)**(i+1))*np.pi/6)
 
         self.components.append(FirstWallComponent(first_wall_object))
 
@@ -738,27 +737,27 @@ class HCPBBlanket(CreatedComponentAssembly):
         if self.first_wall_geometry["length"] - distance_to_sep_plate < self.geometry["FW backplate thickness"]:
             raise ValueError("First wall length too short")
 
-        row_pins, horizontal_start_pos = self.__get_pin_start_params()
-        for pin_number in self.geometry["front rib positions"]:
-            if pin_number > row_pins:
-                raise ValueError(f"Specified parameters only tile {row_pins} pins in a row on the first wall, but trying to place front rib after pin number {pin_number}")
+        row_claddings, horizontal_start_pos = self.__get_cladding_start_params()
+        for cladding_number in self.geometry["front rib positions"]:
+            if cladding_number > row_claddings:
+                raise ValueError(f"Specified parameters only tile {row_claddings} claddings in a row on the first wall, but trying to place front rib after cladding number {cladding_number}")
 
         first_wall_slope_angle = arctan(self.first_wall_geometry["length"], (self.first_wall_geometry["outer width"] - self.first_wall_geometry["inner width"])/2)
-        distance_to_pin_centre = self.first_wall_geometry["inner width"]/2 - (np.abs(horizontal_start_pos) - self.first_wall_geometry["sidewall thickness"]/np.sin(first_wall_slope_angle))
-        distance_to_multiplier = distance_to_pin_centre - bu_geometry["multiplier side"]
-        distance_to_pin_inner = distance_to_pin_centre - (bu_geometry["coolant inlet radius"] + bu_geometry["inner cladding"])
-        distance_to_pin_outer = distance_to_pin_inner - (bu_geometry["breeder chamber thickness"] + bu_geometry["outer cladding"])
+        distance_to_cladding_centre = self.first_wall_geometry["inner width"]/2 - (np.abs(horizontal_start_pos) - self.first_wall_geometry["sidewall thickness"]/np.sin(first_wall_slope_angle))
+        distance_to_multiplier = distance_to_cladding_centre - bu_geometry["multiplier side"]
+        distance_to_cladding_inner = distance_to_cladding_centre - (bu_geometry["coolant inlet radius"] + bu_geometry["inner cladding"])
+        distance_to_cladding_outer = distance_to_cladding_inner - (bu_geometry["breeder chamber thickness"] + bu_geometry["outer cladding"])
         # this isnt very accurate, treating coolant outlet plenum as if it has a rectangular hitbox
         distance_to_cop = (self.first_wall_geometry["inner width"] - self.cop_geometry["width"]) / 2
 
         multiplier_extent = bu_geometry["multiplier length"] + self.first_wall_geometry["thickness"]
-        pin_outer_extent = self.first_wall_geometry["thickness"] + bu_geometry["pressure tube thickness"] + bu_geometry["pressure tube gap"] + bu_geometry["outer length"] + bu_geometry["offset"]
-        pin_inner_extent = self.first_wall_geometry["thickness"] + bu_geometry["pressure tube thickness"] + bu_geometry["pressure tube gap"] + bu_geometry["inner length"]
-        cop_extent = pin_inner_extent + self.geometry["coolant outlet plenum gap"] + self.cop_geometry["length"]
+        cladding_outer_extent = self.first_wall_geometry["thickness"] + bu_geometry["pressure tube thickness"] + bu_geometry["pressure tube gap"] + bu_geometry["outer length"] + bu_geometry["offset"]
+        cladding_inner_extent = self.first_wall_geometry["thickness"] + bu_geometry["pressure tube thickness"] + bu_geometry["pressure tube gap"] + bu_geometry["inner length"]
+        cop_extent = cladding_inner_extent + self.geometry["coolant outlet plenum gap"] + self.cop_geometry["length"]
 
         self.check_slope(distance_to_multiplier, multiplier_extent, "First wall collides with multiplier!")
-        self.check_slope(distance_to_pin_outer, pin_outer_extent, "First wall collides with pin!")
-        self.check_slope(distance_to_pin_inner, pin_inner_extent, "First wall collides with pin!")
+        self.check_slope(distance_to_cladding_outer, cladding_outer_extent, "First wall collides with cladding!")
+        self.check_slope(distance_to_cladding_inner, cladding_inner_extent, "First wall collides with cladding!")
         self.check_slope(distance_to_cop, cop_extent, "First wall collides with coolant outlet plenum!")
 
         if not self.geometry["coolant outlet plenum gap"] + self.cop_geometry["thickness"] < self.back_ribs_geometry["side channel horizontal offset"] < self.geometry["coolant outlet plenum gap"] + self.cop_geometry["length"] - (self.cop_geometry["thickness"] + self.back_ribs_geometry["side channel width"]):
@@ -772,24 +771,24 @@ class HCPBBlanket(CreatedComponentAssembly):
             raise ValueError("Front rib side channel not within coolant inlet manifold")
 
         BZ_backplate_thickness = bu_geometry["pressure tube length"] - bu_geometry["multiplier length"]
-        if self.geometry["PG front plate thickness"] >= pin_outer_extent - (multiplier_extent + BZ_backplate_thickness):
-            raise ValueError("PG front plate too thick - overlapping/touching BZ backplate")
+        if self.geometry["PG front plate thickness"] >= cladding_outer_extent - (multiplier_extent + BZ_backplate_thickness):
+            raise ValueError("PG front plate too thick - overlapcladdingg/touching BZ backplate")
 
-        if self.geometry["PG mid plate gap"] >= (pin_inner_extent - pin_outer_extent):
+        if self.geometry["PG mid plate gap"] >= (cladding_inner_extent - cladding_outer_extent):
             raise ValueError("PG mid plate touching/ out of bounds of front and back plates")
 
-        if self.geometry["PG mid plate thickness"] >= (pin_inner_extent - pin_outer_extent) - (self.geometry["PG back plate thickness"] + self.geometry["PG mid plate gap"]):
-            raise ValueError("PG mid plate overlapping/touching backplate")
+        if self.geometry["PG mid plate thickness"] >= (cladding_inner_extent - cladding_outer_extent) - (self.geometry["PG back plate thickness"] + self.geometry["PG mid plate gap"]):
+            raise ValueError("PG mid plate overlapcladdingg/touching backplate")
 
         FW_backplate_distance_from_FW = self.first_wall_geometry["length"] - self.geometry["FW backplate thickness"]
         backplate_extent = self.__get_plate_length_and_ext(FW_backplate_distance_from_FW, 0)[0]/2
         if np.abs(rib_positions[0]) + self.back_ribs_geometry["thickness"]/2 > backplate_extent:
-            raise ValueError("Left side of back rib too thick - overlapping with first wall")
+            raise ValueError("Left side of back rib too thick - overlapcladdingg with first wall")
         elif np.abs(rib_positions[-1]) + self.back_ribs_geometry["thickness"]/2 > backplate_extent:
-            raise ValueError("Right side of back rib too thick - overlapping with first wall")
+            raise ValueError("Right side of back rib too thick - overlapcladdingg with first wall")
         for i in range(len(rib_positions)-1):
             if rib_positions[i+1] - rib_positions[i] <= self.back_ribs_geometry["thickness"]:
-                raise ValueError("Back ribs overlapping or touching each other")
+                raise ValueError("Back ribs overlapcladdingg or touching each other")
 
     def check_slope(self, distance_to_edge, vertical_extent, error_message):
         fw_offset = (self.first_wall_geometry["outer width"] - self.first_wall_geometry["inner width"])/2
@@ -798,19 +797,19 @@ class HCPBBlanket(CreatedComponentAssembly):
                 raise ValueError(error_message)
 
     def setup_assembly(self):
-        pin_positions = self.__tile_breeder_units()
+        cladding_positions = self.__tile_breeder_units()
 
         self.components.append(FirstWallComponent({"geometry": self.first_wall_geometry, "material": self.first_wall_material}))
 
         bz_backplate_json = self.__get_bz_backplate_json()
-        self.components.append(BZBackplate(bz_backplate_json, pin_positions))
+        self.components.append(BZBackplate(bz_backplate_json, cladding_positions))
 
         front_rib_geometry, front_rib_positions = self.__get_front_ribs_params()
         front_rib_thickness = self.front_ribs_geometry["thickness"]
         for front_rib_pos in front_rib_positions:
             self.components.append(FrontRib({"geometry": front_rib_geometry, "material": self.first_wall_material, "origin": front_rib_pos}))
 
-        purge_gas_hole_positions = self.__sort_pin_positions(pin_positions)
+        purge_gas_hole_positions = self.__sort_cladding_positions(cladding_positions)
         purge_gas_front_plate_json = self.__get_pg_front_plate_json()
         self.components.append(PurgeGasPlate("purge_gas_front", purge_gas_front_plate_json, front_rib_positions, front_rib_thickness, purge_gas_hole_positions))
 
@@ -865,27 +864,27 @@ class HCPBBlanket(CreatedComponentAssembly):
         '''
         return {"geometry": geometry, "material": self.first_wall_material, "origin": Vertex(0, 0, origin_z_coord)}
 
-    def __get_pin_start_params(self):
-        '''Calculate the number of pins that fit in a 'row' for tiling breeder pins on the first wall. 
+    def __get_cladding_start_params(self):
+        '''Calculate the number of claddings that fit in a 'row' for tiling breeder claddings on the first wall. 
         Also calculate the x-coordinate of the furthest along the -x axis.
 
-        :return: Number of pins, x-coord
+        :return: Number of claddings, x-coord
         :rtype: (int, int)
         '''
         multiplier_side = self.breeder_geometry["multiplier side"]
-        pin_spacing = self.geometry["pin spacing"]
-        accessible_width = self.first_wall_geometry["inner width"] - 2*(self.geometry["pin horizontal offset"] + self.first_wall_geometry["bluntness"])
+        cladding_spacing = self.geometry["cladding spacing"]
+        accessible_width = self.first_wall_geometry["inner width"] - 2*(self.geometry["cladding horizontal offset"] + self.first_wall_geometry["bluntness"])
 
-        row_pins = int((accessible_width - 2*multiplier_side) // (pin_spacing * np.cos(np.pi/6))) + 1
-        horizontal_start_pos = -(row_pins-1)*pin_spacing*np.cos(np.pi/6) / 2
-        return row_pins, horizontal_start_pos
+        row_claddings = int((accessible_width - 2*multiplier_side) // (cladding_spacing * np.cos(np.pi/6))) + 1
+        horizontal_start_pos = -(row_claddings-1)*cladding_spacing*np.cos(np.pi/6) / 2
+        return row_claddings, horizontal_start_pos
 
     def __tile_breeder_units(self):
         fw_geometry = self.first_wall_geometry
         # get parameters
         multiplier_side = self.breeder_geometry["multiplier side"]
-        vertical_offset = self.geometry["pin vertical offset"]
-        pin_spacing = self.geometry["pin spacing"]
+        vertical_offset = self.geometry["cladding vertical offset"]
+        cladding_spacing = self.geometry["cladding spacing"]
         length = fw_geometry["length"]
         height = fw_geometry["height"]
         wall_thickness = fw_geometry["thickness"]
@@ -893,27 +892,27 @@ class HCPBBlanket(CreatedComponentAssembly):
         # 'accessible' for tiling breeder units
         accessible_height = height - 2*vertical_offset
         # hexagonally tiled breeder units are broken up into 'rows' and 'columns'
-        row_pins, horizontal_start_pos = self.__get_pin_start_params() 
-        self.first_wall_geometry["pin horizontal start"] = horizontal_start_pos
+        row_claddings, horizontal_start_pos = self.__get_cladding_start_params() 
+        self.first_wall_geometry["cladding horizontal start"] = horizontal_start_pos
         # each column 'index' has breeder units at 2 different heights
-        columns_indices = int((accessible_height - 2*multiplier_side*np.cos(np.pi/6)) // pin_spacing) + 1
+        columns_indices = int((accessible_height - 2*multiplier_side*np.cos(np.pi/6)) // cladding_spacing) + 1
         # number of distinct heights we can place breeder units
-        distinct_pin_heights = int((accessible_height - 2*multiplier_side*np.cos(np.pi/6)) // (pin_spacing*np.sin(np.pi/6))) + 1
-        centering_vertical_offset = ((accessible_height - 2*multiplier_side*np.cos(np.pi/6)) - (distinct_pin_heights-1)*pin_spacing*np.sin(np.pi/6)) / 2
+        distinct_cladding_heights = int((accessible_height - 2*multiplier_side*np.cos(np.pi/6)) // (cladding_spacing*np.sin(np.pi/6))) + 1
+        centering_vertical_offset = ((accessible_height - 2*multiplier_side*np.cos(np.pi/6)) - (distinct_cladding_heights-1)*cladding_spacing*np.sin(np.pi/6)) / 2
         vertical_start_pos = height - (vertical_offset + centering_vertical_offset + multiplier_side*np.cos(np.pi/6))
 
-        pin_positions = [[] for j in range(columns_indices)]
+        cladding_positions = [[] for j in range(columns_indices)]
         for j in range(columns_indices):
-            pin_pos = Vertex(horizontal_start_pos, vertical_start_pos, length-wall_thickness) + Vertex(0, -pin_spacing*j)
-            for i in range(row_pins):
-                # stop tiling if we overshoot the number of column pins (each column index corresponds to 2 column pins)
-                if (j*2)+1 + (i%2) <= distinct_pin_heights:
-                    pin_positions[j].append(pin_pos)
-                    self.components.append(BreederUnitAssembly({"materials":self.breeder_materials, "geometry":self.breeder_geometry, "origin":pin_pos}))
+            cladding_pos = Vertex(horizontal_start_pos, vertical_start_pos, length-wall_thickness) + Vertex(0, -cladding_spacing*j)
+            for i in range(row_claddings):
+                # stop tiling if we overshoot the number of column claddings (each column index corresponds to 2 column claddings)
+                if (j*2)+1 + (i%2) <= distinct_cladding_heights:
+                    cladding_positions[j].append(cladding_pos)
+                    self.components.append(BreederUnitAssembly({"materials":self.breeder_materials, "geometry":self.breeder_geometry, "origin":cladding_pos}))
                 else:
-                    pin_positions[j].append(False)
-                pin_pos = pin_pos + Vertex(pin_spacing).rotate(((-1)**(i+1))*np.pi/6)
-        return pin_positions
+                    cladding_positions[j].append(False)
+                cladding_pos = cladding_pos + Vertex(cladding_spacing).rotate(((-1)**(i+1))*np.pi/6)
+        return cladding_positions
 
     def __fill_fw_width(self, distance_from_fw):
         fw_length = self.first_wall_geometry["length"]
@@ -964,14 +963,14 @@ class HCPBBlanket(CreatedComponentAssembly):
         return self.__jsonify(parameters, backplate_start_z)
 
     def __get_rib_positions(self, z_position) -> list[Vertex]:
-        pin_spacing = self.geometry["pin spacing"]*np.sqrt(3/4)
-        horizontal_start = self.__get_pin_start_params()[1] - pin_spacing/2
+        cladding_spacing = self.geometry["cladding spacing"]*np.sqrt(3/4)
+        horizontal_start = self.__get_cladding_start_params()[1] - cladding_spacing/2
 
         positions = []
         front_rib_positions = self.geometry["front rib positions"]
         front_rib_positions.sort()
         for position_index in front_rib_positions:
-            positions.append(Vertex(horizontal_start + position_index*pin_spacing, 0, z_position))
+            positions.append(Vertex(horizontal_start + position_index*cladding_spacing, 0, z_position))
 
         return positions
 
@@ -1005,11 +1004,11 @@ class HCPBBlanket(CreatedComponentAssembly):
         rib_positions = self.__get_rib_positions(z_position)
         return params, rib_positions
 
-    def __sort_pin_positions(self, pin_positions):
+    def __sort_cladding_positions(self, cladding_positions):
         rib_pos = self.geometry["front rib positions"]
         plate_hole_positions = [[] for i in range(len(rib_pos)+1)]
 
-        for row in pin_positions:
+        for row in cladding_positions:
             padded_rib_pos = [0] + rib_pos + [len(row)]
             for i in range(len(padded_rib_pos)-1):
                 plate_hole_positions[i].append(row[padded_rib_pos[i]:padded_rib_pos[i+1]])
@@ -1088,7 +1087,7 @@ def get_all_geometries_from_components(component_list) -> list[CubitInstance]:
     for component in component_list:
         if isinstance(component, CubitInstance):
             instances.append(component)
-        elif isinstance(component, ComplexComponent):
+        elif isinstance(component, SimpleComponent):
             instances += component.subcomponents
         elif isinstance(component, GenericComponentAssembly):
             instances += component.get_all_geometries()

@@ -21,7 +21,7 @@
         "breeder_unit": {
             "class": "breeder_unit",
             "materials": {
-                "pin": "Steel",
+                "cladding": "Steel",
                 "pressure tube": "Steel",
                 "multiplier": "Beryllium",
                 "coolant": "Helium",

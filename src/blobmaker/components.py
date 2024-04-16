@@ -11,7 +11,7 @@ class ExternalComponent(CubitInstance):
         # track external components
 
 
-class ComplexComponent:
+class SimpleComponent:
     # stores information about what materials exist.
     # geometries can then be found from groups with the same name
     def __init__(self, classname, json_object: dict):
@@ -144,7 +144,7 @@ class ComplexComponent:
         return " ".join(str(subcomponent.cid) for subcomponent in self.get_subcomponents()) 
 
 
-class SurroundingWallsComponent(ComplexComponent):
+class SurroundingWallsComponent(SimpleComponent):
     '''Surrounding walls, filled with air'''
     def __init__(self, json_object: dict):
         super().__init__("surrounding_walls", json_object)
@@ -178,7 +178,7 @@ class SurroundingWallsComponent(ComplexComponent):
         return CubitInstance(room_id, "volume")
 
 
-class AirComponent(ComplexComponent):
+class AirComponent(SimpleComponent):
     '''Air, stored as body'''
     def __init__(self, json_object: dict):
         super().__init__("air", json_object)
@@ -186,16 +186,16 @@ class AirComponent(ComplexComponent):
         self.as_bodies()
 
 
-class BreederComponent(ComplexComponent):
+class BreederComponent(SimpleComponent):
     def __init__(self, json_object):
         super().__init__("breeder", json_object)
 
 
-class StructureComponent(ComplexComponent):
+class StructureComponent(SimpleComponent):
     def __init__(self, json_object):
         super().__init__("structure", json_object)
 
-class WallComponent(ComplexComponent):
+class WallComponent(SimpleComponent):
     def __init__(self, json_object):
         super().__init__("wall", json_object)
 
@@ -243,27 +243,27 @@ class WallComponent(ComplexComponent):
         return CubitInstance(wall.cid, wall.geometry_type)
 
 
-class PinComponent(ComplexComponent):
+class CladdingComponent(SimpleComponent):
     def __init__(self, json_object):
-        super().__init__("pin", json_object)
+        super().__init__("cladding", json_object)
 
     def check_sanity(self):
         geom = self.geometry
         offset_slope = hypotenuse(geom["offset"], geom["outer cladding"] + geom["breeder chamber thickness"] + geom["inner cladding"])
         if "bluntness" in self.geometry.keys():
             if geom["bluntness"] >= offset_slope/2:
-                raise ValueError("Pin bluntness larger than offset surface")
+                raise ValueError("cladding bluntness larger than offset surface")
             elif geom["bluntness"] >= geom["outer length"]:
-                raise ValueError("Pin bluntness larger than outer length")
+                raise ValueError("cladding bluntness larger than outer length")
             elif geom["bluntness"] >= geom["inner length"]:
-                raise ValueError("Pin bluntness larger than inner length")
+                raise ValueError("cladding bluntness larger than inner length")
         else:
             if geom["inner bluntness"] + geom["outer bluntness"] >= offset_slope:
-                raise ValueError("Pin bluntness larger than offset surface")
+                raise ValueError("cladding bluntness larger than offset surface")
             elif geom["inner bluntness"] >= geom["inner length"]:
-                raise ValueError("Pin inner bluntness larger than inner length")
+                raise ValueError("cladding inner bluntness larger than inner length")
             elif geom["outer bluntness"] >= geom["outer length"]:
-                raise ValueError("Pin outer bluntness larger than outer length")
+                raise ValueError("cladding outer bluntness larger than outer length")
 
     def make_geometry(self):
         # get params
@@ -292,41 +292,41 @@ class PinComponent(ComplexComponent):
         net_thickness = inner_cladding + breeder_chamber_thickness + outer_cladding
         slope_angle = arctan(net_thickness, offset)
 
-        pin_vertices = list(np.zeros(14))
+        cladding_vertices = list(np.zeros(14))
 
         # set up points of face-to-sweep
-        pin_vertices[0] = Vertex(0, inner_less_purge_thickness)
-        pin_vertices[1] = Vertex(0)
+        cladding_vertices[0] = Vertex(0, inner_less_purge_thickness)
+        cladding_vertices[1] = Vertex(0)
 
         inner_cladding_ref1 = Vertex(-inner_length)
-        pin_vertices[2] = inner_cladding_ref1 + Vertex(inner_bluntness)
-        pin_vertices[3] = inner_cladding_ref1 + Vertex(inner_bluntness).rotate(slope_angle)
+        cladding_vertices[2] = inner_cladding_ref1 + Vertex(inner_bluntness)
+        cladding_vertices[3] = inner_cladding_ref1 + Vertex(inner_bluntness).rotate(slope_angle)
 
         outer_cladding_ref1 = inner_cladding_ref1 + Vertex(offset, net_thickness)
-        pin_vertices[4] = outer_cladding_ref1 + Vertex(outer_bluntness).rotate(slope_angle-np.pi)
-        pin_vertices[5] = outer_cladding_ref1 + Vertex(outer_bluntness)
+        cladding_vertices[4] = outer_cladding_ref1 + Vertex(outer_bluntness).rotate(slope_angle-np.pi)
+        cladding_vertices[5] = outer_cladding_ref1 + Vertex(outer_bluntness)
 
-        pin_vertices[6] = outer_cladding_ref1 + Vertex(outer_length)
-        pin_vertices[7] = outer_cladding_ref1 + Vertex(outer_length, -outer_cladding)
+        cladding_vertices[6] = outer_cladding_ref1 + Vertex(outer_length)
+        cladding_vertices[7] = outer_cladding_ref1 + Vertex(outer_length, -outer_cladding)
 
         outer_cladding_ref2 = outer_cladding_ref1 + Vertex(outer_cladding * np.tan(slope_angle/2), -outer_cladding)
-        pin_vertices[8] = outer_cladding_ref2 + Vertex(outer_bluntness)
-        pin_vertices[9] = outer_cladding_ref2 + Vertex(outer_bluntness).rotate(slope_angle-np.pi)
+        cladding_vertices[8] = outer_cladding_ref2 + Vertex(outer_bluntness)
+        cladding_vertices[9] = outer_cladding_ref2 + Vertex(outer_bluntness).rotate(slope_angle-np.pi)
 
         inner_cladding_ref2 = inner_cladding_ref1 + Vertex(inner_cladding/np.tan(slope_angle) + outer_cladding/np.sin(slope_angle), inner_cladding)
-        pin_vertices[10] = inner_cladding_ref2 + Vertex(inner_bluntness).rotate(slope_angle)
-        pin_vertices[11] = inner_cladding_ref2 + Vertex(inner_bluntness)
+        cladding_vertices[10] = inner_cladding_ref2 + Vertex(inner_bluntness).rotate(slope_angle)
+        cladding_vertices[11] = inner_cladding_ref2 + Vertex(inner_bluntness)
 
-        pin_vertices[13] = pin_vertices[0] + Vertex(-distance_to_step)
-        pin_vertices[12] = pin_vertices[13] + Vertex(0, step_thickness)
+        cladding_vertices[13] = cladding_vertices[0] + Vertex(-distance_to_step)
+        cladding_vertices[12] = cladding_vertices[13] + Vertex(0, step_thickness)
 
-        surface_to_sweep = make_surface(pin_vertices, [2, 4, 8, 10])
+        surface_to_sweep = make_surface(cladding_vertices, [2, 4, 8, 10])
         cmd(f"sweep surface {surface_to_sweep.cid} axis 0 {-coolant_inlet_radius} 0 1 0 0 angle 360")
-        pin = get_last_geometry("volume")
+        cladding = get_last_geometry("volume")
 
         duct_vertices = list(np.zeros(4))
-        duct_vertices[0] = pin_vertices[0] + Vertex(-purge_duct_offset, purge_duct_thickness)
-        duct_vertices[1] = pin_vertices[0] + Vertex(-distance_to_disk, purge_duct_thickness)
+        duct_vertices[0] = cladding_vertices[0] + Vertex(-purge_duct_offset, purge_duct_thickness)
+        duct_vertices[1] = cladding_vertices[0] + Vertex(-distance_to_disk, purge_duct_thickness)
         duct_vertices[2] = duct_vertices[1] + Vertex(0, purge_duct_cladding)
         duct_vertices[3] = duct_vertices[0] + Vertex(0, purge_duct_cladding)
 
@@ -335,12 +335,12 @@ class PinComponent(ComplexComponent):
         duct = get_last_geometry("volume")
 
         # realign with origin
-        cubit.move(pin.cubitInstance, [inner_length, coolant_inlet_radius, 0])
+        cubit.move(cladding.cubitInstance, [inner_length, coolant_inlet_radius, 0])
         cubit.move(duct.cubitInstance, [inner_length, coolant_inlet_radius, 0])
-        return [pin, duct]
+        return [cladding, duct]
 
 
-class BreederUnitCoolant(ComplexComponent):
+class BreederUnitCoolant(SimpleComponent):
     def __init__(self, json_object: dict):
         super().__init__("coolant", json_object)
 
@@ -357,10 +357,10 @@ class BreederUnitCoolant(ComplexComponent):
         pressure_tube_length = geometry["pressure tube length"]
         pressure_tube_radius = geometry["pressure tube radius"]
         pressure_tube_gap = geometry["pressure tube gap"]
-        pin_thickness = geometry["pin thickness"]
+        cladding_thickness = geometry["cladding thickness"]
         inlet_radius = geometry["coolant inlet radius"]
 
-        slope_angle = np.arctan(pin_thickness / offset)
+        slope_angle = np.arctan(cladding_thickness / offset)
 
         coolant_vertices = list(np.zeros(10))
 
@@ -371,7 +371,7 @@ class BreederUnitCoolant(ComplexComponent):
         coolant_vertices[2] = inner_cladding_ref1 + Vertex(inner_bluntness)
         coolant_vertices[3] = inner_cladding_ref1 + Vertex(inner_bluntness).rotate(slope_angle)
 
-        outer_cladding_ref1 = inner_cladding_ref1 + Vertex(offset, pin_thickness)
+        outer_cladding_ref1 = inner_cladding_ref1 + Vertex(offset, cladding_thickness)
         coolant_vertices[4] = outer_cladding_ref1 + Vertex(outer_bluntness).rotate(slope_angle-np.pi)
         coolant_vertices[5] = outer_cladding_ref1 + Vertex(outer_bluntness)
         coolant_vertices[6] = outer_cladding_ref1 + Vertex(pressure_tube_length-(offset+pressure_tube_gap))
@@ -388,7 +388,7 @@ class BreederUnitCoolant(ComplexComponent):
         return coolant
 
 
-class PressureTubeComponent(ComplexComponent):
+class PressureTubeComponent(SimpleComponent):
     def __init__(self, json_object):
         super().__init__("pressure_tube", json_object)
 
@@ -409,7 +409,7 @@ class PressureTubeComponent(ComplexComponent):
         return tube
 
 
-class FilterLidComponent(ComplexComponent):
+class FilterLidComponent(SimpleComponent):
     def __init__(self, json_object):
         super().__init__("filter_lid", json_object)
 
@@ -431,7 +431,7 @@ class FilterLidComponent(ComplexComponent):
         return tube
 
 
-class PurgeGasComponent(ComplexComponent):
+class PurgeGasComponent(SimpleComponent):
     def __init__(self, json_object):
         super().__init__("purge_gas", json_object)
 
@@ -453,7 +453,7 @@ class PurgeGasComponent(ComplexComponent):
         return tube
 
 
-class FilterDiskComponent(ComplexComponent):
+class FilterDiskComponent(SimpleComponent):
     def __init__(self, json_object):
         super().__init__("filter_disk", json_object)
 
@@ -472,7 +472,7 @@ class FilterDiskComponent(ComplexComponent):
         return tube
 
 
-class MultiplierComponent(ComplexComponent):
+class MultiplierComponent(SimpleComponent):
     def __init__(self, json_object):
         super().__init__("multiplier", json_object)
 
@@ -501,7 +501,7 @@ class MultiplierComponent(ComplexComponent):
         return multiplier
 
 
-class BreederChamber(ComplexComponent):
+class BreederChamber(SimpleComponent):
     def __init__(self, json_object):
         super().__init__("breeder", json_object)
 
@@ -539,7 +539,7 @@ class BreederChamber(ComplexComponent):
         return breeder
 
 
-class FirstWallComponent(ComplexComponent):
+class FirstWallComponent(SimpleComponent):
     def __init__(self, json_object):
         super().__init__("first_wall", json_object)
 
@@ -617,10 +617,10 @@ class FirstWallComponent(ComplexComponent):
         return first_wall
 
 
-class Plate(ComplexComponent):
-    def __init__(self, classname, json_object: dict, plate_type, pin_positions=[[]]):
+class Plate(SimpleComponent):
+    def __init__(self, classname, json_object: dict, plate_type, cladding_positions=[[]]):
         self.plate_type = plate_type
-        self.pin_pos = pin_positions
+        self.cladding_pos = cladding_positions
         super().__init__(classname, json_object)
 
     def __get_back_vertices(self):
@@ -656,7 +656,7 @@ class Plate(ComplexComponent):
         plate_thickness = self.geometry["thickness"]
         hole_radius = self.geometry["hole radius"]
 
-        for row in self.pin_pos:
+        for row in self.cladding_pos:
             for position in row:
                 hole_position = Vertex(position.x, position.y, 0)
                 hole_to_be = cmd_check(f"create cylinder radius {hole_radius} height {plate_thickness*3}", "volume")
@@ -666,11 +666,11 @@ class Plate(ComplexComponent):
 
 
 class BZBackplate(Plate):
-    def __init__(self, json_object: dict, pin_positions):
-        super().__init__("BZ_backplate", json_object, "full", pin_positions)
+    def __init__(self, json_object: dict, cladding_positions):
+        super().__init__("BZ_backplate", json_object, "full", cladding_positions)
 
 
-class PurgeGasPlate(ComplexComponent):
+class PurgeGasPlate(SimpleComponent):
     def __init__(self, classname, json_object: dict, rib_positions: list[Vertex], rib_thickness: int, plate_hole_positions: list):
         self.hole_pos = plate_hole_positions
         self.rib_pos = [i.x for i in rib_positions]
@@ -707,7 +707,7 @@ class PurgeGasPlate(ComplexComponent):
         return {"geometry": geometry, "material": self.material, "origin": origin}
 
 
-class Rib(ComplexComponent):
+class Rib(SimpleComponent):
     def __init__(self, classname, json_object: dict):
         super().__init__(classname, json_object)
 
@@ -723,7 +723,7 @@ class Rib(ComplexComponent):
         elif 2*self.geometry["connection height"] > self.geometry["side channel vertical margin"]:
             raise ValueError("connection height larger than vertical margin")
         elif self.geometry["connection height"] > self.geometry["side channel gap"]:
-            raise ValueError("Rib connections overlapping, connection height too large")
+            raise ValueError("Rib connections overlapcladdingg, connection height too large")
 
     def make_geometry(self):
         height = self.geometry["height"]
@@ -807,7 +807,7 @@ class BackRib(Rib):
         return structure
 
 
-class CoolantOutletPlenum(ComplexComponent):
+class CoolantOutletPlenum(SimpleComponent):
     def __init__(self, json_object: dict, rib_positions: list[Vertex], rib_thickness):
         self.rib_pos = [i.x for i in rib_positions]
         self.rib_pos.sort()

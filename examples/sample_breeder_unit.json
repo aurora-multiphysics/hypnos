@@ -1,7 +1,7 @@
 {
     "class": "breeder_unit",
     "materials": {
-        "pin": "EUROFER",
+        "cladding": "EUROFER",
         "pressure tube": "EUROFER",
         "multiplier": "Beryllium",
         "coolant": "Helium",

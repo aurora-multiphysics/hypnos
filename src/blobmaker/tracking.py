@@ -1,4 +1,4 @@
-from blobmaker.components import ComplexComponent
+from blobmaker.components import SimpleComponent
 from blobmaker.assemblies import GenericComponentAssembly, ExternalComponentAssembly
 from blobmaker.generic_classes import CubismError, CubitInstance, cubit, cmd
 from blobmaker.cubit_functions import to_surfaces, to_volumes, cmd_check, get_entities_from_group, create_new_entity, merge_volumes
@@ -66,7 +66,7 @@ class Sideset:
         return " ".join([str(surf) for surf in self.surfaces])
 
 class ComponentGroup:
-    def __init__(self, component: ComplexComponent) -> None:
+    def __init__(self, component: SimpleComponent) -> None:
         self.identifier = component.identifier
         self.material = component.material
         self.vols = component.volume_id_string()
@@ -130,7 +130,7 @@ class MaterialsTracker:
         :param root_component: _description_
         :type root_component: _type_
         '''
-        if isinstance(root_component, ComplexComponent):
+        if isinstance(root_component, SimpleComponent):
             self.components += [root_component]
             self.materials += [root_component.material]
         elif isinstance(root_component, GenericComponentAssembly):
@@ -230,12 +230,12 @@ class ComponentTracker:
             for component in root_component.get_components():
                 self.give_identifiers(component)
         # if this is a complex component, give it a unique identifier
-        elif isinstance(root_component, ComplexComponent):
+        elif isinstance(root_component, SimpleComponent):
             self.__name_component(root_component)
         else:
             raise CubismError(f'Component not recognised: {root_component}')
     
-    def __name_component(self, root_component: GenericComponentAssembly | ComplexComponent):
+    def __name_component(self, root_component: GenericComponentAssembly | SimpleComponent):
         '''If component doesn't already have a unique identifier, give it one
 
         :param root_component: component to name
@@ -262,7 +262,7 @@ class ComponentTracker:
             for component in root_component.get_components():
                 self.__add_to_group(groupname, self.__track_components_as_groups(component))
         # if this is a complex component, add volumes to group
-        elif isinstance(root_component, ComplexComponent):
+        elif isinstance(root_component, SimpleComponent):
             groupname = root_component.identifier
             for geometry in root_component.get_subcomponents():
                 self.__add_to_group(groupname, geometry)
