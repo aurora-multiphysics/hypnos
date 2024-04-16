@@ -138,6 +138,10 @@ class ComplexComponent:
     def set_mesh_size(self, size: int):
         for subcomponent in self.get_subcomponents():
             cmd(f"{subcomponent.geometry_type} {subcomponent.cid} size {size}")
+    
+    def volume_id_string(self):
+        self.as_volumes()
+        return " ".join(str(subcomponent.cid) for subcomponent in self.get_subcomponents()) 
 
 
 class SurroundingWallsComponent(ComplexComponent):
@@ -429,7 +433,7 @@ class FilterLidComponent(ComplexComponent):
 
 class PurgeGasComponent(ComplexComponent):
     def __init__(self, json_object):
-        super().__init__("filter_lid", json_object)
+        super().__init__("purge_gas", json_object)
 
     def make_geometry(self):
         length = self.geometry["length"]
