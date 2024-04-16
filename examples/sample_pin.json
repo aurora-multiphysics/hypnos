@@ -1,5 +1,5 @@
 {
-    "class": "breeder_unit",
+    "class": "pin",
     "materials": {
         "cladding": "EUROFER",
         "pressure tube": "EUROFER",

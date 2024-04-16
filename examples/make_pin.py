@@ -1,12 +1,12 @@
 from blobmaker import GeometryMaker
 
 
-def make_breeder_unit():
+def make_pin():
     maker = GeometryMaker()
     maker.track_components = True
 
     # parses json file to a python dict in design_tree attribute
-    maker.parse_json("sample_breeder_unit.json")
+    maker.parse_json("sample_blanket.json")
 
     # constructs geometry from design_tree, class structure in constructed_geometry
     maker.make_geometry()
@@ -15,15 +15,15 @@ def make_breeder_unit():
     maker.imprint_and_merge()
 
     # replace the . with destination path
-    maker.export_geometry("breeder_unit.cub5", ".")
+    maker.export_geometry("pin.cub5", ".")
 
     # global mesh setting
     maker.set_mesh_size(4)
     # maker.tetmesh()
 
     # again, replace the . with destination path
-    # maker.export_mesh("breeder_unit.e", ".")
+    # maker.export_mesh("pin.e", ".")
 
 
 if __name__ == "__main__":
-    make_breeder_unit()
+    make_pin()

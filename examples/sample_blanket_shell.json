@@ -6,7 +6,7 @@
         "horizontal offset": 0
     },
     "components": {
-        "breeder_unit": "sample_breeder_unit.json",
+        "pin": "sample_pin.json",
         "first_wall": "sample_first_wall.json"
     }
 }

@@ -18,8 +18,8 @@
                 "height": 580
             }
         },
-        "breeder_unit": {
-            "class": "breeder_unit",
+        "pin": {
+            "class": "pin",
             "materials": {
                 "cladding": "Steel",
                 "pressure tube": "Steel",

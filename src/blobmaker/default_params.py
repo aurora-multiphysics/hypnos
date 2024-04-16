@@ -1,7 +1,7 @@
-BREEDER_UNIT = {
-    "class": "breeder_unit",
+PIN = {
+    "class": "pin",
     "materials": {
-        "pin": "EUROFER",
+        "cladding": "EUROFER",
         "pressure tube": "EUROFER",
         "multiplier": "Beryllium",
         "coolant": "Helium",
@@ -55,7 +55,7 @@ BLANKET_SHELL = {
         "horizontal offset": 0
     },
     "components": {
-        "breeder_unit": BREEDER_UNIT,
+        "pin": PIN,
         "first_wall": FIRST_WALL
     }
 }
@@ -86,10 +86,10 @@ BLANKET_RING = {
                         "height": 580
                     }
                 },
-                "breeder_unit": {
-                    "class": "breeder_unit",
+                "pin": {
+                    "class": "pin",
                     "materials": {
-                            "pin": "EUROFER",
+                            "cladding": "EUROFER",
                             "pressure tube": "EUROFER",
                             "multiplier": "Beryllium",
                             "coolant": "Helium",
@@ -143,7 +143,7 @@ HCPB_BLANKET = {
         "FW backplate thickness": 100
     },
     "components": {
-        "breeder_unit": BREEDER_UNIT,
+        "pin": PIN,
         "first_wall": FIRST_WALL,
         "front_rib": {
             "class": "front_rib",
@@ -174,4 +174,4 @@ HCPB_BLANKET = {
     }
 }
 
-DEFAULTS = [BREEDER_UNIT, FIRST_WALL, BLANKET_SHELL, BLANKET_RING, HCPB_BLANKET]
+DEFAULTS = [PIN, FIRST_WALL, BLANKET_SHELL, BLANKET_RING, HCPB_BLANKET]

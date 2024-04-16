@@ -618,9 +618,9 @@ class FirstWallComponent(SimpleComponent):
 
 
 class Plate(SimpleComponent):
-    def __init__(self, classname, json_object: dict, plate_type, cladding_positions=[[]]):
+    def __init__(self, classname, json_object: dict, plate_type, pin_positions=[[]]):
         self.plate_type = plate_type
-        self.cladding_pos = cladding_positions
+        self.pin_pos = pin_positions
         super().__init__(classname, json_object)
 
     def __get_back_vertices(self):
@@ -656,7 +656,7 @@ class Plate(SimpleComponent):
         plate_thickness = self.geometry["thickness"]
         hole_radius = self.geometry["hole radius"]
 
-        for row in self.cladding_pos:
+        for row in self.pin_pos:
             for position in row:
                 hole_position = Vertex(position.x, position.y, 0)
                 hole_to_be = cmd_check(f"create cylinder radius {hole_radius} height {plate_thickness*3}", "volume")
@@ -666,8 +666,8 @@ class Plate(SimpleComponent):
 
 
 class BZBackplate(Plate):
-    def __init__(self, json_object: dict, cladding_positions):
-        super().__init__("BZ_backplate", json_object, "full", cladding_positions)
+    def __init__(self, json_object: dict, pin_positions):
+        super().__init__("BZ_backplate", json_object, "full", pin_positions)
 
 
 class PurgeGasPlate(SimpleComponent):
@@ -723,7 +723,7 @@ class Rib(SimpleComponent):
         elif 2*self.geometry["connection height"] > self.geometry["side channel vertical margin"]:
             raise ValueError("connection height larger than vertical margin")
         elif self.geometry["connection height"] > self.geometry["side channel gap"]:
-            raise ValueError("Rib connections overlapcladdingg, connection height too large")
+            raise ValueError("Rib connections overlapping, connection height too large")
 
     def make_geometry(self):
         height = self.geometry["height"]

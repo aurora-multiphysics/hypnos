@@ -9,7 +9,7 @@ parameters = {
 
 # Generate trial geometry.
 geometry = GeometryMaker()
-geometry.parse_json(str("./examples/sample_breeder_unit.json"))
+geometry.parse_json(str("./examples/sample_pin.json"))
 geometry.change_params(parameters)
 geometry.make_geometry()
 geometry.imprint_and_merge()

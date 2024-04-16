@@ -2,8 +2,8 @@
 NEUTRON_TEST_FACILITY_REQUIREMENTS = ["room", "source"]
 BLANKET_REQUIREMENTS = ["breeder", "structure"]
 ROOM_REQUIREMENTS = ["blanket", "surrounding_walls"]
-BLANKET_SHELL_REQUIREMENTS = ["first_wall", "breeder_unit"]
-HCPB_BLANKET_REQUIREMENTS = ["first_wall", "breeder_unit", "front_rib", "back_rib", "coolant_outlet_plenum"]
+BLANKET_SHELL_REQUIREMENTS = ["first_wall", "pin"]
+HCPB_BLANKET_REQUIREMENTS = ["first_wall", "pin", "front_rib", "back_rib", "coolant_outlet_plenum"]
 
 # classes according to what make_geometry subfunction(?) needs to be called
 BLOB_CLASSES = ["complex", "breeder", "structure", "air"]
@@ -24,7 +24,7 @@ CLASS_MAPPING = {
     "surrounding_walls": "SurroundingWallsComponent",
     "breeder": "BreederComponent",
     "structure": "StructureComponent",
-    "breeder_unit": "BreederUnitAssembly",
+    "pin": "PinAssembly",
     "cladding": "CladdingComponent",
     "pressure_tube": "PressureTubeComponent",
     "multiplier": "MultiplierComponent",

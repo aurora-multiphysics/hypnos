@@ -22,10 +22,10 @@
         "FW backplate thickness": 100
     },
     "components": {
-        "breeder_unit": {
-            "class": "breeder_unit",
+        "pin": {
+            "class": "pin",
             "materials": {
-                "pin": "EUROFER",
+                "cladding": "EUROFER",
                 "pressure tube": "EUROFER",
                 "multiplier": "Beryllium",
                 "coolant": "Helium",

@@ -9,7 +9,7 @@ def build():
     maker.parse_json('sample_blanket.json')
 
     for length in multiplier_lengths:
-        maker.change_params({"components/breeder_unit/geometry/multiplier length": length})
+        maker.change_params({"components/pin/geometry/multiplier length": length})
         maker.make_geometry()
         maker.imprint_and_merge()
         # change destination path!
