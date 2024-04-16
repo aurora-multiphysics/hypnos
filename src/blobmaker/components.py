@@ -433,7 +433,7 @@ class FilterLidComponent(ComplexComponent):
 
 class PurgeGasComponent(ComplexComponent):
     def __init__(self, json_object):
-        super().__init__("filter_lid", json_object)
+        super().__init__("purge_gas", json_object)
 
     def make_geometry(self):
         length = self.geometry["length"]

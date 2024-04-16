@@ -203,8 +203,9 @@ def to_bodies(component_list: list) -> list[CubitInstance]:
                     bodies_list.append(CubitInstance(owning_body_id, "body"))
     return bodies_list
 
+
 def get_entities_from_group(group_identifier: int | str, entity_type: str):
-    if type(group_identifier) == str:
+    if type(group_identifier) is str:
         group_identifier = cubit.get_id_from_name(group_identifier)
         if group_identifier == 0:
             raise CubismError("could not find group corresponding to name")
@@ -218,18 +219,38 @@ def get_entities_from_group(group_identifier: int | str, entity_type: str):
         return cubit.get_group_vertices(group_identifier)
     elif entity_type == "group":
         return cubit.get_group_groups(group_identifier)
+    else:
+        raise CubismError(f"Entity type {entity_type} not recognised")
 
-def create_new_entity(entity_type: str, name: str):
+
+def create_new_entity(entity_type: str, name: str) -> int:
     if entity_type in ["block", "sideset"]:
-        exo_id = cubit.get_next_block_id()
+        if entity_type == "block":
+            exo_id = cubit.get_next_block_id()
+        elif entity_type == "sideset":
+            exo_id = cubit.get_next_sideset_id()
         cmd(f'create {entity_type} {exo_id}')
         cmd(f'{entity_type} {exo_id} name "{name}"')
         return exo_id
-    if entity_type == "group":
+    elif entity_type == "group":
         group_id = cmd_check(f"create group '{name}'", "group")
         if group_id == 0:
             group_id = cubit.get_id_from_name(name)
         return group_id
+
+
+def merge_volumes(vol_string1: str, vol_string2: str):
+    pre_id = cubit.get_last_id("group")
+    cmd(f"merge volume {vol_string1} with volume {vol_string2} group_results")
+    post_id = cubit.get_last_id("group")
+    group_with_surfaces = False
+    if post_id > pre_id:
+        for group_id in range(pre_id + 1, post_id + 1):
+            if cubit.get_group_surfaces(group_id) == ():
+                cmd(f"delete group {group_id}")
+            else:
+                group_with_surfaces = group_id
+    return group_with_surfaces
 
 # unionise is in Assemblies.py as it needs to know about the
 # ComplexComponent and Assembly classes

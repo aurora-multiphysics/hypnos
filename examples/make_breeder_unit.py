@@ -3,6 +3,7 @@ from blobmaker import GeometryMaker
 
 def make_breeder_unit():
     maker = GeometryMaker()
+    maker.track_components = True
 
     # parses json file to a python dict in design_tree attribute
     maker.parse_json("sample_breeder_unit.json")
