@@ -7,7 +7,7 @@ def make_pin():
 
     # parses json file to a python dict in design_tree attribute
     maker.parse_json("sample_pin.json")
-
+    
     # constructs geometry from design_tree, class structure in constructed_geometry
     maker.make_geometry()
 

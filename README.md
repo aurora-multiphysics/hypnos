@@ -7,8 +7,7 @@ Blobmaker is a parametric geometry engine to create meshes for structures involv
 + [Python 3](https://www.python.org/downloads/)
 + The numpy python library: `pip install numpy`
 
-The oldest version of coreform cubit used with this code is Coreform Cubit 2023.4
-It is not compatible with Coreform Cubit 2023.11+
+This code should be run with Coreform Cubit 2023.8
 The cubit python library must be on your python path
 
 ## Usage
