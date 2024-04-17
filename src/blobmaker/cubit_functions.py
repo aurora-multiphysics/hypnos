@@ -204,7 +204,7 @@ def to_bodies(component_list: list) -> list[CubitInstance]:
     return bodies_list
 
 
-def get_entities_from_group(group_identifier: int | str, entity_type: str):
+def get_entities_from_group(group_identifier: int | str, entity_type: str) -> list[int]:
     if type(group_identifier) is str:
         group_identifier = cubit.get_id_from_name(group_identifier)
         if group_identifier == 0:

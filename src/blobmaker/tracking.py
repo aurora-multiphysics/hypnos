@@ -51,8 +51,6 @@ class Sideset:
                 self.add_surface(surf)
         elif isinstance(surface, CubitInstance) and surface.geometry_type == "surface":
             self.__add_if_unique(surface.cid)
-#        else:
-#            raise CubismError("Only accepts surfaces")
     
     def __add_if_unique(self, surface: int):
         if surface not in self.surfaces:
@@ -64,6 +62,7 @@ class Sideset:
     
     def get_surfaces_string(self):
         return " ".join([str(surf) for surf in self.surfaces])
+
 
 class ComponentGroup:
     def __init__(self, component: SimpleComponent) -> None:
@@ -183,11 +182,16 @@ class MaterialsTracker:
                 cmd(f"delete group {group_id}")
     
     def add_blocks(self):
-        for material in self.materials:
-            vols = [str(vol) for vol in get_entities_from_group(material, "volume")]
-            vol_string = " ".join(vols)
-            block_id = create_new_entity("block", material)
-            cmd(f"block {block_id} add volume {vol_string}")
+        for component in self.components:
+            if isinstance(component, SimpleComponent):
+                self.__add_component_to_block(component)
+            elif isinstance(component, GenericComponentAssembly):
+                for comp in component.get_all_components():
+                    self.__add_component_to_block(comp)
+    
+    def __add_component_to_block(self, component: SimpleComponent):
+        block_id = create_new_entity("block", component.identifier)
+        cmd(f"block {block_id} add volume {component.volume_id_string()}")
     
     def add_sidesets(self):
         for boundary in self.boundaries:            
