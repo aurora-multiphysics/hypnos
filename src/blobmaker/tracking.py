@@ -1,7 +1,14 @@
 from blobmaker.components import SimpleComponent
 from blobmaker.assemblies import GenericComponentAssembly, ExternalComponentAssembly
 from blobmaker.generic_classes import CubismError, CubitInstance, cubit, cmd
-from blobmaker.cubit_functions import to_surfaces, to_volumes, cmd_check, get_entities_from_group, create_new_entity, merge_volumes
+from blobmaker.cubit_functions import (
+    to_surfaces, 
+    to_volumes, 
+    cmd_check, 
+    get_entities_from_group, 
+    create_new_entity, 
+    merge_volumes
+)
 import itertools
 
 
