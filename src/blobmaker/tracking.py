@@ -1,7 +1,7 @@
 from blobmaker.components import SimpleComponent
 from blobmaker.assemblies import GenericComponentAssembly, ExternalComponentAssembly
 from blobmaker.generic_classes import CubismError, CubitInstance, cubit, cmd
-from blobmaker.cubit_functions import to_surfaces, to_volumes, cmd_check, get_entities_from_group, create_new_entity, merge_volumes
+from blobmaker.cubit_functions import to_surfaces, to_volumes, cmd_check, get_entities_from_group, create_new_entity
 import itertools
 
 
@@ -35,6 +35,8 @@ class Group:
 
 
 class Sideset:
+    '''Tracks cubit sidesets
+    '''
     def __init__(self, name: str) -> None:
         self.name = name
         self.id = create_new_entity("sideset", name)
@@ -44,6 +46,11 @@ class Sideset:
         return self.name
 
     def add_surface(self, surface):
+        '''Add surface to sideset
+
+        :param surface: cubit ID | geometry | list of either
+        :type surface: int | CubitInstance | list[int] | list[CubitInstance]
+        '''
         if type(surface) is int:
             self.__add_if_unique(surface)
         elif type(surface) is list:
@@ -65,6 +72,8 @@ class Sideset:
 
 
 class ComponentGroup:
+    '''Tracks materials and boundaries of a SimpleComponent. 
+    '''
     def __init__(self, component: SimpleComponent) -> None:
         self.identifier = component.identifier
         self.material = component.material
@@ -93,6 +102,11 @@ class ComponentGroup:
             self.material_boundaries.append(mat_group)
 
     def track_shared_surfaces(self, component: 'ComponentGroup'):
+        '''Tracks the surfaces shared between volumes of self and provided component
+
+        :param component: ComponentGroup to find surfaces in common with
+        :type component: ComponentGroup
+        '''
         shared_surfs = self.__get_shared_surfs(self.geometries, component.geometries)
         if shared_surfs:
             identifiers = [self.identifier, component.identifier]
@@ -120,6 +134,8 @@ class ComponentGroup:
 
 
 class MaterialsTracker:
+    '''Tracks materials and boundaries between all provided components
+    '''
     def __init__(self) -> None:
         self.components = []
         self.materials = []
@@ -130,19 +146,20 @@ class MaterialsTracker:
     def extract_components(self, root_component):
         '''Get all components stored in root and every material they are made of.
 
-        :param root_component: _description_
-        :type root_component: _type_
+        :param root_component: component to track
+        :type root_component: SimpleComponent | GenericComponentAssembly
         '''
         if isinstance(root_component, SimpleComponent):
             self.components += [root_component]
             self.materials += [root_component.material]
         elif isinstance(root_component, GenericComponentAssembly):
             self.components += root_component.get_all_components()
-            self.materials += list(set([component.material for component in self.components]))
+            self.materials += [component.material for component in self.components]
         self.materials = list(set(self.materials))
     
     def track_boundaries(self):
-        '''Merge every combination of component. Make component-component and material-material groups.
+        '''Find boundaries between simple components. 
+        Make component-component and material-material groups.
         '''
         self.components = [ComponentGroup(component) for component in self.components]
         if len(self.components) > 1:
@@ -175,14 +192,8 @@ class MaterialsTracker:
 
         self.__fill_group_with_groups("materials", self.materials)
         self.__fill_group_with_groups("components", [comp.identifier for comp in self.components])
-        print(self.component_boundaries)
         self.__fill_group_with_groups("component_boundaries", self.component_boundaries)
         self.__fill_group_with_groups("material_boundaries", self.material_boundaries)
-
-        # # delete empty boundaries
-        # for group_id in get_entities_from_group(boundaries_group_id, "group"):
-        #     if cubit.get_group_surfaces(group_id) == ():
-        #         cmd(f"delete group {group_id}")
     
     def __fill_group_with_groups(self, name: str, groups_to_fill: list[str]):
         group_id = create_new_entity("group", name)
@@ -190,6 +201,8 @@ class MaterialsTracker:
             cmd(f'group {group_id} add group {group}')
     
     def add_blocks(self):
+        '''Add simple components to blocks
+        '''
         for component in self.components:
             if isinstance(component, SimpleComponent):
                 self.__add_component_to_block(component)
@@ -202,7 +215,9 @@ class MaterialsTracker:
         cmd(f"block {block_id} add volume {component.volume_id_string()}")
     
     def add_sidesets(self):
-        for boundary in self.component_boundaries + self.material_boundaries:            
+        '''Add boundaries between simple components to sidesets
+        '''
+        for boundary in self.component_boundaries:            
             bound_surfs = get_entities_from_group(boundary, "surface")
             if len(bound_surfs) > 0:
                 self.__create_sideset(boundary)
@@ -217,6 +232,8 @@ class MaterialsTracker:
             self.sidesets.append(Sideset(name))
     
     def reset(self):
+        '''Reset internal states
+        '''
         self.materials = []
         self.boundaries = []
         self.sidesets = []
@@ -237,11 +254,16 @@ class ComponentTracker:
         self.root_name = self.__track_components_as_groups(root_component)
 
     def give_identifiers(self, root_component):
+        '''Give every component a unique identifier
+
+        :param root_component: Component
+        :type root_component: GenericComponentAssembly | SimpleComponent
+        '''
         if isinstance(root_component, GenericComponentAssembly):
             self.__name_component(root_component)
             for component in root_component.get_components():
                 self.give_identifiers(component)
-        # if this is a complex component, give it a unique identifier
+        # if this is a simple component, give it a unique identifier
         elif isinstance(root_component, SimpleComponent):
             self.__name_component(root_component)
         else:
@@ -313,4 +335,6 @@ class ComponentTracker:
             cmd(f'group {group} add {entity.geometry_type} {entity.cid}')
 
     def reset_counter(self):
+        '''reset internal states
+        '''
         self.identifiers = {}
