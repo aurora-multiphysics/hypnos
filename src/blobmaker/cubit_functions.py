@@ -170,17 +170,17 @@ def to_surfaces(component_list: list[CubitInstance]) -> list[CubitInstance]:
     :return: List of converted geometries
     :rtype: list[CubitInstance]
     '''
-    all_surfaces_that_exist = cubit.get_entities("surface")
     volumes_list = to_volumes(component_list)
     return_list = []
+    surf_ids = set([])
     for component in volumes_list:
         if component.geometry_type == "volume":
-            for surface_id in all_surfaces_that_exist:
-                if cubit.get_owning_volume("surface", surface_id) == component.cid:
-                    return_list.append(CubitInstance(surface_id, "surface"))
+            surfs = cubit.volume(component.cid).surfaces()
+            surf_ids = surf_ids.union({surf.id() for surf in surfs})
         else:
             return_list.append(component)
-    return return_list
+        return_list.extend([CubitInstance(surf_id, "surface") for surf_id in surf_ids])
+    return list(set(return_list))
 
 
 def to_bodies(component_list: list) -> list[CubitInstance]:

@@ -31,7 +31,7 @@ class CubitInstance:
     def move(self, vector):
         cubit.move(self.cubitInstance, vector)
 
-    def update_reference(self, cid, geometry_type):
+    def update_reference(self, cid: int, geometry_type: str):
         '''change what this instance refers to cubitside'''
         self.cid = cid
         self.geometry_type = geometry_type
