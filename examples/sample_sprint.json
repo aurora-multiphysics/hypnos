@@ -1,0 +1,55 @@
+{
+    "class": "sprint facility",
+    "material": "Steel",
+    "geometry": {
+        "dimensions": [49],
+        "thickness": 1
+    },
+    "components": [
+        {
+            "class": "sprint source",
+            "material": "Steel",
+            "geometry": {
+                "position": [0, 0],
+                "outer radius": 3,
+                "thickness": 1,
+                "length": 10,
+                "depth": 5
+            }
+        },
+        {
+            "class": "test device",
+            "materials": {
+                "chamber": "Steel",
+                "breeder": "KALOS"
+            },
+            "geometry": {
+                "inner thickness": 1,
+                "outer thickness": 2,
+                "plate thickness": 1,
+                "outer radius": 5,
+                "length": 5,
+                "spoke number": 3,
+                "spoke thickness": 2
+            }
+        },
+        {
+            "class": "sprint detector",
+            "materials": {
+                "chamber": "Steel",
+                "fill": "Helium",
+                "moderator": "polysomething"
+            },
+            "geometry": {
+                "chamber length": 5,
+                "chamber outer radius": 3,
+                "chamber thickness": 1,
+                "moderator thickness": 3
+            },
+            "positions": [
+                [5, 5, 5],
+                [10, 10, 10]
+            ]
+        }
+    ]
+}
