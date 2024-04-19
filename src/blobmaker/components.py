@@ -880,3 +880,67 @@ class SeparatorPlate(PurgeGasPlate):
 class FWBackplate(Plate):
     def __init__(self, json_object: dict):
         super().__init__("FW_backplate", json_object, "full")
+
+
+class SprintFacilityRoomComponent(SimpleComponent):
+    def __init__(self, json_object: dict):
+        super().__init__("sprint_room", json_object)
+    
+    def make_geometry(self):
+        '''create 3d room with outer dimensions dimensions (int or list) and thickness (int or list)'''
+        # get variables
+        outer_dims = self.convert_to_3d_vector(self.geometry["dimensions"])
+        thickness = self.convert_to_3d_vector(self.geometry["thickness"])
+        hole_radius = self.geometry["source radius"]
+        hole_position = self.geometry["source position"]
+        # create room
+        subtract_vol = cubit.brick(outer_dims[0]-2*thickness[0], outer_dims[1]-2*thickness[1], outer_dims[2]-2*thickness[2])
+        source_vol = cubit.cylinder(thickness*2, hole_radius)
+        cubit.move(source_vol, hole_position)
+        block = cubit.brick(outer_dims[0], outer_dims[1], outer_dims[2])
+        cubit.subtract([subtract_vol], [block])
+        cubit.subtract([subtract_vol], [source_vol])
+        room = get_last_geometry("volume")
+        return room
+
+
+class SprintSourceComponent(SimpleComponent):
+    def __init__(self, json_object: dict):
+        super().__init__("sprint_source", json_object)
+    
+    def make_geometry(self):
+        outer_radius = self.geometry["outer radius"]
+        thickness = self.geometry["thickness"]
+        length = self.geometry["length"]
+
+        subtract_vol = cubit.cylinder(length-2*thickness, outer_radius-thickness)
+        cylinder = cubit.cylinder(length, outer_radius)
+        cubit.subtract([subtract_vol], [cylinder])
+
+        source = get_last_geometry("volume")
+        return source
+
+
+class TestDeviceChamber(SimpleComponent):
+    def __init__(self, json_object: dict):
+        super().__init__("test_device_chamber", json_object)
+    
+    def make_geometry(self):
+        outer_radius = self.geometry["outer radius"]
+        outer_thickness = self.geometry["outer thickness"]
+        inner_radius = self.geometry["inner radius"]
+        inner_thickness = self.geometry["inner thickness"]
+        spoke_number = self.geometry["spoke number"]
+        spoke_thickness = self.geometry["spoke thickness"]
+
+        spoke_vertices = list(np.zeros(4))
+        x = spoke_thickness/2
+        spoke_vertices[0] = Vertex(-x, self.__get_spoke_y(-x, inner_radius + inner_thickness))
+        spoke_vertices[1] = Vertex(x, self.__get_spoke_y(x, inner_radius + inner_thickness))
+        spoke_vertices[2] = Vertex(-x, self.__get_spoke_y(-x, outer_radius - outer_thickness))
+        spoke_vertices[3] = Vertex(x, self.__get_spoke_y(x, outer_radius - outer_thickness))
+        spoke_angles = [2*np.pi*i/spoke_number for i in range(spoke_number)]
+        
+
+    def __get_spoke_y(self, x: int, radius: int):
+        return np.sqrt(np.square(radius) - np.square(x))

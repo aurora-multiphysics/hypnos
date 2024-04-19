@@ -7,7 +7,7 @@
     },
     "components": [
         {
-            "class": "sprint source",
+            "class": "sprint_source",
             "material": "Steel",
             "geometry": {
                 "position": [0, 0],
@@ -18,7 +18,7 @@
             }
         },
         {
-            "class": "test device",
+            "class": "test_device",
             "materials": {
                 "chamber": "Steel",
                 "breeder": "KALOS"
@@ -34,7 +34,7 @@
             }
         },
         {
-            "class": "sprint detector",
+            "class": "sprint_detector",
             "materials": {
                 "chamber": "Steel",
                 "fill": "Helium",

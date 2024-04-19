@@ -34,7 +34,8 @@ from blobmaker.constants import (
     BLANKET_REQUIREMENTS, 
     BLANKET_SHELL_REQUIREMENTS, 
     FACILITY_MORPHOLOGIES, 
-    HCPB_BLANKET_REQUIREMENTS
+    HCPB_BLANKET_REQUIREMENTS,
+    SPRINT_FAC_REQS
 )
 import numpy as np
 
@@ -1116,6 +1117,13 @@ class HCPBBlanket(CreatedComponentAssembly):
         parameters["length"], parameters["extension"] = self.__get_plate_length_and_ext(distance_from_fw, parameters["thickness"])
         return parameters
 
+
+class SprintFacility(CreatedComponentAssembly):
+    def __init__(self, classname, json_object):
+        super().__init__(classname, SPRINT_FAC_REQS, json_object)
+
+    def setup_assembly(self):
+        return super().setup_assembly()
 
 def get_all_geometries_from_components(component_list) -> list[CubitInstance]:
     instances = []

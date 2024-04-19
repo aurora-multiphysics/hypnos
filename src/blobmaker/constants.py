@@ -4,6 +4,7 @@ BLANKET_REQUIREMENTS = ["breeder", "structure"]
 ROOM_REQUIREMENTS = ["blanket", "surrounding_walls"]
 BLANKET_SHELL_REQUIREMENTS = ["first_wall", "pin"]
 HCPB_BLANKET_REQUIREMENTS = ["first_wall", "pin", "front_rib", "back_rib", "coolant_outlet_plenum"]
+SPRINT_FAC_REQS = ["sprint_source", "test_device"]
 
 # classes according to what make_geometry subfunction(?) needs to be called
 BLOB_CLASSES = ["complex", "breeder", "structure", "air"]
