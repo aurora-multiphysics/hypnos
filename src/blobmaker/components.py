@@ -6,9 +6,9 @@ import numpy as np
 
 
 class ExternalComponent(CubitInstance):
+    '''Track components imported externally'''
     def __init__(self, cid: int, geometry_type: str) -> None:
         super().__init__(cid, geometry_type)
-        # track external components
 
 
 class SimpleComponent:

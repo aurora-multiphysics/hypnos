@@ -446,7 +446,7 @@ class ExternalComponentAssembly(GenericComponentAssembly):
         cmd(f"delete group {temp_group_id}")
 
     def get_group_id(self):
-        '''get ID of group (group needs to exist first)'''
+        '''Get ID of group (group needs to exist first)'''
         for (group_name, group_id) in cubit.group_names_ids():
             if group_name == self.group:
                 return group_id
@@ -683,7 +683,7 @@ class BlanketShellAssembly(CreatedComponentAssembly):
 
 
 class BlanketRingAssembly(CreatedComponentAssembly):
-    '''Makes a ring of blanket shells'''
+    '''Make a ring of blanket shells'''
     def __init__(self, json_object: dict):
         self.geometry = json_object["geometry"]
         super().__init__("blanket_ring", ["blanket shell"], json_object)
@@ -1115,7 +1115,7 @@ def get_all_geometries_from_components(component_list) -> list[CubitInstance]:
 
 # wrapper for cubit.union
 def unionise(component_list: list):
-    '''Creates a union of all instances in given components.
+    '''Create a union of all instances in given components.
 
     :param component_list: list of components
     :type component_list: list
