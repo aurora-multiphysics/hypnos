@@ -147,7 +147,7 @@ class GeometryMaker():
         shutil.move(f"./{filename}", f"{destination}/{filename}")
 
     def export_mesh(self, filename='out_mesh.e', destination='.'):
-        '''export exodus II file of mesh, as well as blocks and sidesets.
+        '''Export exodus II file of mesh, as well as blocks and sidesets.
 
         :param filename: name of file to output, defaults to 'out_mesh.e'
         :type filename: str, optional
@@ -158,7 +158,7 @@ class GeometryMaker():
         shutil.move(f"./{filename}", f"{destination}/{filename}")
 
     def reset_cubit(self):
-        '''reset cubit and corresponding internal states.'''
+        '''Reset cubit and corresponding internal states.'''
         reset_cubit()
         self.materials_tracker.reset()
         self.component_tracker.reset_counter()

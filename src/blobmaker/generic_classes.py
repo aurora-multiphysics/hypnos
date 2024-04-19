@@ -2,6 +2,8 @@ import cubit
 
 
 def cmd(command: str):
+    '''Wrapper for cubit commands
+    '''
     cubit.silent_cmd(command)
 
 
@@ -32,7 +34,7 @@ class CubitInstance:
         cubit.move(self.cubitInstance, vector)
 
     def update_reference(self, cid: int, geometry_type: str):
-        '''change what this instance refers to cubitside'''
+        '''Change what this instance refers to cubitside'''
         self.cid = cid
         self.geometry_type = geometry_type
         self.cubitInstance = get_cubit_geometry(cid, geometry_type)
@@ -40,7 +42,7 @@ class CubitInstance:
 
 # make finding instances less annoying
 def get_cubit_geometry(geometry_id: int, geometry_type: str):
-    '''returns cubit instance given id and geometry type
+    '''Returns cubit instance given id and geometry type
 
     :param geometry_id: Cubit ID of geometry
     :type geometry_id: int

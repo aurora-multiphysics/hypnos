@@ -12,8 +12,10 @@ class ExternalComponent(CubitInstance):
 
 
 class SimpleComponent:
-    # stores information about what materials exist.
-    # geometries can then be found from groups with the same name
+    '''Base class for simple components. 
+    These are intended to be the smallest functional unit of a single material.
+    They may comprise of multiple volumes/ may not be 'simple' geometrically
+    '''
     def __init__(self, classname, json_object: dict):
         self.subcomponents = []
         self.classname = classname
@@ -101,11 +103,11 @@ class SimpleComponent:
         return CubitInstance(cid, "volume")
 
     def as_bodies(self):
-        '''convert subcomponent references to references to their owning bodies'''
+        '''Convert subcomponent references to references to their owning bodies'''
         self.subcomponents = to_bodies(self.subcomponents)
 
     def as_volumes(self):
-        '''convert any references to bodies in the subcomponents
+        '''Convert any references to bodies in the subcomponents
         to references to their composing volumes'''
         self.subcomponents = to_volumes(self.subcomponents)
 
@@ -874,7 +876,9 @@ class CoolantOutletPlenum(SimpleComponent):
 
 class SeparatorPlate(PurgeGasPlate):
     def __init__(self, json_object: dict, rib_positions: list[Vertex], rib_thickness: int):
-        super().__init__("separator_plate", json_object, rib_positions, rib_thickness, [[[]] for i in rib_positions])
+        super().__init__(
+            "separator_plate", json_object, rib_positions, rib_thickness, [[[]] for i in rib_positions]
+            )
 
 
 class FWBackplate(Plate):

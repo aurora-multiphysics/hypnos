@@ -11,7 +11,7 @@ def reset_cubit():
 
 
 def get_last_geometry(geometry_type: str):
-    '''Get last geometry of given type
+    '''Get last created geometry of given type
 
     :param geometry_type: type of geometry to search for.
     :type geometry_type: str

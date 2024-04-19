@@ -195,6 +195,16 @@ class Vertex():
 
 
 def make_surface(vertices: list[Vertex], tangent_indices: list[int]):
+    '''Make surface from vertices. 
+    Curves between chosen vertices will be tangential to straight lines at either vertex.
+
+    :param vertices: Vertices
+    :type vertices: list[Vertex]
+    :param tangent_indices: Indices of vertices to start a curved line from
+    :type tangent_indices: list[int]
+    :return: Surface
+    :rtype: CubitInstance
+    '''
     vertices = [vertex.create() for vertex in vertices]
     loop = make_loop(vertices, tangent_indices)
     surface = make_surface_from_curves(loop)

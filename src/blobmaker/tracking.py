@@ -6,7 +6,7 @@ import itertools
 
 
 class Group:
-    '''Tracks a cubit group.'''
+    '''Track a cubit group.'''
     def __init__(self, name: str) -> None:
         self.name = name
         self.group_id = cubit.get_id_from_name(name)
@@ -35,7 +35,7 @@ class Group:
 
 
 class Sideset:
-    '''Tracks cubit sidesets
+    '''Track cubit sidesets
     '''
     def __init__(self, name: str) -> None:
         self.name = name
@@ -72,7 +72,7 @@ class Sideset:
 
 
 class ComponentGroup:
-    '''Tracks materials and boundaries of a SimpleComponent. 
+    '''Track materials and boundaries of a SimpleComponent. 
     '''
     def __init__(self, component: SimpleComponent) -> None:
         self.identifier = component.identifier
@@ -102,7 +102,7 @@ class ComponentGroup:
             self.material_boundaries.append(mat_group)
 
     def track_shared_surfaces(self, component: 'ComponentGroup'):
-        '''Tracks the surfaces shared between volumes of self and provided component
+        '''Track the surfaces shared between volumes of self and provided component
 
         :param component: ComponentGroup to find surfaces in common with
         :type component: ComponentGroup
@@ -134,7 +134,7 @@ class ComponentGroup:
 
 
 class MaterialsTracker:
-    '''Tracks materials and boundaries between all provided components
+    '''Track materials and boundaries between all provided components
     '''
     def __init__(self) -> None:
         self.components = []
@@ -188,7 +188,7 @@ class MaterialsTracker:
         cmd(f'delete group {unmerged_group_id}')
     
     def organise_into_groups(self):
-        '''create groups for material groups and boundary groups in cubit'''
+        '''Create groups for material groups and boundary groups in cubit'''
 
         self.__fill_group_with_groups("materials", self.materials)
         self.__fill_group_with_groups("components", [comp.identifier for comp in self.components])
@@ -335,6 +335,6 @@ class ComponentTracker:
             cmd(f'group {group} add {entity.geometry_type} {entity.cid}')
 
     def reset_counter(self):
-        '''reset internal states
+        '''Reset internal states
         '''
         self.identifiers = {}
