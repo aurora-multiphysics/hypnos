@@ -28,7 +28,7 @@ class CubitInstance:
         copied_id = cubit.get_last_id(self.geometry_type)
         return CubitInstance(copied_id, self.geometry_type)
 
-    def move(self, vector):
+    def move(self, vector: list):
         cubit.move(self.cubitInstance, vector)
 
     def update_reference(self, cid, geometry_type):

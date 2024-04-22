@@ -1,7 +1,22 @@
 from blobmaker.constants import BLOB_CLASSES
 from blobmaker.generic_classes import CubismError, CubitInstance, cmd, cubit
-from blobmaker.cubit_functions import to_volumes, to_bodies, cmd_check, get_last_geometry
-from blobmaker.geometry import make_cylinder_along, Vertex, make_surface, hypotenuse, arctan
+from blobmaker.cubit_functions import (
+    to_volumes, 
+    to_bodies, 
+    cmd_check, 
+    get_last_geometry, 
+    to_body, 
+    to_surfaces,
+)
+from blobmaker.geometry import (
+    make_cylinder_along, 
+    Vertex, 
+    make_surface, 
+    hypotenuse, 
+    arctan,
+    union,
+    subtract
+)
 import numpy as np
 
 
@@ -882,7 +897,7 @@ class FWBackplate(Plate):
         super().__init__("FW_backplate", json_object, "full")
 
 
-class SprintFacilityRoomComponent(SimpleComponent):
+class SprintRoomComponent(SimpleComponent):
     def __init__(self, json_object: dict):
         super().__init__("sprint_room", json_object)
     
@@ -926,21 +941,141 @@ class TestDeviceChamber(SimpleComponent):
         super().__init__("test_device_chamber", json_object)
     
     def make_geometry(self):
+        length = self.geometry["length"]
+        cap_thickness = self.geometry["cap thickness"]
         outer_radius = self.geometry["outer radius"]
         outer_thickness = self.geometry["outer thickness"]
         inner_radius = self.geometry["inner radius"]
         inner_thickness = self.geometry["inner thickness"]
         spoke_number = self.geometry["spoke number"]
         spoke_thickness = self.geometry["spoke thickness"]
+        breeder_length = length - cap_thickness
 
+        spokes = list(np.zeros(spoke_number))
         spoke_vertices = list(np.zeros(4))
+
         x = spoke_thickness/2
         spoke_vertices[0] = Vertex(-x, self.__get_spoke_y(-x, inner_radius + inner_thickness))
         spoke_vertices[1] = Vertex(x, self.__get_spoke_y(x, inner_radius + inner_thickness))
         spoke_vertices[2] = Vertex(-x, self.__get_spoke_y(-x, outer_radius - outer_thickness))
         spoke_vertices[3] = Vertex(x, self.__get_spoke_y(x, outer_radius - outer_thickness))
         spoke_angles = [2*np.pi*i/spoke_number for i in range(spoke_number)]
+
+        for i in range(spoke_number):
+            angle = spoke_angles[i]
+            spokes[i] = [spoke_vertex.rotate(angle) for spoke_vertex in spoke_vertices]
+            spokes[i] = make_surface(spokes[i], [])
         
+        inner_disk = self.__create_disk(inner_radius, inner_radius + inner_thickness)
+        outer_disk = self.__create_disk(outer_radius - outer_thickness, outer_radius)
+
+        base_surfs = spokes
+        base_surfs.extend([inner_disk, outer_disk])
+
+        base = to_surfaces([union(base_surfs)])[0]
+        uncapped_chamber = cmd_check(f"sweep {base} vector 0 0 1 distance {breeder_length}", "volume")
+
+        bottom_cap = make_cylinder_along(outer_radius, cap_thickness)
+        bottom_cap.move([0, 0, -cap_thickness/2])
+        top_cap = bottom_cap = make_cylinder_along(outer_radius, cap_thickness)
+        top_cap.move([0, 0, cap_thickness/2 + breeder_length])
+
+        chamber = union([uncapped_chamber, bottom_cap, top_cap])
+        chamber.move([0, 0, cap_thickness])
+        return [chamber]
 
     def __get_spoke_y(self, x: int, radius: int):
         return np.sqrt(np.square(radius) - np.square(x))
+    
+    def __create_disk(self, inner_radius: int, outer_radius: int):
+        outer_surf = cmd_check(f"create surface circle radius {outer_radius}", "surface")
+        subtract_surf = cmd_check(f"create surface circle radius {inner_radius}", "surface")
+
+        true_disk = to_body(outer_surf)
+        cmd(f"subtract {subtract_surf} from {outer_surf}")
+        true_disk = to_surfaces([true_disk])[0]
+
+        return true_disk
+
+
+class TestDeviceBreeder(SimpleComponent):
+    def __init__(self, json_object: dict):
+        super().__init__("test_device_breeder", json_object)
+
+    def make_geometry(self):
+        length = self.geometry["length"]
+
+        mold_json = self.geometry
+        mold_json["length"] = mold_json["length"] + 2
+        mold_json["outer radius"] += 1
+        mold_json["inner radius"] -= 1
+        mold_json["inner thickness"] = 1
+        mold_json["outer thickness"] = 1
+        mold_json["cap thickness"] = 1
+        mold_json = {"material": "AAAAAA", "geometry": mold_json}
+        
+        mold = TestDeviceChamber(mold_json)
+        block = make_cylinder_along(self.geometry["outer radius"], length)
+        block.move([0, 0, length/2])
+
+        breeder = subtract([block], [mold])
+        return breeder
+
+
+class SprintDetectorGas(SimpleComponent):
+    def __init__(self, json_object: dict):
+        super().__init__("sprint_detector_gas", json_object)
+
+    def make_geometry(self):
+        length = self.geometry["length"]
+        radius = self.geometry["radius"]
+        gas = make_cylinder_along(radius, length)
+        return [gas]
+
+class SprintDetectorChamber(SimpleComponent):
+    def __init__(self, json_object: dict):
+        super().__init__("sprint_detector_chamber", json_object)
+    
+    def make_geometry(self):
+        length = self.geometry["length"]
+        thickness = self.geometry["thickness"]
+        outer_radius = self.geometry["outer radius"]
+
+        tool = make_cylinder_along(outer_radius, length)
+        subtract_vol = make_cylinder_along(outer_radius - thickness, length - 2*thickness)
+
+        chamber = subtract([tool], [subtract_vol])
+        return chamber
+
+
+class SprintDetectorModerator(SimpleComponent):
+    def __init__(self, json_object: dict):
+        super().__init__("sprint_detector_moderator", json_object)
+    
+    def make_geometry(self):
+        length = self.geometry["length"]
+        top_thickness = self.geometry["top thickness"]
+        bottom_thickness = self.geometry["bottom thickness"]
+        radial_thickness = self.geometry["radial thickness"]
+        outer_radius = self.geometry["outer radius"]
+
+        tool = make_cylinder_along(outer_radius, length)
+        subtract_vol = make_cylinder_along(
+            outer_radius - radial_thickness, 
+            length - (top_thickness + bottom_thickness)
+        )
+
+        chamber = subtract([tool], [subtract_vol])
+        return [chamber]
+        
+
+class SprintDetectorRod(SimpleComponent):
+    def __init__(self, json_object: dict):
+        super().__init__("sprint_detector_rod", json_object)
+    
+    def make_geometry(self):
+        length = self.geometry["length"]
+        radius = self.geometry["radius"]
+        rod = make_cylinder_along(radius, length)
+        rod.move([0, 0, length/2])
+        return [rod]

@@ -3,7 +3,11 @@
     "material": "Steel",
     "geometry": {
         "dimensions": [49],
-        "thickness": 1
+        "thickness": 1,
+        "detector positions": [
+            [5, 5, 5],
+            [10, 10, 10]
+        ]
     },
     "components": [
         {
@@ -44,12 +48,10 @@
                 "chamber length": 5,
                 "chamber outer radius": 3,
                 "chamber thickness": 1,
-                "moderator thickness": 3
-            },
-            "positions": [
-                [5, 5, 5],
-                [10, 10, 10]
-            ]
+                "moderator top thickness": 3,
+                "moderator bottom thickness": 3,
+                "moderator radial thickness": 3
+            }
         }
     ]
 }

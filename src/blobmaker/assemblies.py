@@ -22,7 +22,13 @@ from blobmaker.components import (
     BackRib, 
     CoolantOutletPlenum, 
     SeparatorPlate, 
-    FWBackplate
+    FWBackplate,
+    SprintDetectorChamber,
+    SprintDetectorGas,
+    SprintDetectorModerator,
+    SprintDetectorRod,
+    SprintRoomComponent,
+    SprintSourceComponent
 )
 from blobmaker.cubit_functions import to_volumes, get_bodies_and_volumes_from_group
 from blobmaker.geometry import Vertex, arctan
@@ -205,6 +211,7 @@ class CreatedComponentAssembly(GenericComponentAssembly):
     '''
     def __init__(self, classname, required_classnames: list, json_object: dict):
         self.classname = classname
+        self.identifier = self.classname
         self.origin = json_object["origin"] if "origin" in json_object.keys() else Vertex(0)
         # this defines what components to require in every instance
         self.required_classnames = required_classnames
@@ -1119,11 +1126,100 @@ class HCPBBlanket(CreatedComponentAssembly):
 
 
 class SprintFacility(CreatedComponentAssembly):
-    def __init__(self, classname, json_object):
-        super().__init__(classname, SPRINT_FAC_REQS, json_object)
+    def __init__(self, json_object):
+        self.__add_component_attributes
+        super().__init__("sprint_facility", SPRINT_FAC_REQS, json_object)
 
     def setup_assembly(self):
         return super().setup_assembly()
+    
+    def __add_component_attributes(self, json_object: dict):
+        self.room_geometry = json_object["geometry"]
+        self.room_material = json_object["material"]
+        for component in json_object["components"]:
+            if component["class"] == "sprint_source":
+                self.source_geom = component["geometry"]
+                self.source_mat = component["material"]
+            elif component["class"] == "test_device":
+                self.device_geom = component["geometry"]
+                self.device_mat = component["material"]
+            elif component["class"] == "sprint_detector":
+                self.detector_geom = component["geometry"]
+                self.detector_mats = component["materials"]
+                self.detector_pos = component["positions"]
+
+class SprintDetector(CreatedComponentAssembly):
+    def __init__(self, json_object: dict):
+        self.components = []
+        self.classname = "sprint_detector"
+        self.identifier = self.classname
+        self.materials = json_object["materials"]
+        self.geometry = json_object["geometry"]
+        self.centroid = json_object["centroid"]
+        self.origin = json_object["origin"] if "origin" in json_object.keys() else Vertex(0)
+        self.setup_assembly()
+        self.move(self.origin)
+    
+    def setup_assembly(self):
+        chamber_geom = self.__extract_parameters({
+            "chamber length": "length",
+            "chamber thickness": "thickness",
+            "chamber outer radius": "outer radius"
+        })
+
+        chamber_json = self.__jsonify(chamber_geom, "chamber", 0)
+        gas_json = self.__get_gas_json()
+        moderator_json = self.__get_mod_json()
+
+
+        if moderator_json["geometry"]["length"]/2 > self.centroid[2]:
+            rod_json = self.__get_rod_json()
+    
+    def __get_mod_json(self):
+        mod_geom = self.__extract_parameters({
+            "moderator top thickess": "top thickness",
+            "moderator bottom thickness": "bottom thickness",
+            "moderator radial thickness": "radial thickness"
+        })
+        mod_geom["outer radius"] = self.geometry["chamber outer radius"] + mod_geom["radial thickness"]
+        mod_geom["length"] = self.geometry["chamber length"] + mod_geom["top thickness"] + mod_geom["bottom thickness"]
+        return self.__jsonify(mod_geom, "moderator", 0)
+
+    def __get_gas_json(self):
+        gas_geom = {}
+        gas_geom["length"] = self.geometry["chamber length"] - 2*self.geometry["chamber thickness"]
+        gas_geom["radius"] = self.geometry["chamber outer radius"] - self.geometry["chamber thickness"]
+        return self.__jsonify(gas_geom, "fill", 0)
+    
+    def __extract_parameters(self, parameters: list | dict):
+        out_dict = {}
+        if type(parameters) is list:
+            for parameter in parameters:
+                out_dict[parameter] = self.geometry[parameter]
+        elif type(parameters) is dict:
+            for fetch_parameter, out_parameter in parameters.items():
+                out_dict[out_parameter] = self.geometry[fetch_parameter]
+        else:
+            raise CubismError(f"parameters type not recognised: {type(parameters)}")
+        return out_dict
+    
+    def __jsonify(self, geometry: dict, material: str, start_z: int):
+        '''Create dictionary with geometry, material, and origin keys.
+
+        :param geometry: Json dictionary of geometrical parameters
+        :type geometry: dict
+        :param material: Name of component
+        :type material: str
+        :param start_x: x coordinate of component origin
+        :type start_x: int
+        :return: dictionary in the input json style
+        :rtype: dict
+        '''
+        try:
+            material_obj = self.materials[material.lower()]
+        except KeyError:
+            raise CubismError(f"Component {self.classname} should contain material of {material}")
+        return {"geometry": geometry, "material": material_obj, "origin": Vertex(0, 0, start_z)}
 
 def get_all_geometries_from_components(component_list) -> list[CubitInstance]:
     instances = []
@@ -1137,7 +1233,6 @@ def get_all_geometries_from_components(component_list) -> list[CubitInstance]:
     return instances
 
 
-# wrapper for cubit.union
 def unionise(component_list: list):
     '''creates a union of all instances in given components.
 

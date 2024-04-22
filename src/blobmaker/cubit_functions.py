@@ -41,7 +41,7 @@ def cmd_check(command: str, id_type: str):
             raise CubismError(f"no new {id_type} created, last id: {pre_id}")
         # material tracking function depends on this btw
         return False
-    elif id_type == "group":
+    elif id_type == "group" and type(post_id) is int:
         return post_id
     else:
         return CubitInstance(post_id, id_type)
@@ -182,6 +182,12 @@ def to_surfaces(component_list: list[CubitInstance]) -> list[CubitInstance]:
             return_list.append(component)
     return return_list
 
+def to_body(geometry: CubitInstance):
+    body_id = cubit.get_owning_body(geometry.geometry_type, geometry.cid)
+    if body_id == 0:
+        raise CubismError(f"owning body of {str(geometry)} not found")
+    else:
+        return CubitInstance(body_id, "body")
 
 def to_bodies(component_list: list) -> list[CubitInstance]:
     '''Turns references to entities into references to their parent bodies.
@@ -195,12 +201,10 @@ def to_bodies(component_list: list) -> list[CubitInstance]:
     for component in component_list:
         if isinstance(component, CubitInstance):
             if component.geometry_type == "body":
-                if component.cid not in [i.cid for i in bodies_list]:
-                    bodies_list.append(component)
+                bodies_list.append(component)
             else:
-                owning_body_id = cubit.get_owning_body(component.geometry_type, component.cid)
-                if owning_body_id not in [i.cid for i in bodies_list]:
-                    bodies_list.append(CubitInstance(owning_body_id, "body"))
+                bodies_list.append(to_body(component))
+    bodies_list = list(set(bodies_list))
     return bodies_list
 
 
