@@ -1,5 +1,5 @@
-from blobmaker.generic_classes import CubitInstance, CubismError, cmd
-from blobmaker.cubit_functions import cmd_check, get_id_string
+from blobmaker.generic_classes import CubitInstance, CubismError, cmd, cubit
+from blobmaker.cubit_functions import cmd_check, get_id_string, to_bodies
 import numpy as np
 
 
@@ -69,7 +69,7 @@ def make_surface_from_curves(curves_list: list[CubitInstance]):
     return surface
 
 
-def make_cylinder_along(radius: int, length: int, axis: str):
+def make_cylinder_along(radius: int, length: int, axis="z"):
     '''Make a cylinder along one of the cartesian axes
 
     :param radius: radius of cylinder
@@ -199,3 +199,42 @@ def make_surface(vertices: list[Vertex], tangent_indices: list[int]):
     loop = make_loop(vertices, tangent_indices)
     surface = make_surface_from_curves(loop)
     return surface
+
+
+def union(geometries: list[CubitInstance], destroy=True):
+    as_bodies = to_bodies(geometries)
+    body_ids = {body.cid for body in as_bodies}
+    if destroy:
+        cubit.unite([body.cubitInstance for body in as_bodies])
+        all_bodies = set(cubit.get_entities("body"))
+        created_body = list(body_ids.intersection(all_bodies))
+    else:
+        pre_bodies = set(cubit.get_entities("body"))
+        cubit.unite([body.cubitInstance for body in as_bodies], keep_old_in=True)
+        post_bodies = set(cubit.get_entities("body"))
+        created_body = list(post_bodies.difference(pre_bodies))
+    if len(created_body) > 1:
+        raise CubismError("i have misunderstood how cubit unite works")
+    return CubitInstance(created_body[0], "body")
+
+
+def subtract(subtract_from: list[CubitInstance], subtract: list[CubitInstance], destroy=True):
+    from_ids = {body.cid for body in to_bodies(subtract_from)}
+    subtract_from = [body.cubitInstance for body in to_bodies(subtract_from)]
+    subtract = [body.cubitInstance for body in to_bodies(subtract)]
+    pre_ids = set(cubit.get_entities("body"))
+    if destroy:
+        cubit.subtract(subtract_from, subtract)
+        post_ids = set(cubit.get_entities("body"))
+
+        common_body_ids = post_ids.intersection(from_ids)
+        new_ids = post_ids.difference(pre_ids)
+
+        subtract_ids = list(common_body_ids.union(new_ids))
+    else:
+        cubit.subtract(subtract_from, subtract, keep_old_in=True)
+        post_ids = set(cubit.get_entities("body"))
+
+        subtract_ids = list(post_ids.difference(pre_ids))
+    return [CubitInstance(sub_id, "body") for sub_id in subtract_ids]
+    
