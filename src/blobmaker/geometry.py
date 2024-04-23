@@ -237,4 +237,14 @@ def subtract(subtract_from: list[CubitInstance], subtract: list[CubitInstance], 
 
         subtract_ids = list(post_ids.difference(pre_ids))
     return [CubitInstance(sub_id, "body") for sub_id in subtract_ids]
-    
+
+def convert_to_3d_vector(dim):
+    if type(dim) is int:
+        return_vector = [dim for i in range(3)]
+    elif len(dim) == 1:
+        return_vector = [dim[0] for i in range(3)]
+    elif len(dim) == 3:
+        return_vector = dim
+    else:
+        raise CubismError("thickness should be either a 1D or 3D vector (or scalar)")
+    return return_vector

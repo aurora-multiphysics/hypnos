@@ -906,8 +906,8 @@ class SprintRoomComponent(SimpleComponent):
         # get variables
         outer_dims = self.convert_to_3d_vector(self.geometry["dimensions"])
         thickness = self.convert_to_3d_vector(self.geometry["thickness"])
-        hole_radius = self.geometry["source radius"]
-        hole_position = self.geometry["source position"]
+        hole_radius = self.geometry["hole radius"]
+        hole_position = self.geometry["hole position"]
         # create room
         subtract_vol = cubit.brick(outer_dims[0]-2*thickness[0], outer_dims[1]-2*thickness[1], outer_dims[2]-2*thickness[2])
         source_vol = cubit.cylinder(thickness*2, hole_radius)
@@ -916,6 +916,7 @@ class SprintRoomComponent(SimpleComponent):
         cubit.subtract([subtract_vol], [block])
         cubit.subtract([subtract_vol], [source_vol])
         room = get_last_geometry("volume")
+        room.move([0, 0, outer_dims[2]/2 - thickness[2]])
         return room
 
 
@@ -933,6 +934,7 @@ class SprintSourceComponent(SimpleComponent):
         cubit.subtract([subtract_vol], [cylinder])
 
         source = get_last_geometry("volume")
+        source.move([0, 0, length/2])
         return source
 
 

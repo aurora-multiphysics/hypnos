@@ -28,10 +28,12 @@ from blobmaker.components import (
     SprintDetectorModerator,
     SprintDetectorRod,
     SprintRoomComponent,
-    SprintSourceComponent
+    SprintSourceComponent,
+    TestDeviceBreeder,
+    TestDeviceChamber
 )
 from blobmaker.cubit_functions import to_volumes, get_bodies_and_volumes_from_group
-from blobmaker.geometry import Vertex, arctan
+from blobmaker.geometry import Vertex, arctan, convert_to_3d_vector
 from blobmaker.cubit_functions import to_bodies
 from blobmaker.constants import (
     CLASS_MAPPING, 
@@ -267,6 +269,18 @@ class CreatedComponentAssembly(GenericComponentAssembly):
 
     def check_sanity(self):
         pass
+
+    def extract_parameters(self, parameters: list | dict):
+        out_dict = {}
+        if type(parameters) is list:
+            for parameter in parameters:
+                out_dict[parameter] = self.geometry[parameter]
+        elif type(parameters) is dict:
+            for fetch_parameter, out_parameter in parameters.items():
+                out_dict[out_parameter] = self.geometry[fetch_parameter]
+        else:
+            raise CubismError(f"parameters type not recognised: {type(parameters)}")
+        return out_dict
 
 
 class NeutronTestFacility(CreatedComponentAssembly):
@@ -523,12 +537,12 @@ class PinAssembly(CreatedComponentAssembly):
 
     def setup_assembly(self):
         cladding_json = self.__get_cladding_parameters()
-        pressure_tube_geometry = self.__extract_parameters({
+        pressure_tube_geometry = self.extract_parameters({
             "pressure tube outer radius": "outer radius",
             "pressure tube thickness": "thickness",
             "pressure tube length": "length"
         })
-        multiplier_geometry = self.__extract_parameters({
+        multiplier_geometry = self.extract_parameters({
             "multiplier length": "length",
             "multiplier side": "side",
             "pressure tube outer radius": "inner radius"
@@ -552,7 +566,7 @@ class PinAssembly(CreatedComponentAssembly):
         # align with z-axis properly
         self.rotate(90, Vertex(0, 0, 0), Vertex(0, 1, 0))
 
-    def __extract_parameters(self, parameters: list | dict):
+    def extract_parameters(self, parameters: list | dict):
         out_dict = {}
         if type(parameters) is list:
             for parameter in parameters:
@@ -565,7 +579,7 @@ class PinAssembly(CreatedComponentAssembly):
         return out_dict
 
     def __get_cladding_parameters(self):
-        parameters = self.__extract_parameters(["outer length", "inner length", "offset", "bluntness", "inner cladding", "outer cladding", "breeder chamber thickness", "coolant inlet radius", "purge duct thickness", "purge duct cladding", "purge duct offset", "filter disk thickness"])
+        parameters = self.extract_parameters(["outer length", "inner length", "offset", "bluntness", "inner cladding", "outer cladding", "breeder chamber thickness", "coolant inlet radius", "purge duct thickness", "purge duct cladding", "purge duct offset", "filter disk thickness"])
         parameters["distance to step"] = self.geometry["filter lid length"] + self.geometry["filter disk thickness"] + self.geometry["inner length"] - (self.geometry["offset"] + self.geometry["outer length"])
         parameters["distance to disk"] = parameters["distance to step"] - self.geometry["filter lid length"]
         start_x = self.geometry["pressure tube gap"] + self.geometry["pressure tube thickness"]
@@ -584,7 +598,7 @@ class PinAssembly(CreatedComponentAssembly):
 
         slope_angle = np.arctan((inner_cladding + breeder_chamber_thickness + outer_cladding) / offset)
 
-        parameters = self.__extract_parameters(["bluntness"])
+        parameters = self.extract_parameters(["bluntness"])
         parameters["inner radius"] = coolant_inlet_radius + inner_cladding
         parameters["outer radius"] = coolant_inlet_radius + inner_cladding + breeder_chamber_thickness
         parameters["chamber offset"] = outer_cladding/np.sin(slope_angle) + inner_cladding/np.tan(slope_angle)
@@ -601,7 +615,7 @@ class PinAssembly(CreatedComponentAssembly):
         inner_cladding = geometry["inner cladding"]
         breeder_chamber_thickness = geometry["breeder chamber thickness"]
 
-        parameters = self.__extract_parameters({
+        parameters = self.extract_parameters({
             "breeder chamber thickness": "thickness",
             "filter disk thickness": "length"
         })
@@ -611,7 +625,7 @@ class PinAssembly(CreatedComponentAssembly):
         return self.__jsonify(parameters, "filter disk", start_x)
 
     def __get_filter_lid_parameters(self):
-        parameters = self.__extract_parameters({"purge duct cladding": "thickness", 
+        parameters = self.extract_parameters({"purge duct cladding": "thickness", 
                                                 "filter lid length": "length"})
         parameters["outer radius"] = self.geometry["coolant inlet radius"] + self.geometry["inner cladding"]
 
@@ -621,7 +635,7 @@ class PinAssembly(CreatedComponentAssembly):
         return self.__jsonify(parameters, "filter lid", start_x)
 
     def __get_purge_gas_parameters(self):
-        parameters = self.__extract_parameters({"purge duct thickness": "thickness"})
+        parameters = self.extract_parameters({"purge duct thickness": "thickness"})
         parameters["outer radius"] = self.geometry["coolant inlet radius"] + self.geometry["inner cladding"] - self.geometry["purge duct cladding"]
         added_extension = self.geometry["inner length"] - (self.geometry["outer length"] + self.geometry["offset"] + self.geometry["purge duct offset"])
         parameters["length"] = self.geometry["filter lid length"] + self.geometry["filter disk thickness"] + added_extension
@@ -638,7 +652,7 @@ class PinAssembly(CreatedComponentAssembly):
         pressure_tube_length = geometry["pressure tube length"]
         pressure_tube_outer_radius = geometry["pressure tube outer radius"]
 
-        parameters = self.__extract_parameters(["coolant inlet radius", "inner length", "offset", "bluntness"])
+        parameters = self.extract_parameters(["coolant inlet radius", "inner length", "offset", "bluntness"])
         parameters["pressure tube length"] = pressure_tube_length - pressure_tube_thickness
         parameters["pressure tube gap"] = pressure_tube_gap - pressure_tube_thickness
         parameters["pressure tube radius"] = pressure_tube_outer_radius - pressure_tube_thickness
@@ -1131,7 +1145,17 @@ class SprintFacility(CreatedComponentAssembly):
         super().__init__("sprint_facility", SPRINT_FAC_REQS, json_object)
 
     def setup_assembly(self):
-        return super().setup_assembly()
+        room_z_thickness = convert_to_3d_vector(self.room_geometry["thickness"])[2]
+        room_height = convert_to_3d_vector(self.room_geometry["dimensions"])[2]
+        source_z = room_height - (room_z_thickness + self.source_geom["depth"])
+        source_position = self.source_geom["position"] + [source_z]
+        hole_position = self.source_geom["position"] + [room_height]
+
+        room_json = self.__get_room_json(source_position)
+        source_json = self.__jsonify(self.source_geom, self.source_mat, Vertex(*hole_position))
+        device_json = []
+
+        room = SprintRoomComponent(room_json)
     
     def __add_component_attributes(self, json_object: dict):
         self.room_geometry = json_object["geometry"]
@@ -1145,8 +1169,17 @@ class SprintFacility(CreatedComponentAssembly):
                 self.device_mat = component["material"]
             elif component["class"] == "sprint_detector":
                 self.detector_geom = component["geometry"]
-                self.detector_mats = component["materials"]
+                self.detector_mats = component["material"]
                 self.detector_pos = component["positions"]
+    
+    def __get_room_json(self, source_position):
+        geom = self.room_geometry
+        geom["source position"] = source_position
+        geom["source radius"] = self.source_geom["outer radius"]
+        return self.__jsonify(geom, self.room_material)
+    
+    def __jsonify(self, geometry, material, origin = Vertex(0)):
+        return {"geometry": geometry, "material": material, "origin": origin}
 
 class SprintDetector(CreatedComponentAssembly):
     def __init__(self, json_object: dict):
@@ -1161,49 +1194,50 @@ class SprintDetector(CreatedComponentAssembly):
         self.move(self.origin)
     
     def setup_assembly(self):
-        chamber_geom = self.__extract_parameters({
+        chamber_geom = self.extract_parameters({
             "chamber length": "length",
             "chamber thickness": "thickness",
             "chamber outer radius": "outer radius"
         })
 
-        chamber_json = self.__jsonify(chamber_geom, "chamber", 0)
+        chamber_json = self.__jsonify(chamber_geom, "chamber")
         gas_json = self.__get_gas_json()
         moderator_json = self.__get_mod_json()
 
+        chamber = SprintDetectorChamber(chamber_json)
+        gas = SprintDetectorGas(gas_json)
+        moderator = SprintDetectorModerator(moderator_json)
 
         if moderator_json["geometry"]["length"]/2 > self.centroid[2]:
             rod_json = self.__get_rod_json()
+            rod = SprintDetectorRod(rod_json)
+        
+        self.components.extend([chamber, gas, moderator, rod])
+    
+    def __get_rod_json(self):
+        geom = self.geometry
+        rod_json = {}
+        rod_json["length"] = geom["chamber length"] + geom["top thickness"] + geom["bottom thickness"] - self.centroid[2]
+        rod_json["radius"] = geom["support rod radius"]
+        return self.__jsonify(rod_json, "chamber", "xy")
     
     def __get_mod_json(self):
-        mod_geom = self.__extract_parameters({
+        mod_geom = self.extract_parameters({
             "moderator top thickess": "top thickness",
             "moderator bottom thickness": "bottom thickness",
             "moderator radial thickness": "radial thickness"
         })
         mod_geom["outer radius"] = self.geometry["chamber outer radius"] + mod_geom["radial thickness"]
         mod_geom["length"] = self.geometry["chamber length"] + mod_geom["top thickness"] + mod_geom["bottom thickness"]
-        return self.__jsonify(mod_geom, "moderator", 0)
+        return self.__jsonify(mod_geom, "moderator")
 
     def __get_gas_json(self):
         gas_geom = {}
         gas_geom["length"] = self.geometry["chamber length"] - 2*self.geometry["chamber thickness"]
         gas_geom["radius"] = self.geometry["chamber outer radius"] - self.geometry["chamber thickness"]
-        return self.__jsonify(gas_geom, "fill", 0)
+        return self.__jsonify(gas_geom, "fill")
     
-    def __extract_parameters(self, parameters: list | dict):
-        out_dict = {}
-        if type(parameters) is list:
-            for parameter in parameters:
-                out_dict[parameter] = self.geometry[parameter]
-        elif type(parameters) is dict:
-            for fetch_parameter, out_parameter in parameters.items():
-                out_dict[out_parameter] = self.geometry[fetch_parameter]
-        else:
-            raise CubismError(f"parameters type not recognised: {type(parameters)}")
-        return out_dict
-    
-    def __jsonify(self, geometry: dict, material: str, start_z: int):
+    def __jsonify(self, geometry: dict, material: str, start = "xyz"):
         '''Create dictionary with geometry, material, and origin keys.
 
         :param geometry: Json dictionary of geometrical parameters
@@ -1219,7 +1253,65 @@ class SprintDetector(CreatedComponentAssembly):
             material_obj = self.materials[material.lower()]
         except KeyError:
             raise CubismError(f"Component {self.classname} should contain material of {material}")
-        return {"geometry": geometry, "material": material_obj, "origin": Vertex(0, 0, start_z)}
+        start = Vertex(*self.centroid)
+        if "x" not in start:
+            start.x = 0
+        if "y" not in start:
+            start.y = 0
+        if "z" not in start:
+            start.z = 0
+        return {"geometry": geometry, "material": material_obj, "origin": start}
+
+
+class TestDevice(CreatedComponentAssembly):
+    def __init__(self, json_object: dict):
+        self.components = []
+        self.classname = "sprint_detector"
+        self.identifier = self.classname
+        self.materials = json_object["materials"]
+        self.geometry = json_object["geometry"]
+        self.origin = json_object["origin"] if "origin" in json_object.keys() else Vertex(0)
+        self.setup_assembly()
+        self.move(self.origin)
+    
+    def setup_assembly(self):
+        chamber_geom = self.extract_parameters([
+            "outer radius", "outer thickness", "inner thickness", "cap thickness",
+            "spoke number", "spoke thickness"
+        ])
+
+        chamber_json = self.__jsonify(chamber_geom, "chamber")
+        breeder_json = self.__get_breeder_json()
+
+        chamber = TestDeviceChamber(chamber_json)
+        breeder = TestDeviceBreeder(breeder_json)
+        breeder.move([0, 0, chamber_geom["cap thickness"]])
+
+        self.components.extend([chamber, breeder])
+    
+    def __get_breeder_json(self):
+        geom = self.geometry
+        breeder_geom = self.extract_parameters(["spoke thickness", "spoke number"])
+        breeder_geom["inner radius"] = geom["inner radius"] + geom["inner thickness"]
+        breeder_geom["outer radius"] = geom["outer radius"] - geom["outer thickness"]
+        return self.__jsonify(breeder_geom, "breeder")
+    
+    def __jsonify(self, geometry: dict, material: str):
+        '''Create dictionary with geometry, material, and origin keys.
+
+        :param geometry: Json dictionary of geometrical parameters
+        :type geometry: dict
+        :param material: Name of component
+        :type material: str
+        :return: dictionary in the input json style
+        :rtype: dict
+        '''
+        try:
+            material_obj = self.materials[material.lower()]
+        except KeyError:
+            raise CubismError(f"Component {self.classname} should contain material of {material}")
+        return {"geometry": geometry, "material": material_obj}
+
 
 def get_all_geometries_from_components(component_list) -> list[CubitInstance]:
     instances = []

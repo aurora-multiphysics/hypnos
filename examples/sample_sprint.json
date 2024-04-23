@@ -23,7 +23,7 @@
         },
         {
             "class": "test_device",
-            "materials": {
+            "material": {
                 "chamber": "Steel",
                 "breeder": "KALOS"
             },
@@ -34,12 +34,13 @@
                 "outer radius": 5,
                 "length": 5,
                 "spoke number": 3,
-                "spoke thickness": 2
+                "spoke thickness": 2,
+                "cap thickness": 1
             }
         },
         {
             "class": "sprint_detector",
-            "materials": {
+            "material": {
                 "chamber": "Steel",
                 "fill": "Helium",
                 "moderator": "polysomething"
@@ -50,7 +51,8 @@
                 "chamber thickness": 1,
                 "moderator top thickness": 3,
                 "moderator bottom thickness": 3,
-                "moderator radial thickness": 3
+                "moderator radial thickness": 3,
+                "support rod radius": 1
             }
         }
     ]
