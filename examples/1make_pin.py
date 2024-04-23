@@ -6,7 +6,7 @@ def make_pin():
     maker.track_components = True
 
     # parses json file to a python dict in design_tree attribute
-    maker.parse_json("sample_pin.json")
+    maker.parse_json("sample_sprint.json")
     
     # constructs geometry from design_tree, class structure in constructed_geometry
     maker.make_geometry()
@@ -15,7 +15,7 @@ def make_pin():
     maker.imprint_and_merge()
 
     # replace the . with destination path
-    maker.export_geometry("pin.cub5", ".")
+    maker.export_geometry("sprint.cub5", ".")
 
     # global mesh setting
     maker.set_mesh_size(4)

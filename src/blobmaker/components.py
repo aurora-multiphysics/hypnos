@@ -909,13 +909,15 @@ class SprintRoomComponent(SimpleComponent):
         hole_radius = self.geometry["hole radius"]
         hole_position = self.geometry["hole position"]
         # create room
-        subtract_vol = cubit.brick(outer_dims[0]-2*thickness[0], outer_dims[1]-2*thickness[1], outer_dims[2]-2*thickness[2])
-        source_vol = cubit.cylinder(thickness*2, hole_radius)
-        cubit.move(source_vol, hole_position)
-        block = cubit.brick(outer_dims[0], outer_dims[1], outer_dims[2])
-        cubit.subtract([subtract_vol], [block])
-        cubit.subtract([subtract_vol], [source_vol])
-        room = get_last_geometry("volume")
+        cubit.brick(outer_dims[0]-2*thickness[0], outer_dims[1]-2*thickness[1], outer_dims[2]-2*thickness[2])
+        subtract_vol = get_last_geometry("body")
+        source_vol = make_cylinder_along(hole_radius, 2*thickness[2])
+        source_vol.move(hole_position)
+        source_vol = to_body(source_vol)
+        cubit.brick(outer_dims[0], outer_dims[1], outer_dims[2])
+        block = get_last_geometry("body")
+        block = subtract([block], [subtract_vol, source_vol])
+        room = to_volumes(block)[0]
         room.move([0, 0, outer_dims[2]/2 - thickness[2]])
         return room
 
@@ -929,11 +931,10 @@ class SprintSourceComponent(SimpleComponent):
         thickness = self.geometry["thickness"]
         length = self.geometry["length"]
 
-        subtract_vol = cubit.cylinder(length-2*thickness, outer_radius-thickness)
-        cylinder = cubit.cylinder(length, outer_radius)
-        cubit.subtract([subtract_vol], [cylinder])
+        subtract_vol = make_cylinder_along(outer_radius-thickness, length-2*thickness)
+        cylinder = make_cylinder_along(outer_radius, length)
+        source = to_volumes(subtract([cylinder], [subtract_vol]))[0]
 
-        source = get_last_geometry("volume")
         source.move([0, 0, length/2])
         return source
 
@@ -954,19 +955,19 @@ class TestDeviceChamber(SimpleComponent):
         breeder_length = length - cap_thickness
 
         spokes = list(np.zeros(spoke_number))
-        spoke_vertices = list(np.zeros(4))
+        spoke_vertices = [Vertex(0) for i in range(4)]
 
         x = spoke_thickness/2
         spoke_vertices[0] = Vertex(-x, self.__get_spoke_y(-x, inner_radius + inner_thickness))
         spoke_vertices[1] = Vertex(x, self.__get_spoke_y(x, inner_radius + inner_thickness))
-        spoke_vertices[2] = Vertex(-x, self.__get_spoke_y(-x, outer_radius - outer_thickness))
-        spoke_vertices[3] = Vertex(x, self.__get_spoke_y(x, outer_radius - outer_thickness))
+        spoke_vertices[2] = Vertex(x, self.__get_spoke_y(x, outer_radius - outer_thickness/2))
+        spoke_vertices[3] = Vertex(-x, self.__get_spoke_y(-x, outer_radius - outer_thickness/2))
         spoke_angles = [2*np.pi*i/spoke_number for i in range(spoke_number)]
 
         for i in range(spoke_number):
             angle = spoke_angles[i]
-            spokes[i] = [spoke_vertex.rotate(angle) for spoke_vertex in spoke_vertices]
-            spokes[i] = make_surface(spokes[i], [])
+            spokes_rotated = [spoke_vertex.rotate(angle) for spoke_vertex in spoke_vertices]
+            spokes[i] = make_surface(spokes_rotated, [])
         
         inner_disk = self.__create_disk(inner_radius, inner_radius + inner_thickness)
         outer_disk = self.__create_disk(outer_radius - outer_thickness, outer_radius)
@@ -975,27 +976,34 @@ class TestDeviceChamber(SimpleComponent):
         base_surfs.extend([inner_disk, outer_disk])
 
         base = to_surfaces([union(base_surfs)])[0]
-        uncapped_chamber = cmd_check(f"sweep {base} vector 0 0 1 distance {breeder_length}", "volume")
+        cmd(f"sweep {base} vector 0 0 1 distance {breeder_length}")
+        uncapped_chamber = to_volumes([to_body(base)])[0]
 
-        bottom_cap = make_cylinder_along(outer_radius, cap_thickness)
+        bottom_cap = self.__create_cap(inner_radius, outer_radius, cap_thickness)
         bottom_cap.move([0, 0, -cap_thickness/2])
-        top_cap = bottom_cap = make_cylinder_along(outer_radius, cap_thickness)
+        top_cap = self.__create_cap(inner_radius, outer_radius, cap_thickness)
         top_cap.move([0, 0, cap_thickness/2 + breeder_length])
 
         chamber = union([uncapped_chamber, bottom_cap, top_cap])
-        chamber.move([0, 0, cap_thickness])
+        #chamber.move([0, 0, cap_thickness])
         return [chamber]
 
     def __get_spoke_y(self, x: int, radius: int):
         return np.sqrt(np.square(radius) - np.square(x))
     
+    def __create_cap(self, inner_radius: int, outer_radius: int, thickness: int):
+        block = make_cylinder_along(outer_radius, thickness)
+        subtract_vol = make_cylinder_along(inner_radius, thickness)
+        cap = to_volumes(subtract([block], [subtract_vol]))[0]
+        return cap
+    
     def __create_disk(self, inner_radius: int, outer_radius: int):
+        if outer_radius <= inner_radius:
+            raise CubismError("Outer radius of disk must be larger than inner radius")
         outer_surf = cmd_check(f"create surface circle radius {outer_radius}", "surface")
         subtract_surf = cmd_check(f"create surface circle radius {inner_radius}", "surface")
 
-        true_disk = to_body(outer_surf)
-        cmd(f"subtract {subtract_surf} from {outer_surf}")
-        true_disk = to_surfaces([true_disk])[0]
+        true_disk = to_surfaces(subtract([outer_surf], [subtract_surf]))[0]
 
         return true_disk
 
@@ -1016,7 +1024,7 @@ class TestDeviceBreeder(SimpleComponent):
         mold_json["cap thickness"] = 1
         mold_json = {"material": "AAAAAA", "geometry": mold_json}
         
-        mold = TestDeviceChamber(mold_json)
+        mold = TestDeviceChamber(mold_json).get_subcomponents()[0]
         block = make_cylinder_along(self.geometry["outer radius"], length)
         block.move([0, 0, length/2])
 

@@ -56,7 +56,7 @@ def connect_curves_tangentially(vertex1: CubitInstance, vertex2: CubitInstance):
     return connection
 
 
-def make_surface_from_curves(curves_list: list[CubitInstance]):
+def make_surface_from_curves(curves_list: list[CubitInstance]) -> CubitInstance:
     '''Make surface from bounding curves
 
     :param curves_list: List of bounding curves
@@ -69,7 +69,7 @@ def make_surface_from_curves(curves_list: list[CubitInstance]):
     return surface
 
 
-def make_cylinder_along(radius: int, length: int, axis="z"):
+def make_cylinder_along(radius: int, length: int, axis="z") -> CubitInstance:
     '''Make a cylinder along one of the cartesian axes
 
     :param radius: radius of cylinder
@@ -224,7 +224,7 @@ def subtract(subtract_from: list[CubitInstance], subtract: list[CubitInstance], 
     subtract = [body.cubitInstance for body in to_bodies(subtract)]
     pre_ids = set(cubit.get_entities("body"))
     if destroy:
-        cubit.subtract(subtract_from, subtract)
+        cubit.subtract(subtract, subtract_from)
         post_ids = set(cubit.get_entities("body"))
 
         common_body_ids = post_ids.intersection(from_ids)
@@ -232,7 +232,7 @@ def subtract(subtract_from: list[CubitInstance], subtract: list[CubitInstance], 
 
         subtract_ids = list(common_body_ids.union(new_ids))
     else:
-        cubit.subtract(subtract_from, subtract, keep_old_in=True)
+        cubit.subtract(subtract, subtract_from, keep_old_in=True)
         post_ids = set(cubit.get_entities("body"))
 
         subtract_ids = list(post_ids.difference(pre_ids))

@@ -1141,22 +1141,45 @@ class HCPBBlanket(CreatedComponentAssembly):
 
 class SprintFacility(CreatedComponentAssembly):
     def __init__(self, json_object):
-        self.__add_component_attributes
+        self.detectors = False
+        self.__add_component_attributes(json_object)
         super().__init__("sprint_facility", SPRINT_FAC_REQS, json_object)
 
     def setup_assembly(self):
         room_z_thickness = convert_to_3d_vector(self.room_geometry["thickness"])[2]
         room_height = convert_to_3d_vector(self.room_geometry["dimensions"])[2]
         source_z = room_height - (room_z_thickness + self.source_geom["depth"])
+        device_z = room_height + self.device_geom["cap thickness"] - (self.device_geom["length"] + room_z_thickness)
+
         source_position = self.source_geom["position"] + [source_z]
         hole_position = self.source_geom["position"] + [room_height]
+        device_disp = self.source_geom["position"] + [device_z]
 
         room_json = self.__get_room_json(source_position)
         source_json = self.__jsonify(self.source_geom, self.source_mat, Vertex(*hole_position))
-        device_json = []
+        device_json = self.__get_device_json(device_disp)
 
         room = SprintRoomComponent(room_json)
-    
+        source = SprintSourceComponent(source_json)
+        device = SprintTestDevice(device_json)
+
+        if self.detectors:
+            detectors_number = len(self.detector_pos)
+            detectors = list(np.zeros(detectors_number))
+            for i in range(detectors_number):
+                pos = self.detector_pos[i]
+                detector_json = self.__jsonify(self.detector_geom, self.detector_mats)
+                detector_json["centroid"] = pos
+                detectors[i] = SprintDetector(detector_json)
+
+        self.components.extend([room, source, device])
+        self.components.extend(detectors)
+
+    def __get_device_json(self, device_position):
+        geom = self.device_geom
+        geom["inner radius"] = self.source_geom["outer radius"]
+        return self.__jsonify(geom, self.device_mat, device_position)
+
     def __add_component_attributes(self, json_object: dict):
         self.room_geometry = json_object["geometry"]
         self.room_material = json_object["material"]
@@ -1168,25 +1191,29 @@ class SprintFacility(CreatedComponentAssembly):
                 self.device_geom = component["geometry"]
                 self.device_mat = component["material"]
             elif component["class"] == "sprint_detector":
+                self.detectors = True
                 self.detector_geom = component["geometry"]
                 self.detector_mats = component["material"]
-                self.detector_pos = component["positions"]
-    
+                self.detector_pos = self.room_geometry["detector positions"]
+
     def __get_room_json(self, source_position):
         geom = self.room_geometry
-        geom["source position"] = source_position
-        geom["source radius"] = self.source_geom["outer radius"]
+        geom["hole position"] = source_position
+        geom["hole radius"] = self.source_geom["outer radius"]
         return self.__jsonify(geom, self.room_material)
-    
+
     def __jsonify(self, geometry, material, origin = Vertex(0)):
+        if type(origin) is list:
+            origin = Vertex(*origin)
         return {"geometry": geometry, "material": material, "origin": origin}
+
 
 class SprintDetector(CreatedComponentAssembly):
     def __init__(self, json_object: dict):
         self.components = []
         self.classname = "sprint_detector"
         self.identifier = self.classname
-        self.materials = json_object["materials"]
+        self.materials = json_object["material"]
         self.geometry = json_object["geometry"]
         self.centroid = json_object["centroid"]
         self.origin = json_object["origin"] if "origin" in json_object.keys() else Vertex(0)
@@ -1211,19 +1238,20 @@ class SprintDetector(CreatedComponentAssembly):
         if moderator_json["geometry"]["length"]/2 > self.centroid[2]:
             rod_json = self.__get_rod_json()
             rod = SprintDetectorRod(rod_json)
-        
-        self.components.extend([chamber, gas, moderator, rod])
-    
+            self.components.extend([rod])
+
+        self.components.extend([chamber, gas, moderator])
+
     def __get_rod_json(self):
         geom = self.geometry
         rod_json = {}
-        rod_json["length"] = geom["chamber length"] + geom["top thickness"] + geom["bottom thickness"] - self.centroid[2]
+        rod_json["length"] = geom["chamber length"] + geom["moderator top thickness"] + geom["moderator bottom thickness"] - self.centroid[2]
         rod_json["radius"] = geom["support rod radius"]
         return self.__jsonify(rod_json, "chamber", "xy")
     
     def __get_mod_json(self):
         mod_geom = self.extract_parameters({
-            "moderator top thickess": "top thickness",
+            "moderator top thickness": "top thickness",
             "moderator bottom thickness": "bottom thickness",
             "moderator radial thickness": "radial thickness"
         })
@@ -1253,22 +1281,25 @@ class SprintDetector(CreatedComponentAssembly):
             material_obj = self.materials[material.lower()]
         except KeyError:
             raise CubismError(f"Component {self.classname} should contain material of {material}")
-        start = Vertex(*self.centroid)
+        if not isinstance(self.centroid, Vertex):
+            pos = Vertex(*self.centroid)
+        else:
+            pos = self.centroid
         if "x" not in start:
-            start.x = 0
+            pos.x = 0
         if "y" not in start:
-            start.y = 0
+            pos.y = 0
         if "z" not in start:
-            start.z = 0
-        return {"geometry": geometry, "material": material_obj, "origin": start}
+            pos.z = 0
+        return {"geometry": geometry, "material": material_obj, "origin": pos}
 
 
-class TestDevice(CreatedComponentAssembly):
+class SprintTestDevice(CreatedComponentAssembly):
     def __init__(self, json_object: dict):
         self.components = []
-        self.classname = "sprint_detector"
+        self.classname = "test_device"
         self.identifier = self.classname
-        self.materials = json_object["materials"]
+        self.materials = json_object["material"]
         self.geometry = json_object["geometry"]
         self.origin = json_object["origin"] if "origin" in json_object.keys() else Vertex(0)
         self.setup_assembly()
@@ -1277,7 +1308,7 @@ class TestDevice(CreatedComponentAssembly):
     def setup_assembly(self):
         chamber_geom = self.extract_parameters([
             "outer radius", "outer thickness", "inner thickness", "cap thickness",
-            "spoke number", "spoke thickness"
+            "spoke number", "spoke thickness", "length", "inner radius"
         ])
 
         chamber_json = self.__jsonify(chamber_geom, "chamber")
@@ -1292,6 +1323,7 @@ class TestDevice(CreatedComponentAssembly):
     def __get_breeder_json(self):
         geom = self.geometry
         breeder_geom = self.extract_parameters(["spoke thickness", "spoke number"])
+        breeder_geom["length"] = self.geometry["length"] - 2*self.geometry["cap thickness"]
         breeder_geom["inner radius"] = geom["inner radius"] + geom["inner thickness"]
         breeder_geom["outer radius"] = geom["outer radius"] - geom["outer thickness"]
         return self.__jsonify(breeder_geom, "breeder")

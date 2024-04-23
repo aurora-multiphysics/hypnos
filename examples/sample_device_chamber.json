@@ -1,0 +1,15 @@
+{
+    "class": "test_device_chamber",
+    "material": "Steel",
+    "geometry": {
+        "inner thickness": 1,
+        "outer thickness": 2,
+        "plate thickness": 1,
+        "outer radius": 10,
+        "inner radius": 3,
+        "length": 5,
+        "spoke number": 3,
+        "spoke thickness": 2,
+        "cap thickness": 1
+    }
+}

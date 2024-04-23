@@ -32,7 +32,11 @@ CLASS_MAPPING = {
     "first_wall": "FirstWallComponent",
     "blanket_shell": "BlanketShellAssembly",
     "blanket_ring": "BlanketRingAssembly",
-    "HCPB_blanket": "HCPBBlanket"
+    "HCPB_blanket": "HCPBBlanket",
+    "sprint_facility": "SprintFacility",
+    "sprint_detector": "SprintDetector",
+    "test_device": "SprintTestDevice",
+    "test_device_chamber": "TestDeviceChamber"
 }
 
 # components requiring only geometry and material parameters

@@ -1,5 +1,5 @@
 {
-    "class": "sprint facility",
+    "class": "sprint_facility",
     "material": "Steel",
     "geometry": {
         "dimensions": [49],
@@ -31,7 +31,7 @@
                 "inner thickness": 1,
                 "outer thickness": 2,
                 "plate thickness": 1,
-                "outer radius": 5,
+                "outer radius": 10,
                 "length": 5,
                 "spoke number": 3,
                 "spoke thickness": 2,
