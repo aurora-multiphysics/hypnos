@@ -119,9 +119,9 @@ class GenericComponentAssembly:
     def find_parent_component(self, geometry: CubitInstance):
         for component in self.get_components():
             if isinstance(component, SimpleComponent):
-                for component_geometry in component.get_subcomponents():
+                for component_geometry in to_volumes(component.get_subcomponents()):
                     if isinstance(component_geometry, CubitInstance):
-                        if geometry.cid == component_geometry.cid and geometry.geometry_type == component_geometry.geometry_type:
+                        if str(geometry) == str(component_geometry):
                             return component
             elif isinstance(component, GenericComponentAssembly):
                 found_component = component.find_parent_component(geometry)
@@ -156,7 +156,7 @@ class GenericComponentAssembly:
         :rtype: list
         '''
         return self.components
-    
+
     def get_all_components(self) -> list[SimpleComponent]:
         '''Return all components stored in this assembly recursively
 
@@ -231,7 +231,13 @@ class CreatedComponentAssembly(GenericComponentAssembly):
         volume_ids_list = [i.cid for i in to_volumes(self.get_all_geometries())]
         overlaps = cubit.get_overlapping_volumes(volume_ids_list)
         if overlaps != ():
-            overlapping_components = {self.find_parent_component(CubitInstance(overlap_vol_id, "volume")).classname for overlap_vol_id in overlaps}
+            overlapping_components = []
+            for overlap_vol_id in overlaps:
+                overlapping_comp = self.find_parent_component(CubitInstance(overlap_vol_id, "volume"))
+                if overlapping_comp:
+                    overlapping_components.append(overlapping_comp.classname)
+                else:
+                    overlapping_components.append("unknown")
             raise CubismError(f"The following components have overlaps: {overlapping_components}")
 
     def enforce_structure(self):
@@ -1145,20 +1151,20 @@ class SprintFacility(CreatedComponentAssembly):
         self.__add_component_attributes(json_object)
         super().__init__("sprint_facility", SPRINT_FAC_REQS, json_object)
         self.check_for_overlaps()
-    
+
     def check_sanity(self):
 
         source_check = self.source_geom["position"]
         source_check.append(0)
         if not self.is_inside_room(source_check):
-            raise CubismError("Source position out of bounda")
+            raise CubismError("Source position out of bounds")
         source_check.pop()
 
         if self.detectors:
             for detector_pos in self.detector_pos:
                 if not self.is_inside_room(detector_pos):
                     raise CubismError("Detector(s) not inside room")
-    
+
     def is_inside_room(self, pos: list):
         room_dims = convert_to_3d_vector(self.room_geometry["dimensions"])
         room_thickness = convert_to_3d_vector(self.room_geometry["thickness"])
@@ -1245,14 +1251,14 @@ class SprintDetector(CreatedComponentAssembly):
         self.origin = json_object["origin"] if "origin" in json_object.keys() else Vertex(0)
         self.setup_assembly()
         self.move(self.origin)
-    
+
     def check_sanity(self):
         geom = self.geometry
         if geom["chamber outer radius"] < 2*geom["chamber thickness"]:
             raise CubismError("Detector chamber too thick, no room inside for gas")
         elif geom["chamber length"] < 2*geom["chamber thickness"]:
             raise CubismError("Detector chamber too thick, no room inside for gas")
-    
+
     def setup_assembly(self):
         chamber_geom = self.extract_parameters({
             "chamber length": "length",
@@ -1283,7 +1289,7 @@ class SprintDetector(CreatedComponentAssembly):
             "radius": geom["support rod radius"]
         }
         return self.__jsonify(rod_json, "chamber", "xy")
-    
+
     def __get_mod_json(self):
         mod_geom = self.extract_parameters({
             "moderator top thickness": "top thickness",
@@ -1299,7 +1305,7 @@ class SprintDetector(CreatedComponentAssembly):
         gas_geom["length"] = self.geometry["chamber length"] - 2*self.geometry["chamber thickness"]
         gas_geom["radius"] = self.geometry["chamber outer radius"] - self.geometry["chamber thickness"]
         return self.__jsonify(gas_geom, "fill")
-    
+
     def __jsonify(self, geometry: dict, material: str, start = "xyz"):
         '''Create dictionary with geometry, material, and origin keys.
 
@@ -1339,7 +1345,7 @@ class SprintTestDevice(CreatedComponentAssembly):
         self.origin = json_object["origin"] if "origin" in json_object.keys() else Vertex(0)
         self.setup_assembly()
         self.move(self.origin)
-    
+
     def check_sanity(self):
         geom = self.geometry
         length = geom["length"]

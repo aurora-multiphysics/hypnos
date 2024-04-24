@@ -174,4 +174,46 @@ HCPB_BLANKET = {
     }
 }
 
+SPRINT_FACILITY = {
+    "class": "sprint_facility",
+    "material": "Steel",
+    "geometry": {
+        "dimensions": [60, 60, 40],
+        "thickness": 1,
+        "detector positions": [
+            [10, 10, 10],
+            [-20, -20, 20]
+        ]
+    },
+    "components": [
+        {
+            "class": "sprint_source",
+            "material": "Steel",
+            "geometry": {
+                "position": [10, 10],
+                "outer radius": 3,
+                "thickness": 1,
+                "length": 10,
+                "depth": 5
+            }
+        },
+        {
+            "class": "test_device",
+            "material": {
+                "chamber": "Steel",
+                "breeder": "KALOS"
+            },
+            "geometry": {
+                "inner thickness": 1,
+                "outer thickness": 2,
+                "outer radius": 10,
+                "length": 5,
+                "spoke number": 5,
+                "spoke thickness": 2,
+                "cap thickness": 1
+            }
+        }
+    ]
+}
+
 DEFAULTS = [PIN, FIRST_WALL, BLANKET_SHELL, BLANKET_RING, HCPB_BLANKET]

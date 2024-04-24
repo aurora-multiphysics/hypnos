@@ -2,10 +2,11 @@
     "class": "sprint_facility",
     "material": "Steel",
     "geometry": {
-        "dimensions": 52,
+        "dimensions": [60, 60, 40],
         "thickness": 1,
         "detector positions": [
-            [10, 10, 10]
+            [10, 10, 10],
+            [-20, -20, 20]
         ]
     },
     "components": [
@@ -13,7 +14,7 @@
             "class": "sprint_source",
             "material": "Steel",
             "geometry": {
-                "position": [0, 0],
+                "position": [10, 10],
                 "outer radius": 3,
                 "thickness": 1,
                 "length": 10,
@@ -31,7 +32,7 @@
                 "outer thickness": 2,
                 "outer radius": 10,
                 "length": 5,
-                "spoke number": 3,
+                "spoke number": 5,
                 "spoke thickness": 2,
                 "cap thickness": 1
             }

@@ -989,7 +989,7 @@ class TestDeviceChamber(SimpleComponent):
             angle = spoke_angles[i]
             spokes_rotated = [spoke_vertex.rotate(angle) for spoke_vertex in spoke_vertices]
             spokes[i] = make_surface(spokes_rotated, [])
-        
+
         inner_disk = self.__create_disk(inner_radius, inner_radius + inner_thickness)
         outer_disk = self.__create_disk(outer_radius - outer_thickness, outer_radius)
 
@@ -999,6 +999,11 @@ class TestDeviceChamber(SimpleComponent):
         base = to_surfaces([union(base_surfs)])[0]
         cmd(f"sweep {base} vector 0 0 1 distance {breeder_length}")
         uncapped_chamber = to_volumes([to_body(base)])[0]
+
+        # ensure spokes dont stick out anywhere
+        clear_inner = make_cylinder_along(inner_radius, length)
+        clear_outer = self.__create_cap(outer_radius, outer_radius + outer_thickness, length)
+        uncapped_chamber = subtract([uncapped_chamber], [clear_inner, clear_outer])[0]
 
         bottom_cap = self.__create_cap(inner_radius, outer_radius, cap_thickness)
         bottom_cap.move([0, 0, -cap_thickness/2])
