@@ -903,6 +903,14 @@ class SprintRoomComponent(SimpleComponent):
     def __init__(self, json_object: dict):
         super().__init__("sprint_room", json_object)
     
+    def check_sanity(self):
+        outer_dims = self.convert_to_3d_vector(self.geometry["dimensions"])
+        thickness = self.convert_to_3d_vector(self.geometry["thickness"])
+
+        for i in range(3):
+            if outer_dims[i] < 2*thickness[i]:
+                raise CubismError("Room thickness greater than specified dimensions")
+    
     def make_geometry(self):
         '''create 3d room with outer dimensions dimensions (int or list) and thickness (int or list)'''
         # get variables
@@ -931,6 +939,13 @@ class SprintRoomComponent(SimpleComponent):
 class SprintSourceComponent(SimpleComponent):
     def __init__(self, json_object: dict):
         super().__init__("sprint_source", json_object)
+    
+    def check_sanity(self):
+        geom = self.geometry
+        if geom["outer radius"] < 2*geom["thickness"] or geom["length"] < 2*geom["thickness"]:
+            raise CubismError("Source chamber too thick")
+        elif geom["depth"] > geom["length"]:
+            raise CubismError("Source depth greater than it's length")
     
     def make_geometry(self):
         outer_radius = self.geometry["outer radius"]

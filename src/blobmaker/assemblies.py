@@ -1144,6 +1144,29 @@ class SprintFacility(CreatedComponentAssembly):
         self.detectors = False
         self.__add_component_attributes(json_object)
         super().__init__("sprint_facility", SPRINT_FAC_REQS, json_object)
+        self.check_for_overlaps()
+    
+    def check_sanity(self):
+        room_dims = convert_to_3d_vector(self.room_geometry["dimensions"])
+        room_thickness = convert_to_3d_vector(self.room_geometry["thickness"])
+        room_extent = [room_dims[i] - 2*room_thickness[i] for i in range(3)]
+
+        if self.detectors:
+            for detector_pos in self.detector_pos:
+                if not self.is_inside_room(detector_pos):
+                    raise CubismError("Detector(s) not inside room")
+    
+    def is_inside_room(self, pos: list):
+        room_dims = convert_to_3d_vector(self.room_geometry["dimensions"])
+        room_thickness = convert_to_3d_vector(self.room_geometry["thickness"])
+        room_extent = [room_dims[i] - 2*room_thickness[i] for i in range(3)]
+        for i in range(2):
+            if np.abs(pos[i]) > room_extent[i]/2:
+                return False
+        if 0 > pos[2] > room_extent[2]:
+            return False
+        return True
+
 
     def setup_assembly(self):
         room_z_thickness = convert_to_3d_vector(self.room_geometry["thickness"])[2]
@@ -1222,9 +1245,10 @@ class SprintDetector(CreatedComponentAssembly):
     
     def check_sanity(self):
         geom = self.geometry
-        if geom["chamber outer radius"] > 2*geom["chamber thickness"]:
+        if geom["chamber outer radius"] < 2*geom["chamber thickness"]:
             raise CubismError("Detector chamber too thick, no room inside for gas")
-        
+        elif geom["chamber length"] < 2*geom["chamber thickness"]:
+            raise CubismError("Detector chamber too thick, no room inside for gas")
     
     def setup_assembly(self):
         chamber_geom = self.extract_parameters({
@@ -1312,6 +1336,28 @@ class SprintTestDevice(CreatedComponentAssembly):
         self.origin = json_object["origin"] if "origin" in json_object.keys() else Vertex(0)
         self.setup_assembly()
         self.move(self.origin)
+    
+    def check_sanity(self):
+        geom = self.geometry
+        length = geom["length"]
+        outer_rad = geom["outer radius"]
+        inner_rad = geom["inner radius"]
+        outer_thick = geom["outer thickness"]
+        inner_thick = geom["inner thickness"]
+        cap_thick = geom["cap thickness"]
+        spoke_thick = geom["spoke thickness"]
+        spoke_number = geom["spoke number"]
+
+        if outer_rad < inner_rad:
+            raise CubismError("Outer radius of test device shorter than inner radius")
+        elif inner_thick + outer_thick > outer_rad - inner_rad:
+            raise CubismError("Device chamber too thick, no room inside for breeder")
+        elif length < 2*cap_thick:
+            raise CubismError("Device chamber too thick, no room inside for breeder")
+        elif spoke_thick > 2*inner_rad:
+            raise CubismError("Spoke too thick to fit in chamber")
+        elif spoke_number*spoke_thick > 2*np.pi*(inner_rad + inner_thick):
+            raise CubismError("Too many spokes to fit in chamber")
     
     def setup_assembly(self):
         chamber_geom = self.extract_parameters([
