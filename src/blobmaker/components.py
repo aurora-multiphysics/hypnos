@@ -131,6 +131,8 @@ class SimpleComponent:
         return [self.geometry[parameter] for parameter in parameters]
 
     def move(self, vector: Vertex):
+        if type(vector) is list and len(vector) == 3:
+            vector = Vertex(*vector)
         for subcomponent in self.subcomponents:
             if isinstance(subcomponent, CubitInstance):
                 cmd(f"{str(subcomponent)} move {str(vector)}")
@@ -908,14 +910,18 @@ class SprintRoomComponent(SimpleComponent):
         thickness = self.convert_to_3d_vector(self.geometry["thickness"])
         hole_radius = self.geometry["hole radius"]
         hole_position = self.geometry["hole position"]
+
         # create room
         cubit.brick(outer_dims[0]-2*thickness[0], outer_dims[1]-2*thickness[1], outer_dims[2]-2*thickness[2])
-        subtract_vol = get_last_geometry("body")
-        source_vol = make_cylinder_along(hole_radius, 2*thickness[2])
+        subtract_vol = get_last_geometry("volume")
+
+        source_vol = make_cylinder_along(hole_radius, thickness[2])
+        hole_position[2] -= (outer_dims[2]/2 - thickness[2])
         source_vol.move(hole_position)
-        source_vol = to_body(source_vol)
+
         cubit.brick(outer_dims[0], outer_dims[1], outer_dims[2])
-        block = get_last_geometry("body")
+        block = get_last_geometry("volume")
+
         block = subtract([block], [subtract_vol, source_vol])
         room = to_volumes(block)[0]
         room.move([0, 0, outer_dims[2]/2 - thickness[2]])
@@ -952,7 +958,7 @@ class TestDeviceChamber(SimpleComponent):
         inner_thickness = self.geometry["inner thickness"]
         spoke_number = self.geometry["spoke number"]
         spoke_thickness = self.geometry["spoke thickness"]
-        breeder_length = length - cap_thickness
+        breeder_length = length - 2*cap_thickness
 
         spokes = list(np.zeros(spoke_number))
         spoke_vertices = [Vertex(0) for i in range(4)]
@@ -985,7 +991,6 @@ class TestDeviceChamber(SimpleComponent):
         top_cap.move([0, 0, cap_thickness/2 + breeder_length])
 
         chamber = union([uncapped_chamber, bottom_cap, top_cap])
-        #chamber.move([0, 0, cap_thickness])
         return [chamber]
 
     def __get_spoke_y(self, x: int, radius: int):
@@ -1026,6 +1031,8 @@ class TestDeviceBreeder(SimpleComponent):
         
         mold = TestDeviceChamber(mold_json).get_subcomponents()[0]
         block = make_cylinder_along(self.geometry["outer radius"], length)
+        subtract_vol = make_cylinder_along(self.geometry["inner radius"], length)
+        block = subtract([block], [subtract_vol])[0]
         block.move([0, 0, length/2])
 
         breeder = subtract([block], [mold])
@@ -1076,7 +1083,7 @@ class SprintDetectorModerator(SimpleComponent):
         )
 
         chamber = subtract([tool], [subtract_vol])
-        return [chamber]
+        return chamber
         
 
 class SprintDetectorRod(SimpleComponent):

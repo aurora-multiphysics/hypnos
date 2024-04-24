@@ -1147,16 +1147,16 @@ class SprintFacility(CreatedComponentAssembly):
 
     def setup_assembly(self):
         room_z_thickness = convert_to_3d_vector(self.room_geometry["thickness"])[2]
-        room_height = convert_to_3d_vector(self.room_geometry["dimensions"])[2]
-        source_z = room_height - (room_z_thickness + self.source_geom["depth"])
-        device_z = room_height + self.device_geom["cap thickness"] - (self.device_geom["length"] + room_z_thickness)
+        room_height = convert_to_3d_vector(self.room_geometry["dimensions"])[2] - 2*room_z_thickness
+        source_z = room_height - self.source_geom["depth"]
+        hole_z = room_height + room_z_thickness/2
 
         source_position = self.source_geom["position"] + [source_z]
-        hole_position = self.source_geom["position"] + [room_height]
-        device_disp = self.source_geom["position"] + [device_z]
+        hole_position = self.source_geom["position"] + [hole_z]
+        device_disp = self.source_geom["position"] + [room_height]
 
-        room_json = self.__get_room_json(source_position)
-        source_json = self.__jsonify(self.source_geom, self.source_mat, Vertex(*hole_position))
+        room_json = self.__get_room_json(hole_position)
+        source_json = self.__jsonify(self.source_geom, self.source_mat, Vertex(*source_position))
         device_json = self.__get_device_json(device_disp)
 
         room = SprintRoomComponent(room_json)
@@ -1220,6 +1220,12 @@ class SprintDetector(CreatedComponentAssembly):
         self.setup_assembly()
         self.move(self.origin)
     
+    def check_sanity(self):
+        geom = self.geometry
+        if geom["chamber outer radius"] > 2*geom["chamber thickness"]:
+            raise CubismError("Detector chamber too thick, no room inside for gas")
+        
+    
     def setup_assembly(self):
         chamber_geom = self.extract_parameters({
             "chamber length": "length",
@@ -1235,18 +1241,20 @@ class SprintDetector(CreatedComponentAssembly):
         gas = SprintDetectorGas(gas_json)
         moderator = SprintDetectorModerator(moderator_json)
 
-        if moderator_json["geometry"]["length"]/2 > self.centroid[2]:
-            rod_json = self.__get_rod_json()
+        rod_length = self.centroid[2] - moderator_json["geometry"]["length"]/2
+        if rod_length > 0:
+            rod_json = self.__get_rod_json(rod_length)
             rod = SprintDetectorRod(rod_json)
             self.components.extend([rod])
 
         self.components.extend([chamber, gas, moderator])
 
-    def __get_rod_json(self):
+    def __get_rod_json(self, rod_length):
         geom = self.geometry
-        rod_json = {}
-        rod_json["length"] = geom["chamber length"] + geom["moderator top thickness"] + geom["moderator bottom thickness"] - self.centroid[2]
-        rod_json["radius"] = geom["support rod radius"]
+        rod_json = {
+            "length": rod_length,
+            "radius": geom["support rod radius"]
+        }
         return self.__jsonify(rod_json, "chamber", "xy")
     
     def __get_mod_json(self):
@@ -1316,7 +1324,8 @@ class SprintTestDevice(CreatedComponentAssembly):
 
         chamber = TestDeviceChamber(chamber_json)
         breeder = TestDeviceBreeder(breeder_json)
-        breeder.move([0, 0, chamber_geom["cap thickness"]])
+        chamber.move([0, 0, chamber_geom["cap thickness"] - chamber_geom["length"]])
+        breeder.move([0, 0, chamber_geom["cap thickness"] - chamber_geom["length"]])
 
         self.components.extend([chamber, breeder])
     

@@ -2,10 +2,9 @@
     "class": "sprint_facility",
     "material": "Steel",
     "geometry": {
-        "dimensions": [49],
+        "dimensions": 52,
         "thickness": 1,
         "detector positions": [
-            [5, 5, 5],
             [10, 10, 10]
         ]
     },
@@ -49,9 +48,9 @@
                 "chamber length": 5,
                 "chamber outer radius": 3,
                 "chamber thickness": 1,
-                "moderator top thickness": 3,
-                "moderator bottom thickness": 3,
-                "moderator radial thickness": 3,
+                "moderator top thickness": 2,
+                "moderator bottom thickness": 1,
+                "moderator radial thickness": 1,
                 "support rod radius": 1
             }
         }
