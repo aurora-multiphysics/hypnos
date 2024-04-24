@@ -1147,9 +1147,12 @@ class SprintFacility(CreatedComponentAssembly):
         self.check_for_overlaps()
     
     def check_sanity(self):
-        room_dims = convert_to_3d_vector(self.room_geometry["dimensions"])
-        room_thickness = convert_to_3d_vector(self.room_geometry["thickness"])
-        room_extent = [room_dims[i] - 2*room_thickness[i] for i in range(3)]
+
+        source_check = self.source_geom["position"]
+        source_check.append(0)
+        if not self.is_inside_room(source_check):
+            raise CubismError("Source position out of bounda")
+        source_check.pop()
 
         if self.detectors:
             for detector_pos in self.detector_pos:
