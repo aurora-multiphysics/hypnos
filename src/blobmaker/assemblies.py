@@ -71,7 +71,7 @@ class GenericComponentAssembly:
         return instances_list
 
     def get_all_cubit_instances(self) -> list:
-        '''get every cubit instance stored in this assembly instance recursively
+        '''Get every cubit instance stored in this assembly instance recursively
 
         :return: list of cubit handles
         :rtype: list
@@ -108,11 +108,18 @@ class GenericComponentAssembly:
         return component_list
 
     def find_parent_component(self, geometry: CubitInstance):
+        '''Get owning simple component of given geometry
+
+        :param geometry: Child geometry
+        :type geometry: CubitInstance
+        :return: Parent simple component or False if not found
+        :rtype: SimpleComponent | False
+        '''
         for component in self.get_components():
             if isinstance(component, SimpleComponent):
                 for component_geometry in component.get_subcomponents():
                     if isinstance(component_geometry, CubitInstance):
-                        if geometry.cid == component_geometry.cid and geometry.geometry_type == component_geometry.geometry_type:
+                        if str(geometry) == str(component_geometry):
                             return component
             elif isinstance(component, GenericComponentAssembly):
                 found_component = component.find_parent_component(geometry)
@@ -121,7 +128,7 @@ class GenericComponentAssembly:
         return False
 
     def get_all_geometries(self) -> list[CubitInstance]:
-        '''get every geometry stored in this assembly instance recursively
+        '''Get every geometry stored in this assembly instance recursively
 
         :return: list of GenericCubitInstances
         :rtype: list
@@ -218,6 +225,10 @@ class CreatedComponentAssembly(GenericComponentAssembly):
         self.move(self.origin)
 
     def check_for_overlaps(self):
+        '''Blanket check for overlaps
+
+        :raises CubismError: Raises if overlaps are detected
+        '''
         volume_ids_list = [i.cid for i in to_volumes(self.get_all_geometries())]
         overlaps = cubit.get_overlapping_volumes(volume_ids_list)
         if overlaps != ():
@@ -340,14 +351,9 @@ class NeutronTestFacility(CreatedComponentAssembly):
                             cmd(f"remove overlap volume {source_volume.cid} {blanket_volume.cid} modify volume {blanket_volume.cid}")
             print(f"{self.morphology} morphology applied")
 
-    def check_for_overlaps(self):
-        volume_ids_list = [i.cid for i in to_volumes(self.get_all_geometries())]
-        overlaps = cubit.get_overlapping_volumes(volume_ids_list)
-        if overlaps != ():
-            raise CubismError(f"Here be overlaps: {overlaps}")
-
     def validate_rooms_and_fix_air(self):
-        '''subtract all non-air geometries from all air geometries. Validate that everything is inside a room'''
+        '''Subtract all non-air geometries from all air geometries. 
+        Validate that everything is inside a room'''
 
         # collect geometries that define the complete space of the facility
         room_bounding_boxes = []
@@ -396,13 +402,15 @@ class NeutronTestFacility(CreatedComponentAssembly):
 
 # replace this at some point
 class BlanketAssembly(CreatedComponentAssembly):
-    '''Assembly class that requires at least one breeder and structure. Additionally stores coolants separately'''
+    '''Assembly class that requires at least one breeder and structure. 
+    Additionally stores coolants separately'''
     def __init__(self, json_object: dict):
         super().__init__("Blanket", BLANKET_REQUIREMENTS, json_object)
 
 
 class RoomAssembly(CreatedComponentAssembly):
-    '''Assembly class that requires surrounding walls and a blanket. Fills with air. Can add walls.'''
+    '''Assembly class that requires surrounding walls and a blanket. 
+    Fills with air. Can add walls.'''
     def __init__(self, json_object):
         component_list = list(json_object["components"].values())
 
@@ -472,7 +480,7 @@ class ExternalComponentAssembly(GenericComponentAssembly):
         cmd(f"delete group {temp_group_id}")
 
     def get_group_id(self):
-        '''get ID of group (group needs to exist first)'''
+        '''Get ID of group (group needs to exist first)'''
         for (group_name, group_id) in cubit.group_names_ids():
             if group_name == self.group:
                 return group_id
@@ -497,7 +505,8 @@ class SourceAssembly(ExternalComponentAssembly):
 
 # more detailed components
 class PinAssembly(CreatedComponentAssembly):
-    '''cladding filled with breeder capped by a filter disc. Enclosed in a pressure tube surrounded by a hexagonal prism of multiplier'''
+    '''Cladding filled with breeder capped by a filter disc. 
+    Enclosed in a pressure tube surrounded by a hexagonal prism of multiplier'''
     def __init__(self, json_object: dict):
         self.components = []
         self.classname = "pin"
@@ -708,7 +717,7 @@ class BlanketShellAssembly(CreatedComponentAssembly):
 
 
 class BlanketRingAssembly(CreatedComponentAssembly):
-    '''Makes a ring of blanket shells'''
+    '''Make a ring of blanket shells'''
     def __init__(self, json_object: dict):
         self.geometry = json_object["geometry"]
         super().__init__("blanket_ring", ["blanket shell"], json_object)
@@ -759,6 +768,8 @@ class BlanketRingAssembly(CreatedComponentAssembly):
 
 
 class HCPBBlanket(CreatedComponentAssembly):
+    '''Mockup of a HCPB-style breeder blanket
+    '''
     def __init__(self, json_object: dict):
         self.geometry = json_object["geometry"]
         super().__init__("HCPB_blanket", HCPB_BLANKET_REQUIREMENTS, json_object)
@@ -1118,6 +1129,13 @@ class HCPBBlanket(CreatedComponentAssembly):
 
 
 def get_all_geometries_from_components(component_list) -> list[CubitInstance]:
+    '''Get all geometries from components :)
+
+    :param component_list: List of components
+    :type component_list: list
+    :return: List of geometries
+    :rtype: list[CubitInstance]
+    '''
     instances = []
     for component in component_list:
         if isinstance(component, CubitInstance):
@@ -1131,7 +1149,7 @@ def get_all_geometries_from_components(component_list) -> list[CubitInstance]:
 
 # wrapper for cubit.union
 def unionise(component_list: list):
-    '''creates a union of all instances in given components.
+    '''Create a union of all instances in given components.
 
     :param component_list: list of components
     :type component_list: list
@@ -1141,7 +1159,7 @@ def unionise(component_list: list):
     if len(component_list) == 0:
         raise CubismError("This is an empty list you have given me")
 
-    # get all GenericCubitInstances from components
+    # get all CubitInstances from components
     instances_to_union = get_all_geometries_from_components(component_list)
 
     # convert to bodies :(
@@ -1171,5 +1189,12 @@ def unionise(component_list: list):
 
 
 def construct(json_object: dict, *args):
+    '''Return python class corresponding to given json object
+
+    :param json_object: Dictionary describing parametric geometry
+    :type json_object: dict
+    :return: Corresponding component class
+    :rtype: SimpleComponent | GenericComponentAssembly
+    '''
     constructor = globals()[CLASS_MAPPING[json_object["class"]]]
     return constructor(json_object, *args)

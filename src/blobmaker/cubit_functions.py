@@ -11,7 +11,7 @@ def reset_cubit():
 
 
 def get_last_geometry(geometry_type: str):
-    '''Get last geometry of given type
+    '''Get last created geometry of given type
 
     :param geometry_type: type of geometry to search for.
     :type geometry_type: str
@@ -170,17 +170,20 @@ def to_surfaces(component_list: list[CubitInstance]) -> list[CubitInstance]:
     :return: List of converted geometries
     :rtype: list[CubitInstance]
     '''
-    all_surfaces_that_exist = cubit.get_entities("surface")
+    # convert any stray bodies to volumes
     volumes_list = to_volumes(component_list)
     return_list = []
+    surf_ids = set([])
+
     for component in volumes_list:
         if component.geometry_type == "volume":
-            for surface_id in all_surfaces_that_exist:
-                if cubit.get_owning_volume("surface", surface_id) == component.cid:
-                    return_list.append(CubitInstance(surface_id, "surface"))
+            # get surfaces belonging to volume
+            surfs = cubit.volume(component.cid).surfaces()
+            surf_ids = surf_ids.union({surf.id() for surf in surfs})
         else:
             return_list.append(component)
-    return return_list
+    return_list.extend([CubitInstance(surf_id, "surface") for surf_id in surf_ids])
+    return list(set(return_list))
 
 
 def to_bodies(component_list: list) -> list[CubitInstance]:
@@ -205,6 +208,15 @@ def to_bodies(component_list: list) -> list[CubitInstance]:
 
 
 def get_entities_from_group(group_identifier: int | str, entity_type: str) -> list[int]:
+    '''Get specified cubit entity IDs from cubit group
+
+    :param group_identifier: ID or name of group
+    :type group_identifier: int | str
+    :param entity_type: Name of entity type
+    :type entity_type: str
+    :return: list of cubit IDs
+    :rtype: list[int]
+    '''
     if type(group_identifier) is str:
         group_identifier = cubit.get_id_from_name(group_identifier)
         if group_identifier == 0:
@@ -224,6 +236,15 @@ def get_entities_from_group(group_identifier: int | str, entity_type: str) -> li
 
 
 def create_new_entity(entity_type: str, name: str) -> int:
+    '''Create new entity of given name, otherwise return ID of existing entity
+
+    :param entity_type: Name of entity type
+    :type entity_type: str
+    :param name: Name to give new entity
+    :type name: str
+    :return: ID of created/ existing entity
+    :rtype: int
+    '''
     if entity_type in ["block", "sideset"]:
         if entity_type == "block":
             exo_id = cubit.get_next_block_id()
@@ -237,20 +258,6 @@ def create_new_entity(entity_type: str, name: str) -> int:
         if group_id == 0:
             group_id = cubit.get_id_from_name(name)
         return group_id
-
-
-def merge_volumes(vol_string1: str, vol_string2: str):
-    pre_id = cubit.get_last_id("group")
-    cmd(f"merge volume {vol_string1} with volume {vol_string2} group_results")
-    post_id = cubit.get_last_id("group")
-    group_with_surfaces = False
-    if post_id > pre_id:
-        for group_id in range(pre_id + 1, post_id + 1):
-            if cubit.get_group_surfaces(group_id) == ():
-                cmd(f"delete group {group_id}")
-            else:
-                group_with_surfaces = group_id
-    return group_with_surfaces
 
 # unionise is in Assemblies.py as it needs to know about the
 # ComplexComponent and Assembly classes
