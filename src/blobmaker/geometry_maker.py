@@ -49,6 +49,13 @@ class GeometryMaker():
         return filled_json_object
     
     def change_delimiter(self, delimiter: str):
+        '''Change the delimiter to use in key paths 
+        for the change_params and get_param methods.
+        By default the delimiter is '/'.
+
+        :param delimiter: New delimiter
+        :type delimiter: str
+        '''
         self.key_route_delimiter = delimiter
         print(f"Delimiter changed to: {delimiter}")
 
@@ -66,6 +73,7 @@ class GeometryMaker():
         }
 
         The argument provided here would have to be {"geometry/pin spacing": 135}
+        with '/' being the default delimiter.
 
         :param updated_params: {path : updated value} pairs
         :type updated_params: dict
@@ -88,6 +96,7 @@ class GeometryMaker():
         }
 
         The argument provided here would have to be "geometry/pin spacing"
+        with '/' being the default delimiter.
 
         :param param_path: path to parameter
         :type param_path: str
