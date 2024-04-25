@@ -33,9 +33,14 @@ def cmd_check(command: str, id_type: str):
     :return: geometry/ id/ false
     :rtype: CubitInstance/ int/ bool
     '''
-    pre_id = cubit.get_last_id(id_type)
-    cmd(command)
-    post_id = cubit.get_last_id(id_type)
+    if id_type == "group" and float(cubit.get_version()) > 2023.8:
+        pre_id = cubit.get_next_group_id() - 1
+        cmd(command)
+        post_id = cubit.get_next_group_id() - 1
+    else:
+        pre_id = cubit.get_last_id(id_type)
+        cmd(command)
+        post_id = cubit.get_last_id(id_type)
     if pre_id == post_id:
         if not id_type == "group":
             raise CubismError(f"no new {id_type} created, last id: {pre_id}")

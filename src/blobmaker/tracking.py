@@ -6,8 +6,7 @@ from blobmaker.cubit_functions import (
     to_volumes, 
     cmd_check, 
     get_entities_from_group, 
-    create_new_entity, 
-    merge_volumes
+    create_new_entity
 )
 import itertools
 
