@@ -31,6 +31,7 @@ class GeometryMaker():
         self.constructed_geometry = []
         self.print_parameter_logs = False
         self.track_components = False
+        self.key_route_delimiter = '/'
 
     def parse_json(self, filename: str):
         '''Parse a json file and add corresponding design tree to design_tree attribute
@@ -46,6 +47,17 @@ class GeometryMaker():
             self.parameter_filler.print_log()
         self.design_tree = filled_json_object
         return filled_json_object
+    
+    def change_delimiter(self, delimiter: str):
+        '''Change the delimiter to use in key paths 
+        for the change_params and get_param methods.
+        By default the delimiter is '/'.
+
+        :param delimiter: New delimiter
+        :type delimiter: str
+        '''
+        self.key_route_delimiter = delimiter
+        print(f"Delimiter changed to: {delimiter}")
 
     def change_params(self, updated_params: dict):
         '''Change parameters in stored design tree.
@@ -61,13 +73,14 @@ class GeometryMaker():
         }
 
         The argument provided here would have to be {"geometry/pin spacing": 135}
+        with '/' being the default delimiter.
 
         :param updated_params: {path : updated value} pairs
         :type updated_params: dict
         '''
         for param_path, updated_value in updated_params.items():
             assert type(param_path) is str
-            key_route = param_path.split('/')
+            key_route = param_path.split(self.key_route_delimiter)
             self.design_tree = self.__build_param_dict(key_route, self.design_tree, updated_value)
 
     def get_param(self, param_path: str):
@@ -83,13 +96,14 @@ class GeometryMaker():
         }
 
         The argument provided here would have to be "geometry/pin spacing"
+        with '/' being the default delimiter.
 
         :param param_path: path to parameter
         :type param_path: str
         :return: Value of parameter
         :rtype: any
         '''
-        key_route = param_path.split('/')
+        key_route = param_path.split(self.key_route_delimiter)
         return self.__follow_key_route(key_route, self.design_tree)
 
     def __follow_key_route(self, key_route: list[str], param_dict: dict):
