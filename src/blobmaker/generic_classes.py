@@ -15,7 +15,7 @@ class CubitInstance:
     def __init__(self, cid: int, geometry_type: str) -> None:
         self.cid = cid
         self.geometry_type = geometry_type
-        self.cubitInstance = get_cubit_geometry(self.cid, self.geometry_type)
+        self.handle = get_cubit_geometry(self.cid, self.geometry_type)
 
     def __str__(self) -> str:
         return f"{self.geometry_type} {self.cid}"
@@ -31,13 +31,13 @@ class CubitInstance:
         return CubitInstance(copied_id, self.geometry_type)
 
     def move(self, vector):
-        cubit.move(self.cubitInstance, vector)
+        cubit.move(self.handle, vector)
 
     def update_reference(self, cid: int, geometry_type: str):
         '''Change what this instance refers to cubitside'''
         self.cid = cid
         self.geometry_type = geometry_type
-        self.cubitInstance = get_cubit_geometry(cid, geometry_type)
+        self.handle = get_cubit_geometry(cid, geometry_type)
 
 
 # make finding instances less annoying

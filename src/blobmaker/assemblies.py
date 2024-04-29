@@ -63,7 +63,7 @@ class GenericComponentAssembly:
                 if isinstance(component, component_class):
                     # fetches instances
                     if isinstance(component, CubitInstance):
-                        instances_list.append(component.cubitInstance)
+                        instances_list.append(component.handle)
                     elif isinstance(component, SimpleComponent):
                         instances_list += component.subcomponents
                     elif isinstance(component, GenericComponentAssembly):
@@ -79,9 +79,9 @@ class GenericComponentAssembly:
         instances_list = []
         for component in self.get_components():
             if isinstance(component, CubitInstance):
-                instances_list.append(component.cubitInstance)
+                instances_list.append(component.handle)
             elif isinstance(component, SimpleComponent):
-                instances_list += [subcomp.cubitInstance for subcomp in component.subcomponents]
+                instances_list += [subcomp.handle for subcomp in component.subcomponents]
             elif isinstance(component, GenericComponentAssembly):
                 instances_list += component.get_all_cubit_instances()
         return instances_list
@@ -314,9 +314,9 @@ class NeutronTestFacility(CreatedComponentAssembly):
         union_object = unionise([source_object, blanket_object])
 
         # get their volumes
-        source_volume = source_object.cubitInstance.volume()
-        blanket_volume = blanket_object.cubitInstance.volume()
-        union_volume = union_object.cubitInstance.volume()
+        source_volume = source_object.handle.volume()
+        blanket_volume = blanket_object.handle.volume()
+        union_volume = union_object.handle.volume()
 
         # cleanup
         source_object.destroy_cubit_instance()
@@ -372,8 +372,8 @@ class NeutronTestFacility(CreatedComponentAssembly):
         union_object = unionise([room_bounding_box, all_geometries])
 
         # get volumes
-        bounding_volume = room_bounding_box.cubitInstance.volume()
-        union_volume = union_object.cubitInstance.volume()
+        bounding_volume = room_bounding_box.handle.volume()
+        union_volume = union_object.handle.volume()
 
         # cleanup
         room_bounding_box.destroy_cubit_instance()
@@ -1172,7 +1172,7 @@ def unionise(component_list: list):
         return instances_to_union[0].copy_cubit_instance()
 
     # get cubit handles
-    instances_to_union = [i.cubitInstance for i in instances_to_union]
+    instances_to_union = [i.handle for i in instances_to_union]
 
     # need old and new volumes to check what the union creates
     old_volumes = cubit.get_entities("volume")
