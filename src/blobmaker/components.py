@@ -337,8 +337,8 @@ class CladdingComponent(SimpleComponent):
         duct = get_last_geometry("volume")
 
         # realign with origin
-        cubit.move(cladding.cubitInstance, [inner_length, coolant_inlet_radius, 0])
-        cubit.move(duct.cubitInstance, [inner_length, coolant_inlet_radius, 0])
+        cubit.move(cladding.handle, [inner_length, coolant_inlet_radius, 0])
+        cubit.move(duct.handle, [inner_length, coolant_inlet_radius, 0])
         return [cladding, duct]
 
 
@@ -386,7 +386,7 @@ class BreederUnitCoolant(SimpleComponent):
         cmd(f"sweep surface {surface_to_sweep.cid} axis 0 0 0 1 0 0 angle 360")
         coolant = get_last_geometry("volume")
         # realign with origin
-        cubit.move(coolant.cubitInstance, [inner_length+pressure_tube_gap, 0, 0])
+        cubit.move(coolant.handle, [inner_length+pressure_tube_gap, 0, 0])
         return coolant
 
 
@@ -536,7 +536,7 @@ class BreederChamber(SimpleComponent):
         surface_to_sweep = make_surface(breeder_vertices, [1, 3])
         cmd(f"sweep surface {surface_to_sweep.cid} axis 0 {-inner_radius} 0 1 0 0 angle 360")
         breeder = get_last_geometry("volume")
-        cubit.move(breeder.cubitInstance, [0, inner_radius, 0])
+        cubit.move(breeder.handle, [0, inner_radius, 0])
 
         return breeder
 
