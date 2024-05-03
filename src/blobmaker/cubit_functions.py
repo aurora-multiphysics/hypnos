@@ -85,7 +85,7 @@ def copy_geometries(geometry_list: list):
     copied_list = []
     for component in geometry_list:
         if isinstance(component, CubitInstance):
-            copied_list.append(component.copy_cubit_instance())
+            copied_list.append(component.copy())
         else:
             raise CubismError("All items in list are not geometries :(")
     return copied_list

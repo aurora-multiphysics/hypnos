@@ -388,7 +388,7 @@ class NeutronTestFacility(CreatedComponentAssembly):
         for surrounding_walls in self.get_components_of_class(SurroundingWallsComponent):
             if surrounding_walls.is_air():
                 for air in surrounding_walls.get_air_subcomponents():
-                    all_geometries_copy = all_geometries.copy_cubit_instance()
+                    all_geometries_copy = all_geometries.copy()
                     cmd(f'subtract {all_geometries_copy.geometry_type} {all_geometries_copy.cid} from {air.geometry_type} {air.cid}')
         # cleanup
         all_geometries.destroy_cubit_instance()
@@ -1169,7 +1169,7 @@ def unionise(component_list: list):
     if len(instances_to_union) == 0:
         raise CubismError("Could not find any instances")
     elif len(instances_to_union) == 1:
-        return instances_to_union[0].copy_cubit_instance()
+        return instances_to_union[0].copy()
 
     # get cubit handles
     instances_to_union = [i.handle for i in instances_to_union]

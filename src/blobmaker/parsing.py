@@ -3,7 +3,7 @@ from blobmaker.default_params import DEFAULTS
 from blobmaker.generic_classes import CubismError
 
 
-def extract_data(filename):
+def extract_data(filename) -> dict:
     with open(filename) as jsonFile:
         data = jsonFile.read()
         objects = json.loads(data)
