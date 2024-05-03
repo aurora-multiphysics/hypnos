@@ -24,7 +24,7 @@ class CubitInstance:
         '''delete cubitside instance'''
         cmd(f"delete {self.geometry_type} {self.cid}")
 
-    def copy_cubit_instance(self):
+    def copy(self):
         '''create a copy (also in cubit)'''
         cmd(f"{self.geometry_type} {self.cid} copy")
         copied_id = cubit.get_last_id(self.geometry_type)
