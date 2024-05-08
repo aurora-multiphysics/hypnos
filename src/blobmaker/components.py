@@ -143,7 +143,7 @@ class SimpleComponent:
     
     def volume_id_string(self):
         self.as_volumes()
-        return " ".join(str(subcomponent.cid) for subcomponent in self.get_subcomponents()) 
+        return " ".join([str(subcomponent.cid) for subcomponent in self.get_subcomponents()]) 
 
 
 class CylindricalComponent(SimpleComponent):

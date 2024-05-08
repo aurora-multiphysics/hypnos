@@ -47,4 +47,11 @@ class TestParameterFiller:
         design_tree = extract_data(filename)
         self.p_filler.process_design_tree(design_tree)
         assert self.p_filler.design_tree == HCPB_BLANKET
+    
+    def test_print_log(self, capsys):
+        self.p_filler.log = []
+        self.p_filler.add_log("test message")
+        self.p_filler.print_log()
+        captured = capsys.readouterr()
+        assert captured.out == "test message\n"
 
