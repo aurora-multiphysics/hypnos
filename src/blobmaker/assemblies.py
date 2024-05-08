@@ -49,8 +49,8 @@ class GenericComponentAssembly:
         self.components = []
 
     # These refer to cubit handles
-    def get_cubit_instances_from_class(self, class_list: list) -> list:
-        '''Get list of cubit instances of specified classnames
+    def get_handles_from_class(self, class_list: list) -> list:
+        '''Get list of cubit handles from components of specified classnames
 
         :param classname_list: list of classnames to search in
         :type classname_list: list
@@ -67,11 +67,11 @@ class GenericComponentAssembly:
                     elif isinstance(component, SimpleComponent):
                         instances_list += component.subcomponents
                     elif isinstance(component, GenericComponentAssembly):
-                        instances_list += component.get_cubit_instances_from_class(class_list)
+                        instances_list += component.get_handles_from_class(class_list)
         return instances_list
 
-    def get_all_cubit_instances(self) -> list:
-        '''Get every cubit instance stored in this assembly instance recursively
+    def get_all_handles(self) -> list:
+        '''Get every cubit handle stored in this assembly instance recursively
 
         :return: list of cubit handles
         :rtype: list
@@ -83,7 +83,7 @@ class GenericComponentAssembly:
             elif isinstance(component, SimpleComponent):
                 instances_list += [subcomp.handle for subcomp in component.subcomponents]
             elif isinstance(component, GenericComponentAssembly):
-                instances_list += component.get_all_cubit_instances()
+                instances_list += component.get_all_handles()
         return instances_list
 
     # 'geometries' refer to CubitInstance objects
@@ -156,10 +156,10 @@ class GenericComponentAssembly:
         return self.components
     
     def get_all_components(self) -> list[SimpleComponent]:
-        '''Return all components stored in this assembly recursively
+        '''Return all simple components stored in this assembly recursively
 
         :return: List of components
-        :rtype: list[ComplexComponent]
+        :rtype: list[SimpleComponent]
         '''
         instances_list = []
         for component in self.get_components():
