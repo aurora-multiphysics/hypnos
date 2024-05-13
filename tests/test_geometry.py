@@ -11,6 +11,7 @@ from blobmaker.geometry import (
     make_surface
 )
 import pytest, cubit
+import numpy as np
 
 @pytest.fixture(autouse=True)
 def verts():
@@ -23,13 +24,17 @@ def verts():
     return verts
 
 @pytest.fixture()
-def midpoints(verts):
+def midpoints():
     return [
         (0, -5, 0),
         (5, 0, 0),
         (0, 5, 0),
         (-5, 0, 0)
     ]
+
+@pytest.fixture()
+def vertex():
+    return Vertex(1, 2, 3)
 
 
 def test_create_2d_vertex():
@@ -60,5 +65,51 @@ def test_make_loop_tangent(verts, midpoints):
         assert loop[i].handle.curve_center() == midpoints[i]
     assert loop[3].handle.curve_center()[1] == 0
 
-def test_make_surface_from_curves():
-    assert True
+def test_make_surface_from_curves(verts):
+    loop = make_loop(verts, [])
+    surf = make_surface_from_curves(loop).handle
+    assert surf.area() == 100
+    assert surf.normal_at((0, 0, 0)) == (0, 0, 1) or surf.normal_at((0, 0, 0)) == (0, 0, -1)
+
+def test_make_cylinder_along():
+    cylinder = make_cylinder_along(2, 5, "x")
+    assert round(cylinder.handle.volume(), 3) == round(20*np.pi, 3)
+    centroid = [round(coord, 10) for coord in cylinder.handle.centroid()]
+    assert centroid == [0, 0, 0]
+
+def test_hypotenuse():
+    assert hypotenuse(3, 4) == 5
+    assert hypotenuse(-3, 4) == 5
+    assert hypotenuse(2, 2, 2, 2) == hypotenuse(4)
+
+def test_arctan():
+    assert arctan(3, 3) == np.pi/4
+    assert arctan(1, 0) == np.pi/2
+    assert arctan(3, -3) == 3*np.pi/4
+
+class TestVertex:
+    def test_str(self, vertex):
+        assert str(vertex) == "1 2 3"
+
+    def test_add(self, vertex: Vertex):
+        vert_sum = vertex + Vertex(1, 0, -1)
+        assert str(vert_sum) == "2 2 2"
+
+    def test_create(self, vertex: Vertex):
+        created_vertex = vertex.create()
+        assert created_vertex.handle.coordinates() == (1, 2, 3)
+
+    def test_rotate(self, vertex: Vertex):
+        vert1 = vertex.rotate(np.pi/2)
+        assert str(vert1) == "-2 1 3"
+
+    def test_distance(self, vertex: Vertex):
+        assert vertex.distance() == hypotenuse(vertex.x, vertex.y, vertex.z)
+
+
+def test_make_surface(verts):
+    vertices = [Vertex(5, 5), Vertex(5, -5), Vertex(-5, -5), Vertex(-5, 5)]
+    surf = make_surface(vertices, []).handle
+    assert surf.area() == 100
+    assert surf.normal_at((0, 0, 0)) == (0, 0, 1) or surf.normal_at((0, 0, 0)) == (0, 0, -1)
+

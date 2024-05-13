@@ -46,7 +46,7 @@ def cmd_check(command: str, id_type: str):
             raise CubismError(f"no new {id_type} created, last id: {pre_id}")
         # material tracking function depends on this btw
         return False
-    elif id_type == "group":
+    elif id_type == "group" and type(post_id) is int:
         return post_id
     else:
         return CubitInstance(post_id, id_type)
