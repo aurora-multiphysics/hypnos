@@ -89,7 +89,7 @@ def make_cylinder_along(radius: int, length: int, axis: str):
     return cylinder
 
 
-def make_loop(vertices: list[CubitInstance], tangent_indices: list[int]):
+def make_loop(vertices: list[CubitInstance], tangent_indices: list[int]) -> list[CubitInstance]:
     '''Connect vertices with straight curves.
     For specified indices connect with curves tangential to adjacent curves.
 
@@ -104,10 +104,14 @@ def make_loop(vertices: list[CubitInstance], tangent_indices: list[int]):
     for i in range(len(vertices)-1):
         if i not in tangent_indices:
             curves[i] = connect_vertices_straight(vertices[i], vertices[i+1])
-    curves[-1] = connect_vertices_straight(vertices[-1], vertices[0])
+    if -1 in tangent_indices or len(vertices)-1 in tangent_indices:
+        curves[-1] = connect_curves_tangentially(vertices[-1], vertices[0])
+    else:
+        curves[-1] = connect_vertices_straight(vertices[-1], vertices[0])
     # need to do this after straight connections for tangents to actually exist
     for i in tangent_indices:
-        curves[i] = connect_curves_tangentially(vertices[i], vertices[i+1])
+        if 0 <= i < len(vertices) - 1:
+            curves[i] = connect_curves_tangentially(vertices[i], vertices[i+1])
     return curves
 
 
