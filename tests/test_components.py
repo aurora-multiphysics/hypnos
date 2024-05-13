@@ -1,12 +1,12 @@
 from blobmaker.components import SimpleComponent
 from blobmaker.generic_classes import CubitInstance
-import pytest, cubit
+import cubit
 
 
 class TestSimpleComponent:
     def test_get_subcomponents(self, simple_component):
         assert isinstance(simple_component, SimpleComponent)
-        assert 1 in simple_component.get_subcomponents()[0].cid
+        assert 1 == simple_component.get_subcomponents()[0].cid
     
     def test_origin(self, simple_component: SimpleComponent):
         vol = simple_component.get_subcomponents()[0].handle
@@ -29,11 +29,11 @@ class TestSimpleComponent:
         assert 1 in [vol.cid for vol in simple_component.get_subcomponents() if vol.geometry_type == "volume"]
     
     def test_get_parameters(self, simple_component: SimpleComponent):
-        assert simple_component.get_parameters(["dimensions"]) == 5
+        assert simple_component.get_parameters(["dimensions"])[0] == 5
     
     def test_extract_parameters(self, simple_component: SimpleComponent):
         assert simple_component.extract_parameters(["dimensions"])["dimensions"] == 5
-        assert simple_component.extract_parameters({"dimensions": "a"}["a"]) == 5
+        assert simple_component.extract_parameters({"dimensions": "a"})["a"] == 5
     
     def test_vol_id_string(self, simple_component: SimpleComponent):
         assert simple_component.volume_id_string() == "1"
