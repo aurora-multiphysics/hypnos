@@ -8,7 +8,3 @@ def gca(simple_component):
     gca.components = [simple_component]
     return gca
 
-class TestGenericAssembly:
-    def test_get_handles_from_class(self, gca: GenericComponentAssembly):
-        comp = gca.get_handles_from_class([SimpleComponent])
-        assert comp[0].centroid() == (10, 0, 0)

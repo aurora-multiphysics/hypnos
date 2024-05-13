@@ -5,8 +5,9 @@ from blobmaker.generic_classes import (
     get_cubit_geometry
 )
 
-@pytest.fixture()
+@pytest.fixture(autouse=True)
 def brick():
+    cubit.reset()
     cubit.brick(1, 1, 1)
     return CubitInstance(1, "body")
 
