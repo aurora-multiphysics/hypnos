@@ -48,44 +48,6 @@ class GenericComponentAssembly:
         self.identifier = classname
         self.components = []
 
-    # These refer to cubit handles
-    def get_handles_from_class(self, class_list: list) -> list:
-        '''Get list of cubit handles from components of specified classnames
-
-        :param classname_list: list of classnames to search in
-        :type classname_list: list
-        :return: list of cubit handles
-        :rtype: list
-        '''
-        instances_list = []
-        for component in self.get_components():
-            for component_class in class_list:
-                if isinstance(component, component_class):
-                    # fetches instances
-                    if isinstance(component, CubitInstance):
-                        instances_list.append(component.handle)
-                    elif isinstance(component, SimpleComponent):
-                        instances_list += component.subcomponents
-                    elif isinstance(component, GenericComponentAssembly):
-                        instances_list += component.get_handles_from_class(class_list)
-        return instances_list
-
-    def get_all_handles(self) -> list:
-        '''Get every cubit handle stored in this assembly instance recursively
-
-        :return: list of cubit handles
-        :rtype: list
-        '''
-        instances_list = []
-        for component in self.get_components():
-            if isinstance(component, CubitInstance):
-                instances_list.append(component.handle)
-            elif isinstance(component, SimpleComponent):
-                instances_list += [subcomp.handle for subcomp in component.subcomponents]
-            elif isinstance(component, GenericComponentAssembly):
-                instances_list += component.get_all_handles()
-        return instances_list
-
     # 'geometries' refer to CubitInstance objects
     def get_geometries_from(self, class_list: list) -> list[CubitInstance]:
         '''Get list of geometries under given classnames
