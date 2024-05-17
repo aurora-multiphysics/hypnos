@@ -13,6 +13,9 @@ class MaterialsTracker:
         self.material_boundaries = []
         self.blocks = []
         self.sidesets = []
+        self.blocks = []
+        self.sideset_types = []
+        self.block_types = []
 
     def extract_components(self, root_component):
         '''Get all components stored in root and every material they are made of.
@@ -93,12 +96,165 @@ class MaterialsTracker:
     def reset(self):
         '''Reset internal states
         '''
+        self.materials = set()
+        self.component_boundaries = []
+        self.material_boundaries = []
+        self.blocks = []
+        self.sidesets = []
         self.components = []
         self.materials = set()
         self.component_boundaries = []
         self.material_boundaries = []
         self.blocks = []
         self.sidesets = []
+
+    def get_blocks(self) -> list[str]:
+        '''Get names of created blocks
+
+        :return: list of names
+        :rtype: list[str]
+        '''
+        return [block.name for block in self.blocks]
+
+    def get_sidesets(self) -> list[str]:
+        '''Get names of created sidesets
+
+        :return: list of names
+        :rtype: list[str]
+        '''
+        return [sideset.name for sideset in self.sidesets]
+    
+    def get_sidesets_between(self, class1: str, class2: str) -> list[str]:
+        '''Get sidesets of interfaces between specified simple component classes
+
+        :param class1: simple component class
+        :type class1: str
+        :param class2: simple component class
+        :type class2: str
+        :return: list of names
+        :rtype: list[str]
+        '''
+        return [sideset.name for sideset in self.sidesets if class1 in sideset.name and class2 in sideset.name]
+
+    def get_blocks_of_material(self, material: str) -> list[str]:
+        '''Get blocks of simple components made of specified material
+
+        :param material: name of material
+        :type material: str
+        :return: list of block names
+        :rtype: list[str]
+        '''
+        return [component.identifier for component in self.components if component.material == material]
+
+    def get_block_types(self):
+        '''Get block types
+
+        :return: list of names
+        :rtype: list[str]
+        '''
+        return list({comp.classname for comp in self.components})
+
+    def get_sideset_types(self):
+        '''Get sideset types
+
+        :return: list of names
+        :rtype: list[str]
+        '''
+        return list({self.get_sideset_type(sideset.name) for sideset in self.sidesets})
+
+    def get_sideset_type(self, sideset_name: str):
+        '''Get type of a specific sideset
+
+        :return: list of names
+        :rtype: list[str]
+        '''
+        components = sideset_name.split("_")
+        sideset_type = ""
+        for comp in components:
+            sideset_type += (comp.rstrip("0123456789") + "_")
+        return sideset_type.rstrip("_")
+
+    def get_sidesets_of_type(self, sideset_type: str):
+        '''Get sidesets of a specific type
+
+        :return: list of names
+        :rtype: list[str]
+        '''
+        return list({sideset.name for sideset in self.sidesets if self.get_sideset_type(sideset.name) == sideset_type})
+
+    def get_blocks(self) -> list[str]:
+        '''Get names of created blocks
+
+        :return: list of names
+        :rtype: list[str]
+        '''
+        return [block.name for block in self.blocks]
+
+    def get_sidesets(self) -> list[str]:
+        '''Get names of created sidesets
+
+        :return: list of names
+        :rtype: list[str]
+        '''
+        return [sideset.name for sideset in self.sidesets]
+    
+    def get_sidesets_between(self, class1: str, class2: str) -> list[str]:
+        '''Get sidesets of interfaces between specified simple component classes
+
+        :param class1: simple component class
+        :type class1: str
+        :param class2: simple component class
+        :type class2: str
+        :return: list of names
+        :rtype: list[str]
+        '''
+        return [sideset.name for sideset in self.sidesets if class1 in sideset.name and class2 in sideset.name]
+
+    def get_blocks_of_material(self, material: str) -> list[str]:
+        '''Get blocks of simple components made of specified material
+
+        :param material: name of material
+        :type material: str
+        :return: list of block names
+        :rtype: list[str]
+        '''
+        return [component.identifier for component in self.components if component.material == material]
+
+    def get_block_types(self):
+        '''Get block types
+
+        :return: list of names
+        :rtype: list[str]
+        '''
+        return list({comp.classname for comp in self.components})
+
+    def get_sideset_types(self):
+        '''Get sideset types
+
+        :return: list of names
+        :rtype: list[str]
+        '''
+        return list({self.get_sideset_type(sideset.name) for sideset in self.sidesets})
+
+    def get_sideset_type(self, sideset_name: str):
+        '''Get type of a specific sideset
+
+        :return: list of names
+        :rtype: list[str]
+        '''
+        components = sideset_name.split("_")
+        sideset_type = ""
+        for comp in components:
+            sideset_type += (comp.rstrip("0123456789") + "_")
+        return sideset_type.rstrip("_")
+
+    def get_sidesets_of_type(self, sideset_type: str):
+        '''Get sidesets of a specific type
+
+        :return: list of names
+        :rtype: list[str]
+        '''
+        return list({sideset.name for sideset in self.sidesets if self.get_sideset_type(sideset.name) == sideset_type})
 
 
 class ComponentTracker:
