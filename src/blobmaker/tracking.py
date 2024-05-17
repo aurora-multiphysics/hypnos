@@ -40,50 +40,56 @@ class Group:
         return [i.cid for i in to_volumes(self.geometries)]
 
 
-class Sideset:
-    '''Track cubit sidesets
+class Organiser:
+    '''Track cubit organisers
     '''
-    def __init__(self, name: str) -> None:
+    def __init__(self, name: str, entity_type: str) -> None:
         self.name = name
-        self.id = create_new_entity("sideset", name)
-        self.surfaces = []
+        self.geometry_type = {"block": "volume", "sideset": "surface"}[entity_type]
+        self.entity_type = entity_type
+        self.id = create_new_entity(entity_type, name)
+        self.geometries = []
     
     def __str__(self) -> str:
         return self.name
 
-    def add_surface(self, surface):
-        '''Add surface to sideset
+    def add_geometry(self, geometry):
+        '''Add geometry to organiser
 
         :param surface: cubit ID | geometry | list of either
         :type surface: int | CubitInstance | list[int] | list[CubitInstance]
         '''
-        if type(surface) is int:
-            self.__add_if_unique(surface)
-        elif type(surface) is list:
-            for surf in surface:
-                self.add_surface(surf)
-        elif isinstance(surface, CubitInstance) and surface.geometry_type == "surface":
-            self.__add_if_unique(surface.cid)
-    
-    def __add_if_unique(self, surface: int):
-        if surface not in self.surfaces:
-            self.surfaces.append(surface)
-            cmd(f'sideset {self.id} add surface {surface}')
-    
-    def get_surfaces(self):
-        return self.surfaces
-    
-    def get_surfaces_string(self):
-        return " ".join([str(surf) for surf in self.surfaces])
+        if type(geometry) is int:
+            self.__add_if_unique(geometry)
+        elif type(geometry) is list:
+            for surf in geometry:
+                self.add_geometry(surf)
+        elif isinstance(geometry, CubitInstance) and geometry.geometry_type == self.geometry_type:
+            self.__add_if_unique(geometry.cid)
+
+    def __add_if_unique(self, geometry: int) -> None:
+        if geometry not in self.geometries:
+            self.geometries.append(geometry)
+            cmd(f'{self.entity_type} {self.id} add {self.geometry_type} {geometry}')
+
+    def get_geometries(self) -> list[CubitInstance]:
+        return self.geometries
+
+    def get_geom_string(self) -> str:
+        return " ".join([str(geom) for geom in self.geometries])
 
 
 class ComponentGroup:
     '''Track materials and boundaries of a SimpleComponent. 
     '''
     def __init__(self, component: SimpleComponent) -> None:
+        # this feels very scuffed
         self.identifier = component.identifier
+        self.classname = component.classname
         self.material = component.material
         self.geometries = component.get_subcomponents()
+        self.vol_id_string = component.volume_id_string()
+
         self.component_boundaries = []
         self.material_boundaries = []
         self.__track_material()
@@ -93,7 +99,7 @@ class ComponentGroup:
         mat_id = create_new_entity("group", self.material)
         for geometry in self.geometries:
             cmd(f"group {mat_id} add {geometry}")
-    
+
     def __find_self_overlaps(self):
         vols = [geom for geom in self.geometries if geom.geometry_type == "volume" ]
         overlaps = []
@@ -102,8 +108,8 @@ class ComponentGroup:
         if overlaps:
             identifiers = [self.identifier, self.identifier]
             mats = [self.material, self.material]
-            id_group = self.__make_boundary_group(identifiers, overlaps)
-            self.component_boundaries.append(id_group)
+            comp_group = self.__make_boundary_group(identifiers, overlaps)
+            self.component_boundaries.append(comp_group)
             mat_group = self.__make_boundary_group(mats, overlaps)
             self.material_boundaries.append(mat_group)
 
@@ -122,7 +128,16 @@ class ComponentGroup:
             mat_group = self.__make_boundary_group(mats, shared_surfs)
             self.material_boundaries.append(mat_group)
 
-    def __get_shared_surfs(self, vols1, vols2):
+    def __get_shared_surfs(self, vols1: CubitInstance, vols2: CubitInstance) -> list[int]:
+        '''Get shared surfaces between volumes
+
+        :param vols1: volume
+        :type vols1: CubitInstance
+        :param vols2: volume
+        :type vols2: CubitInstance
+        :return: list of surface ids
+        :rtype: list[int]
+        '''
         surfs1 = {surf.cid for surf in to_surfaces(vols1)}
         surfs2 = {surf.cid for surf in to_surfaces(vols2)}
         return list(surfs1.intersection(surfs2))
@@ -148,6 +163,9 @@ class MaterialsTracker:
         self.component_boundaries = []
         self.material_boundaries = []
         self.sidesets = []
+        self.blocks = []
+        self.sideset_types = []
+        self.block_types = []
 
     def extract_components(self, root_component):
         '''Get all components stored in root and every material they are made of.
@@ -202,6 +220,13 @@ class MaterialsTracker:
         self.__fill_group_with_groups("material_boundaries", self.material_boundaries)
     
     def __fill_group_with_groups(self, name: str, groups_to_fill: list[str]):
+        '''Add groups in specified list to specified group
+
+        :param name: Group (of groups)
+        :type name: str
+        :param groups_to_fill: list of group names to add to above group
+        :type groups_to_fill: list[str]
+        '''
         group_id = create_new_entity("group", name)
         for group in groups_to_fill:
             cmd(f'group {group_id} add group {group}')
@@ -210,15 +235,16 @@ class MaterialsTracker:
         '''Add simple components to blocks
         '''
         for component in self.components:
-            if isinstance(component, SimpleComponent):
-                self.__add_component_to_block(component)
-            elif isinstance(component, GenericComponentAssembly):
-                for comp in component.get_all_components():
-                    self.__add_component_to_block(comp)
-    
-    def __add_component_to_block(self, component: SimpleComponent):
-        block_id = create_new_entity("block", component.identifier)
-        cmd(f"block {block_id} add volume {component.volume_id_string()}")
+            block_names = [block.name for block in self.blocks]
+            name = component.identifier
+            if name not in block_names:
+                block = Organiser(name, "block")
+                self.blocks.append(block)
+            else:
+                for blocks in self.blocks:
+                    if blocks.name == name:
+                        block = blocks
+            block.add_geometry(component.vol_id_string)
     
     def add_sidesets(self):
         '''Add boundaries between simple components to sidesets
@@ -228,14 +254,14 @@ class MaterialsTracker:
             if len(bound_surfs) > 0:
                 self.__create_sideset(boundary)
                 for sideset in self.sidesets:
-                    assert isinstance(sideset, Sideset)
+                    assert isinstance(sideset, Organiser)
                     if sideset.name == boundary:
-                        sideset.add_surface(bound_surfs)
+                        sideset.add_geometry(bound_surfs)
     
     def __create_sideset(self, name: str):
         boundary_names = [str(sideset) for sideset in self.sidesets]
         if name not in boundary_names:
-            self.sidesets.append(Sideset(name))
+            self.sidesets.append(Organiser(name, "sideset"))
     
     def reset(self):
         '''Reset internal states
@@ -243,7 +269,82 @@ class MaterialsTracker:
         self.materials = []
         self.boundaries = []
         self.sidesets = []
+        self.blocks = []
         self.components = []
+
+    def get_blocks(self) -> list[str]:
+        '''Get names of created blocks
+
+        :return: list of names
+        :rtype: list[str]
+        '''
+        return [block.name for block in self.blocks]
+
+    def get_sidesets(self) -> list[str]:
+        '''Get names of created sidesets
+
+        :return: list of names
+        :rtype: list[str]
+        '''
+        return [sideset.name for sideset in self.sidesets]
+    
+    def get_sidesets_between(self, class1: str, class2: str) -> list[str]:
+        '''Get sidesets of interfaces between specified simple component classes
+
+        :param class1: simple component class
+        :type class1: str
+        :param class2: simple component class
+        :type class2: str
+        :return: list of names
+        :rtype: list[str]
+        '''
+        return [sideset.name for sideset in self.sidesets if class1 in sideset.name and class2 in sideset.name]
+
+    def get_blocks_of_material(self, material: str) -> list[str]:
+        '''Get blocks of simple components made of specified material
+
+        :param material: name of material
+        :type material: str
+        :return: list of block names
+        :rtype: list[str]
+        '''
+        return [component.identifier for component in self.components if component.material == material]
+
+    def get_block_types(self):
+        '''Get block types
+
+        :return: list of names
+        :rtype: list[str]
+        '''
+        return list({comp.classname for comp in self.components})
+
+    def get_sideset_types(self):
+        '''Get sideset types
+
+        :return: list of names
+        :rtype: list[str]
+        '''
+        return list({self.get_sideset_type(sideset.name) for sideset in self.sidesets})
+
+    def get_sideset_type(self, sideset_name: str):
+        '''Get type of a specific sideset
+
+        :return: list of names
+        :rtype: list[str]
+        '''
+        components = sideset_name.split("_")
+        sideset_type = ""
+        for comp in components:
+            sideset_type += (comp.rstrip("0123456789") + "_")
+        return sideset_type.rstrip("_")
+
+    def get_sidesets_of_type(self, sideset_type: str):
+        '''Get sidesets of a specific type
+
+        :return: list of names
+        :rtype: list[str]
+        '''
+        return list({sideset.name for sideset in self.sidesets if self.get_sideset_type(sideset.name) == sideset_type})
 
 
 class ComponentTracker:
