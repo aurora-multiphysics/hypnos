@@ -1,6 +1,6 @@
 from blobmaker.constants import BLOB_CLASSES
 from blobmaker.generic_classes import CubismError, CubitInstance, cmd, cubit
-from blobmaker.cubit_functions import to_volumes, to_bodies, cmd_check, get_last_geometry
+from blobmaker.cubit_functions import to_volumes, to_bodies, cmd_check, get_last_geometry, subtract
 from blobmaker.geometry import make_cylinder_along, Vertex, make_surface, hypotenuse, arctan, Line
 import numpy as np
 
@@ -785,6 +785,7 @@ class FirstWallComponent(SimpleComponent):
             if i%2 == 0:
                 cmd(f"{channel} reflect 1 0 0")
             channel.move([0, i*(channel_spacing + channel_width) + channel_spacing, 0])
+            first_wall = subtract([first_wall], [channel])[0]
 
         # cubit.move(first_wall.cubitInstance, [0,0,length])
         return first_wall
