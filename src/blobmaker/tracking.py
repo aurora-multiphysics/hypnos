@@ -2,6 +2,7 @@ from blobmaker.components import SimpleComponent
 from blobmaker.assemblies import GenericComponentAssembly, ExternalComponentAssembly
 from blobmaker.generic_classes import CubismError, CubitInstance, cubit, cmd
 from blobmaker.cubit_functions import to_surfaces, add_to_new_entity
+from blobmaker.cubit_functions import to_surfaces, add_to_new_entity
 
 class MaterialsTracker:
     '''Track materials and boundaries between all provided components
