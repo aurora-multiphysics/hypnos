@@ -1,152 +1,17 @@
 from blobmaker.components import SimpleComponent
 from blobmaker.assemblies import GenericComponentAssembly, ExternalComponentAssembly
 from blobmaker.generic_classes import CubismError, CubitInstance, cubit, cmd
-from blobmaker.cubit_functions import (
-    to_surfaces, 
-    to_volumes, 
-    cmd_check, 
-    get_entities_from_group, 
-    create_new_entity
-)
-import itertools
-
-
-class Group:
-    '''Track a cubit group.'''
-    def __init__(self, name: str) -> None:
-        self.name = name
-        self.group_id = cubit.get_id_from_name(name)
-        if not self.group_id:
-            self.group_id = cmd_check(f'create group "{self.name}"', "group")
-        # should only store CubitInstances
-        self.geometries = []
-
-    def add_geometry(self, geometry):
-        if isinstance(geometry, CubitInstance):
-            self.geometries.append(geometry)
-            cmd(f'group "{self.name}" add {str(geometry)}')
-        elif type(geometry) is list:
-            filtered_list = [geom for geom in geometry if isinstance(geom, CubitInstance)]
-            for obj in filtered_list:
-                cmd(f'group "{self.name}" add {str(obj)}')
-            self.geometries.extend(filtered_list)
-        else:
-            raise CubismError("Geometries should be added as CubitInstances")
-
-    def get_surface_ids(self):
-        return [i.cid for i in to_surfaces(self.geometries)]
-
-    def get_volume_ids(self):
-        return [i.cid for i in to_volumes(self.geometries)]
-
-
-class Sideset:
-    '''Track cubit sidesets
-    '''
-    def __init__(self, name: str) -> None:
-        self.name = name
-        self.id = create_new_entity("sideset", name)
-        self.surfaces = []
-    
-    def __str__(self) -> str:
-        return self.name
-
-    def add_surface(self, surface):
-        '''Add surface to sideset
-
-        :param surface: cubit ID | geometry | list of either
-        :type surface: int | CubitInstance | list[int] | list[CubitInstance]
-        '''
-        if type(surface) is int:
-            self.__add_if_unique(surface)
-        elif type(surface) is list:
-            for surf in surface:
-                self.add_surface(surf)
-        elif isinstance(surface, CubitInstance) and surface.geometry_type == "surface":
-            self.__add_if_unique(surface.cid)
-    
-    def __add_if_unique(self, surface: int):
-        if surface not in self.surfaces:
-            self.surfaces.append(surface)
-            cmd(f'sideset {self.id} add surface {surface}')
-    
-    def get_surfaces(self):
-        return self.surfaces
-    
-    def get_surfaces_string(self):
-        return " ".join([str(surf) for surf in self.surfaces])
-
-
-class ComponentGroup:
-    '''Track materials and boundaries of a SimpleComponent. 
-    '''
-    def __init__(self, component: SimpleComponent) -> None:
-        self.identifier = component.identifier
-        self.material = component.material
-        self.geometries = component.get_subcomponents()
-        self.component_boundaries = []
-        self.material_boundaries = []
-        self.__track_material()
-        self.__find_self_overlaps()
-
-    def __track_material(self):
-        mat_id = create_new_entity("group", self.material)
-        for geometry in self.geometries:
-            cmd(f"group {mat_id} add {geometry}")
-    
-    def __find_self_overlaps(self):
-        vols = [geom for geom in self.geometries if geom.geometry_type == "volume" ]
-        overlaps = []
-        for vol1, vol2 in itertools.combinations(vols, 2):
-            overlaps += self.__get_shared_surfs([vol1], [vol2])
-        if overlaps:
-            identifiers = [self.identifier, self.identifier]
-            mats = [self.material, self.material]
-            id_group = self.__make_boundary_group(identifiers, overlaps)
-            self.component_boundaries.append(id_group)
-            mat_group = self.__make_boundary_group(mats, overlaps)
-            self.material_boundaries.append(mat_group)
-
-    def track_shared_surfaces(self, component: 'ComponentGroup'):
-        '''Track the surfaces shared between volumes of self and provided component
-
-        :param component: ComponentGroup to find surfaces in common with
-        :type component: ComponentGroup
-        '''
-        shared_surfs = self.__get_shared_surfs(self.geometries, component.geometries)
-        if shared_surfs:
-            identifiers = [self.identifier, component.identifier]
-            mats = [self.material, component.material]
-            id_group = self.__make_boundary_group(identifiers, shared_surfs)
-            self.component_boundaries.append(id_group)
-            mat_group = self.__make_boundary_group(mats, shared_surfs)
-            self.material_boundaries.append(mat_group)
-
-    def __get_shared_surfs(self, vols1, vols2):
-        surfs1 = {surf.cid for surf in to_surfaces(vols1)}
-        surfs2 = {surf.cid for surf in to_surfaces(vols2)}
-        return list(surfs1.intersection(surfs2))
-    
-    def __make_boundary_group(self, parts_of_name: list[str], surfs: list[int]):
-        group_name = self.make_group_name(parts_of_name)
-        group_id = create_new_entity("group", group_name)
-        cubit.add_entities_to_group(group_id, surfs, "surface")
-        return group_name
-
-    def make_group_name(self, names: list):
-        copy_list = names
-        copy_list.sort()
-        return '_'.join([str(name) for name in copy_list])
-
+from blobmaker.cubit_functions import to_surfaces, add_to_new_entity
 
 class MaterialsTracker:
     '''Track materials and boundaries between all provided components
     '''
     def __init__(self) -> None:
         self.components = []
-        self.materials = []
+        self.materials = set()
         self.component_boundaries = []
         self.material_boundaries = []
+        self.blocks = []
         self.sidesets = []
 
     def extract_components(self, root_component):
@@ -157,93 +22,83 @@ class MaterialsTracker:
         '''
         if isinstance(root_component, SimpleComponent):
             self.components += [root_component]
-            self.materials += [root_component.material]
+            self.materials.add(root_component.material)
         elif isinstance(root_component, GenericComponentAssembly):
             self.components += root_component.get_all_components()
-            self.materials += [component.material for component in self.components]
-        self.materials = list(set(self.materials))
+            self.materials = self.materials.union({component.material for component in root_component.get_all_components()})
     
     def track_boundaries(self):
         '''Find boundaries between simple components. 
         Make component-component and material-material groups.
+        Add simple components to blocks.
+        Add component interfaces to sidesets.
         '''
-        self.components = [ComponentGroup(component) for component in self.components]
-        if len(self.components) > 1:
-            for comp1, comp2 in itertools.combinations(self.components, 2):
-                comp1.track_shared_surfaces(comp2)
+        surface_to_components = {surf_id : [] for surf_id in cubit.get_entities("surface")}
+        surface_to_materials = {surf_id : [] for surf_id in cubit.get_entities("surface")}
+        material_to_volumes = {material: [] for material in self.materials}
+
         for component in self.components:
-            self.component_boundaries.extend(component.component_boundaries)
-            self.material_boundaries.extend(component.material_boundaries)
+            material_to_volumes[component.material].append(component.volume_id_string())
+            for surf_id in [surface.cid for surface in to_surfaces(component.get_subcomponents())]:
+                surface_to_components[surf_id].append(component.identifier)
+                surface_to_materials[surf_id].append(component.material)
 
-    def merge_with_air(self):
-        '''Merge every component with air
-        '''
-        cmd('group "unmerged_surfaces" add surface with is_merged=0')
-        unmerged_group_id = cubit.get_id_from_name("unmerged_surfaces")
-        all_unmerged_surfaces = cubit.get_group_surfaces(unmerged_group_id)
+        component_to_surfaces = self.__invert_mapping(surface_to_components)
+        material_to_surfaces = self.__invert_mapping(surface_to_materials)
 
-        for material in self.materials:
-            # setup group and tracking for interface with air
-            boundary_name = material + "_air"
-            # look at every surface of this material
-            surface_ids = get_entities_from_group(boundary_name, "surface")
-            # if this surface is unmerged, it is in contact with air so add it to the boundary
-            for surface_id in surface_ids:
-                if surface_id in all_unmerged_surfaces:
-                    cmd(f'group "{boundary_name}" add surface {surface_id}')
-        cmd(f'delete group {unmerged_group_id}')
+        for component in self.components:
+            add_to_new_entity("block", component.identifier, "volume", component.volume_id_string())
+
+        for material_name, vol_id_strings in material_to_volumes.items():
+            add_to_new_entity("group", material_name, "volume", vol_id_strings)
+
+        for boundary_name, surf_ids in component_to_surfaces.items():
+            add_to_new_entity("sideset", boundary_name, "surface", surf_ids)
+            add_to_new_entity("group", boundary_name, "surface", surf_ids)
+
+        for boundary_name, surf_ids in material_to_surfaces.items():
+            add_to_new_entity("group", boundary_name, "surface", surf_ids)
+
+        self.component_boundaries = list(component_to_surfaces.keys())
+        self.material_boundaries = list(material_to_surfaces.keys())
+
+
+    def __invert_mapping(self, x_to_ys: dict):
+        y_to_xs = {}
+        for x, ys in x_to_ys.items():
+            boundary_name = self.make_boundary_name(ys)
+            if boundary_name in y_to_xs.keys():
+                y_to_xs[boundary_name].append(x)
+            else:
+                y_to_xs[boundary_name] = [x]
+        return y_to_xs
+
+    def make_boundary_name(self, parts_of_name: list[str]):
+        if len(parts_of_name) == 1:
+            return parts_of_name[0] + "_air"
+        else:
+            p_o_n = parts_of_name.copy()
+            p_o_n.sort()
+            return "_".join(p_o_n)
     
     def organise_into_groups(self):
-        '''Create groups for material groups and boundary groups in cubit'''
+        '''Create groups for material, component, component boundary, 
+        and material boundary groups in cubit'''
 
-        self.__fill_group_with_groups("materials", self.materials)
-        self.__fill_group_with_groups("components", [comp.identifier for comp in self.components])
-        self.__fill_group_with_groups("component_boundaries", self.component_boundaries)
-        self.__fill_group_with_groups("material_boundaries", self.material_boundaries)
-    
-    def __fill_group_with_groups(self, name: str, groups_to_fill: list[str]):
-        group_id = create_new_entity("group", name)
-        for group in groups_to_fill:
-            cmd(f'group {group_id} add group {group}')
-    
-    def add_blocks(self):
-        '''Add simple components to blocks
-        '''
-        for component in self.components:
-            if isinstance(component, SimpleComponent):
-                self.__add_component_to_block(component)
-            elif isinstance(component, GenericComponentAssembly):
-                for comp in component.get_all_components():
-                    self.__add_component_to_block(comp)
-    
-    def __add_component_to_block(self, component: SimpleComponent):
-        block_id = create_new_entity("block", component.identifier)
-        cmd(f"block {block_id} add volume {component.volume_id_string()}")
-    
-    def add_sidesets(self):
-        '''Add boundaries between simple components to sidesets
-        '''
-        for boundary in self.component_boundaries:            
-            bound_surfs = get_entities_from_group(boundary, "surface")
-            if len(bound_surfs) > 0:
-                self.__create_sideset(boundary)
-                for sideset in self.sidesets:
-                    assert isinstance(sideset, Sideset)
-                    if sideset.name == boundary:
-                        sideset.add_surface(bound_surfs)
-    
-    def __create_sideset(self, name: str):
-        boundary_names = [str(sideset) for sideset in self.sidesets]
-        if name not in boundary_names:
-            self.sidesets.append(Sideset(name))
+        add_to_new_entity("group", "materials", "group", list(self.materials))
+        add_to_new_entity("group", "simple_components", "group", [comp.identifier for comp in self.components])
+        add_to_new_entity("group", "component_boundaries", "group", self.component_boundaries)
+        add_to_new_entity("group", "material_boundaries", "group", self.material_boundaries)
     
     def reset(self):
         '''Reset internal states
         '''
-        self.materials = []
-        self.boundaries = []
-        self.sidesets = []
         self.components = []
+        self.materials = set()
+        self.component_boundaries = []
+        self.material_boundaries = []
+        self.blocks = []
+        self.sidesets = []
 
 
 class ComponentTracker:

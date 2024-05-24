@@ -143,8 +143,6 @@ class GeometryMaker():
         cmd("imprint volume all")
         cmd("merge volume all")
         self.materials_tracker.track_boundaries()
-        self.materials_tracker.add_blocks()
-        self.materials_tracker.add_sidesets()
         self.materials_tracker.organise_into_groups()
 
     def set_mesh_size(self, size: int):
