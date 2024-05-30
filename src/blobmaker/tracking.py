@@ -273,7 +273,10 @@ class MaterialsTracker:
         self.components = []
 
     def get_blocks(self) -> list[str]:
-        '''Get names of created blocks
+        '''Get names of created blocks. Blocks are named
+        the same as their corresponding simple components.
+        For example the block corresponding to coolant0 is
+        named coolant0.
 
         :return: list of names
         :rtype: list[str]
@@ -281,24 +284,33 @@ class MaterialsTracker:
         return [block.name for block in self.blocks]
 
     def get_sidesets(self) -> list[str]:
-        '''Get names of created sidesets
+        '''Get names of created sidesets. 
+        Sidesets are named according to the names of the simple
+        components on either side. For example the sideset between
+        coolant0 and cladding0 is coolant0_cladding0. Sidesets not 
+        at interfaces are named like <component_name>_air.
 
         :return: list of names
         :rtype: list[str]
         '''
         return [sideset.name for sideset in self.sidesets]
     
-    def get_sidesets_between(self, class1: str, class2: str) -> list[str]:
-        '''Get sidesets of interfaces between specified simple component classes
+    def get_sidesets_between_components(self, type1: str, type2: str) -> list[str]:
+        '''Get sidesets of interfaces between specified simple component types
 
-        :param class1: simple component class
-        :type class1: str
-        :param class2: simple component class
-        :type class2: str
+        :param type1: simple component type
+        :type type1: str
+        :param type2: simple component type
+        :type type2: str
         :return: list of names
         :rtype: list[str]
         '''
-        return [sideset.name for sideset in self.sidesets if class1 in sideset.name and class2 in sideset.name]
+        classes = list({comp.classname for comp in self.components})
+        if type1 not in classes:
+            raise CubismError(f"type {type1} not recognised")
+        elif type2 not in classes:
+            raise CubismError(f"type {type2} not recognised")
+        return [sideset.name for sideset in self.sidesets if type1 in sideset.name and type2 in sideset.name]
 
     def get_blocks_of_material(self, material: str) -> list[str]:
         '''Get blocks of simple components made of specified material
@@ -311,7 +323,8 @@ class MaterialsTracker:
         return [component.identifier for component in self.components if component.material == material]
 
     def get_block_types(self):
-        '''Get block types
+        '''Get block types. These are the same as the types of simple components.
+        For example the type of coolant1 is coolant.
 
         :return: list of names
         :rtype: list[str]
@@ -319,7 +332,9 @@ class MaterialsTracker:
         return list({comp.classname for comp in self.components})
 
     def get_sideset_types(self):
-        '''Get sideset types
+        '''Get sideset types. Each sideset has a type corresponding to the 
+        type of the simple components on either side. For example the 
+        type of the sideset cladding0_coolant0 is cladding_coolant.
 
         :return: list of names
         :rtype: list[str]
