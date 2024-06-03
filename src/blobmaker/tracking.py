@@ -8,15 +8,20 @@ class MaterialsTracker:
     '''Track materials and boundaries between all provided components
     '''
     def __init__(self) -> None:
+        # to collect components and existing material names
         self.components = []
         self.materials = set()
-        self.component_boundaries = []
-        self.material_boundaries = []
-        self.blocks = []
+        # names of blocks + sidesets
         self.sidesets = []
         self.blocks = []
-        self.sideset_types = []
-        self.block_types = []
+        # names of interfaces between materials
+        self.material_boundaries = []
+        # mappings to sidesets
+        self.materials_to_sidesets = {}
+        self.types_to_sidesets = {}
+        # string to use as a separator
+        self.external_separator = "_" # in cubit
+        self.internal_separator = "---" # internally
 
     def extract_components(self, root_component):
         '''Get all components stored in root and every material they are made of.
@@ -37,8 +42,10 @@ class MaterialsTracker:
         Add simple components to blocks.
         Add component interfaces to sidesets.
         '''
-        surface_to_components = {surf_id : [] for surf_id in cubit.get_entities("surface")}
-        surface_to_materials = {surf_id : [] for surf_id in cubit.get_entities("surface")}
+        surface_ids = cubit.get_entities("surface")
+        surface_to_components = {surf_id : [] for surf_id in surface_ids}
+        surface_to_materials = {surf_id : [] for surf_id in surface_ids}
+        surface_to_types = {surf_id : [] for surf_id in surface_ids}
         material_to_volumes = {material: [] for material in self.materials}
 
         for component in self.components:
@@ -46,6 +53,10 @@ class MaterialsTracker:
             for surf_id in [surface.cid for surface in to_surfaces(component.get_subcomponents())]:
                 surface_to_components[surf_id].append(component.identifier)
                 surface_to_materials[surf_id].append(component.material)
+                surface_to_types[surf_id].append(component.classname)
+
+        self.types_to_sidesets = self.__merge_mapping(surface_to_types, surface_to_components)
+        self.materials_to_sidesets = self.__merge_mapping(surface_to_materials, surface_to_components)
 
         component_to_surfaces = self.__invert_mapping(surface_to_components)
         material_to_surfaces = self.__invert_mapping(surface_to_materials)
@@ -63,9 +74,9 @@ class MaterialsTracker:
         for boundary_name, surf_ids in material_to_surfaces.items():
             add_to_new_entity("group", boundary_name, "surface", surf_ids)
 
-        self.component_boundaries = list(component_to_surfaces.keys())
+        self.sidesets = list(component_to_surfaces.keys())
         self.material_boundaries = list(material_to_surfaces.keys())
-
+        self.blocks = [comp.identifier for comp in self.components]
 
     def __invert_mapping(self, x_to_ys: dict):
         y_to_xs = {}
@@ -77,13 +88,25 @@ class MaterialsTracker:
                 y_to_xs[boundary_name] = [x]
         return y_to_xs
 
-    def make_boundary_name(self, parts_of_name: list[str]):
+    def __merge_mapping(self, surf_to_keys, surf_to_values):
+        return_dict = {}
+        for surf_id in cubit.get_entities("surface"):
+            key = self.make_boundary_name(surf_to_keys[surf_id], True)
+            value = self.make_boundary_name(surf_to_values[surf_id])
+            if key in return_dict.keys():
+                return_dict[key].add(value)
+            else:
+                return_dict[key] = set([value])
+        return return_dict
+
+    def make_boundary_name(self, parts_of_name: list[str], internal=False):
+        separator = self.internal_separator if internal else self.external_separator
         if len(parts_of_name) == 1:
-            return parts_of_name[0] + "_air"
+            return parts_of_name[0] + separator + "air"
         else:
             p_o_n = parts_of_name.copy()
             p_o_n.sort()
-            return "_".join(p_o_n)
+            return separator.join(p_o_n)
     
     def organise_into_groups(self):
         '''Create groups for material, component, component boundary, 
@@ -91,97 +114,21 @@ class MaterialsTracker:
 
         add_to_new_entity("group", "materials", "group", list(self.materials))
         add_to_new_entity("group", "simple_components", "group", [comp.identifier for comp in self.components])
-        add_to_new_entity("group", "component_boundaries", "group", self.component_boundaries)
+        add_to_new_entity("group", "component_boundaries", "group", self.sidesets)
         add_to_new_entity("group", "material_boundaries", "group", self.material_boundaries)
     
     def reset(self):
         '''Reset internal states
         '''
-        self.materials = set()
-        self.component_boundaries = []
-        self.material_boundaries = []
-        self.blocks = []
-        self.sidesets = []
         self.components = []
         self.materials = set()
-        self.component_boundaries = []
-        self.material_boundaries = []
-        self.blocks = []
         self.sidesets = []
-
-    def get_blocks(self) -> list[str]:
-        '''Get names of created blocks
-
-        :return: list of names
-        :rtype: list[str]
-        '''
-        return [block.name for block in self.blocks]
-
-    def get_sidesets(self) -> list[str]:
-        '''Get names of created sidesets
-
-        :return: list of names
-        :rtype: list[str]
-        '''
-        return [sideset.name for sideset in self.sidesets]
-    
-    def get_sidesets_between(self, class1: str, class2: str) -> list[str]:
-        '''Get sidesets of interfaces between specified simple component classes
-
-        :param class1: simple component class
-        :type class1: str
-        :param class2: simple component class
-        :type class2: str
-        :return: list of names
-        :rtype: list[str]
-        '''
-        return [sideset.name for sideset in self.sidesets if class1 in sideset.name and class2 in sideset.name]
-
-    def get_blocks_of_material(self, material: str) -> list[str]:
-        '''Get blocks of simple components made of specified material
-
-        :param material: name of material
-        :type material: str
-        :return: list of block names
-        :rtype: list[str]
-        '''
-        return [component.identifier for component in self.components if component.material == material]
-
-    def get_block_types(self):
-        '''Get block types
-
-        :return: list of names
-        :rtype: list[str]
-        '''
-        return list({comp.classname for comp in self.components})
-
-    def get_sideset_types(self):
-        '''Get sideset types
-
-        :return: list of names
-        :rtype: list[str]
-        '''
-        return list({self.get_sideset_type(sideset.name) for sideset in self.sidesets})
-
-    def get_sideset_type(self, sideset_name: str):
-        '''Get type of a specific sideset
-
-        :return: list of names
-        :rtype: list[str]
-        '''
-        components = sideset_name.split("_")
-        sideset_type = ""
-        for comp in components:
-            sideset_type += (comp.rstrip("0123456789") + "_")
-        return sideset_type.rstrip("_")
-
-    def get_sidesets_of_type(self, sideset_type: str):
-        '''Get sidesets of a specific type
-
-        :return: list of names
-        :rtype: list[str]
-        '''
-        return list({sideset.name for sideset in self.sidesets if self.get_sideset_type(sideset.name) == sideset_type})
+        self.blocks = []
+        self.material_boundaries = []
+        self.types_to_sidesets = {}
+        self.materials_to_sidesets = {}
+        self.external_separator = "_"
+        self.internal_separator = "---"
 
     def get_blocks(self) -> list[str]:
         '''Get names of created blocks. Blocks are named
@@ -192,7 +139,7 @@ class MaterialsTracker:
         :return: list of names
         :rtype: list[str]
         '''
-        return [block.name for block in self.blocks]
+        return self.blocks
 
     def get_sidesets(self) -> list[str]:
         '''Get names of created sidesets. 
@@ -204,24 +151,7 @@ class MaterialsTracker:
         :return: list of names
         :rtype: list[str]
         '''
-        return [sideset.name for sideset in self.sidesets]
-    
-    def get_sidesets_between_components(self, type1: str, type2: str) -> list[str]:
-        '''Get sidesets of interfaces between specified simple component types
-
-        :param type1: simple component type
-        :type type1: str
-        :param type2: simple component type
-        :type type2: str
-        :return: list of names
-        :rtype: list[str]
-        '''
-        classes = list({comp.classname for comp in self.components})
-        if type1 not in classes:
-            raise CubismError(f"type {type1} not recognised")
-        elif type2 not in classes:
-            raise CubismError(f"type {type2} not recognised")
-        return [sideset.name for sideset in self.sidesets if type1 in sideset.name and type2 in sideset.name]
+        return self.sidesets
 
     def get_blocks_of_material(self, material: str) -> list[str]:
         '''Get blocks of simple components made of specified material
@@ -242,36 +172,31 @@ class MaterialsTracker:
         '''
         return list({comp.classname for comp in self.components})
 
-    def get_sideset_types(self):
-        '''Get sideset types. Each sideset has a type corresponding to the 
-        type of the simple components on either side. For example the 
-        type of the sideset cladding0_coolant0 is cladding_coolant.
+    def get_sidesets_between_components(self, *types: str) -> list[str]:
+        '''Get sidesets between specified simple component types. 
+        Providing only 1 type will assume the other side of the interface to be 'air'
 
-        :return: list of names
-        :rtype: list[str]
+        :return: list of sideset names
+        :rtype: list[str] | None
         '''
-        return list({self.get_sideset_type(sideset.name) for sideset in self.sidesets})
-
-    def get_sideset_type(self, sideset_name: str):
-        '''Get type of a specific sideset
-
-        :return: list of names
-        :rtype: list[str]
-        '''
-        components = sideset_name.split("_")
-        sideset_type = ""
-        for comp in components:
-            sideset_type += (comp.rstrip("0123456789") + "_")
-        return sideset_type.rstrip("_")
-
-    def get_sidesets_of_type(self, sideset_type: str):
-        '''Get sidesets of a specific type
-
-        :return: list of names
-        :rtype: list[str]
-        '''
-        return list({sideset.name for sideset in self.sidesets if self.get_sideset_type(sideset.name) == sideset_type})
-
+        if not 0 <len(types) <= 2:
+            print("No boundaries can exist between provided number of types")
+            return None
+        type_ref = self.make_boundary_name(list(types), True)
+        if type_ref not in self.types_to_sidesets.keys():
+            print(f"No boundaries exist: {types}")
+            return None
+        return list(self.types_to_sidesets[type_ref])
+    
+    def get_sidesets_between_materials(self, *materials: str) -> list[str]:
+        if not 0 < len(materials) <= 2:
+            print("No boundaries can exist between provided number of types")
+            return None
+        type_ref = self.make_boundary_name(list(materials), True)
+        if type_ref not in self.materials_to_sidesets.keys():
+            print(f"No boundaries exist: {materials}")
+            return None
+        return list(self.materials_to_sidesets[type_ref])
 
 class ComponentTracker:
     '''Adds components to cubit groups recursively'''

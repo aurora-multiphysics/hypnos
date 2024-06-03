@@ -175,4 +175,9 @@ class GeometryMaker():
         self.materials_tracker.reset()
         self.component_tracker.reset_counter()
         self.constructed_geometry = []
+    
+    def file_to_merged_geometry(self, filename: str):
+        self.parse_json(filename)
+        self.make_geometry()
+        self.imprint_and_merge()
 
