@@ -65,7 +65,7 @@ class MaterialsTracker:
             add_to_new_entity("block", component.identifier, "volume", component.volume_id_string())
 
         for material_name, vol_id_strings in material_to_volumes.items():
-            add_to_new_entity("group", material_name, "volume", vol_id_strings)
+            add_to_new_entity("group", "mat:" + material_name, "volume", vol_id_strings)
 
         for boundary_name, surf_ids in component_to_surfaces.items():
             add_to_new_entity("sideset", boundary_name, "surface", surf_ids)
@@ -112,7 +112,7 @@ class MaterialsTracker:
         '''Create groups for material, component, component boundary, 
         and material boundary groups in cubit'''
 
-        add_to_new_entity("group", "materials", "group", list(self.materials))
+        add_to_new_entity("group", "materials", "group", ["mat_" + mat for mat in self.materials])
         add_to_new_entity("group", "simple_components", "group", [comp.identifier for comp in self.components])
         add_to_new_entity("group", "component_boundaries", "group", self.sidesets)
         add_to_new_entity("group", "material_boundaries", "group", self.material_boundaries)
