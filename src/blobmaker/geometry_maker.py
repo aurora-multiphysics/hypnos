@@ -177,6 +177,11 @@ class GeometryMaker():
         self.constructed_geometry = []
     
     def file_to_merged_geometry(self, filename: str):
+        '''Parse json file, make geometry, imprint + merge it, track boundaries.
+
+        :param filename: Name of file to parse
+        :type filename: str
+        '''
         self.parse_json(filename)
         self.make_geometry()
         self.imprint_and_merge()
