@@ -239,30 +239,31 @@ def get_entities_from_group(group_identifier: int | str, entity_type: str) -> li
     else:
         raise CubismError(f"Entity type {entity_type} not recognised")
 
+def add_to_new_entity(entity_type: str, name: str, thing_type: str, things_to_add):
+    '''Create a new group, block, or sideset. Add entities or groups to it.
 
-def create_new_entity(entity_type: str, name: str) -> int:
-    '''Create new entity of given name, otherwise return ID of existing entity
-
-    :param entity_type: Name of entity type
+    :param entity_type: group | block | sideset
     :type entity_type: str
-    :param name: Name to give new entity
+    :param name: Name to give group/ block/ sideset
     :type name: str
-    :return: ID of created/ existing entity
-    :rtype: int
+    :param thing_type: Type of entity to add
+    :type thing_type: str
+    :param things_to_add: List or string of corresponding IDs
+    :type things_to_add: list[int] | str
     '''
     if entity_type in ["block", "sideset"]:
-        if entity_type == "block":
-            exo_id = cubit.get_next_block_id()
-        elif entity_type == "sideset":
-            exo_id = cubit.get_next_sideset_id()
-        cmd(f'create {entity_type} {exo_id}')
-        cmd(f'{entity_type} {exo_id} name "{name}"')
-        return exo_id
+        entity_id = cubit.get_next_block_id() if entity_type == "block" else cubit.get_next_sideset_id()
+        cmd(f"create {entity_type} {entity_id}")
+        cmd(f"{entity_type} {entity_id} name '{name}'")
     elif entity_type == "group":
-        group_id = cmd_check(f"create group '{name}'", "group")
-        if group_id == 0:
-            group_id = cubit.get_id_from_name(name)
-        return group_id
+        entity_id = cmd_check(f"create group '{name}'", "group")
+        if entity_id == 0:
+            entity_id = cubit.get_id_from_name(name)
+
+    if isinstance(things_to_add, list):
+        things_to_add = " ".join([str(thing) for thing in things_to_add])
+
+    cmd(f"{entity_type} {entity_id} add {thing_type} {things_to_add}")
 
 # unionise is in Assemblies.py as it needs to know about the
 # ComplexComponent and Assembly classes
