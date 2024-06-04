@@ -42,62 +42,80 @@ class MaterialsTracker:
         Add simple components to blocks.
         Add component interfaces to sidesets.
         '''
-        surface_ids = cubit.get_entities("surface")
-        surface_to_components = {surf_id : [] for surf_id in surface_ids}
-        surface_to_materials = {surf_id : [] for surf_id in surface_ids}
-        surface_to_types = {surf_id : [] for surf_id in surface_ids}
-        material_to_volumes = {material: [] for material in self.materials}
+        # This is a map of the form surface ID : [ID of component on either side of surface]
+        surface_to_comp_id = {}
+        # This will be a map of the form material : [volumes made of material]
+        material_to_volumes = {}
 
-        for component in self.components:
+        for idx, component in enumerate(self.components):
+            # pre-initialise
+            if component.material not in material_to_volumes.keys():
+                material_to_volumes[component.material] = []
+            # add volumes to corresponding materials
             material_to_volumes[component.material].append(component.volume_id_string())
+
             for surf_id in [surface.cid for surface in to_surfaces(component.get_subcomponents())]:
-                surface_to_components[surf_id].append(component.identifier)
-                surface_to_materials[surf_id].append(component.material)
-                surface_to_types[surf_id].append(component.classname)
+                # pre-initialise
+                if surf_id not in surface_to_comp_id:
+                    surface_to_comp_id[surf_id] = []
+                surface_to_comp_id[surf_id].append(idx)
 
-        self.types_to_sidesets = self.__merge_mapping(surface_to_types, surface_to_components)
-        self.materials_to_sidesets = self.__merge_mapping(surface_to_materials, surface_to_components)
+        # these will be maps of the form x_to_sidesets = name of x : {names of sidesets belonging to boundary type x}.
+        # Here x describes a set of boundaries 
+        types_to_sidesets = {}
+        materials_to_sidesets = {}
 
-        component_to_surfaces = self.__invert_mapping(surface_to_components)
-        material_to_surfaces = self.__invert_mapping(surface_to_materials)
+        # invert maps to be of the form x_to_surfaces = name of boundary: [surface IDs belonging to boundary]
+        component_to_surfaces = {}
+        material_to_surfaces = {}
+        
+        for surf_id, comp_ids in surface_to_comp_id.items():
+            # get components
+            comps = [self.components[idx] for idx in comp_ids]
+            # make various boundary names
+            sideset_name = self.make_boundary_name([comp.identifier for comp in comps])
+            material_boundary_name = self.make_boundary_name([comp.material for comp in comps])
+            material_boundary_name_internal = self.make_boundary_name([comp.material for comp in comps], True)
+            type_boundary_name_internal = self.make_boundary_name([comp.classname for comp in comps], True)
 
+            # pre-initialise
+            if type_boundary_name_internal not in types_to_sidesets.keys():
+                types_to_sidesets[type_boundary_name_internal] = []
+            if material_boundary_name_internal not in materials_to_sidesets.keys():
+                materials_to_sidesets[material_boundary_name_internal] = []
+            if sideset_name not in component_to_surfaces.keys():
+                component_to_surfaces[sideset_name] = []
+            if material_boundary_name not in material_to_surfaces.keys():
+                material_to_surfaces[material_boundary_name] = []
+            
+            # these are used internally for queries -> use internal names as keys
+            types_to_sidesets[type_boundary_name_internal].append(sideset_name)
+            materials_to_sidesets[material_boundary_name_internal].append(sideset_name)
+            # these are used to add entities to cubit -> use external names as keys
+            component_to_surfaces[sideset_name].append(surf_id)
+            material_to_surfaces[material_boundary_name].append(surf_id)
+
+        # add blocks corresponding to unique simple component identifiers
         for component in self.components:
             add_to_new_entity("block", component.identifier, "volume", component.volume_id_string())
-
+        
+        # add groups grouped according to material
         for material_name, vol_id_strings in material_to_volumes.items():
             add_to_new_entity("group", "mat:" + material_name, "volume", vol_id_strings)
 
+        # add sidesets corresponding to the simple components on either side of the boundary
         for boundary_name, surf_ids in component_to_surfaces.items():
             add_to_new_entity("sideset", boundary_name, "surface", surf_ids)
             add_to_new_entity("group", boundary_name, "surface", surf_ids)
 
+        # add groups corresponding to the material on either side of the boundary
         for boundary_name, surf_ids in material_to_surfaces.items():
             add_to_new_entity("group", boundary_name, "surface", surf_ids)
-
+        
+        # info for querying purposes
         self.sidesets = list(component_to_surfaces.keys())
         self.material_boundaries = list(material_to_surfaces.keys())
         self.blocks = [comp.identifier for comp in self.components]
-
-    def __invert_mapping(self, x_to_ys: dict):
-        y_to_xs = {}
-        for x, ys in x_to_ys.items():
-            boundary_name = self.make_boundary_name(ys)
-            if boundary_name in y_to_xs.keys():
-                y_to_xs[boundary_name].append(x)
-            else:
-                y_to_xs[boundary_name] = [x]
-        return y_to_xs
-
-    def __merge_mapping(self, surf_to_keys, surf_to_values):
-        return_dict = {}
-        for surf_id in cubit.get_entities("surface"):
-            key = self.make_boundary_name(surf_to_keys[surf_id], True)
-            value = self.make_boundary_name(surf_to_values[surf_id])
-            if key in return_dict.keys():
-                return_dict[key].add(value)
-            else:
-                return_dict[key] = set([value])
-        return return_dict
 
     def make_boundary_name(self, parts_of_name: list[str], internal=False):
         separator = self.internal_separator if internal else self.external_separator

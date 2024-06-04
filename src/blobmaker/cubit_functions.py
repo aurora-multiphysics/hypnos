@@ -240,6 +240,17 @@ def get_entities_from_group(group_identifier: int | str, entity_type: str) -> li
         raise CubismError(f"Entity type {entity_type} not recognised")
 
 def add_to_new_entity(entity_type: str, name: str, thing_type: str, things_to_add):
+    '''Create a new group, block, or sideset. Add entities or groups to it.
+
+    :param entity_type: group | block | sideset
+    :type entity_type: str
+    :param name: Name to give group/ block/ sideset
+    :type name: str
+    :param thing_type: Type of entity to add
+    :type thing_type: str
+    :param things_to_add: List or string of corresponding IDs
+    :type things_to_add: list[int] | str
+    '''
     if entity_type in ["block", "sideset"]:
         entity_id = cubit.get_next_block_id() if entity_type == "block" else cubit.get_next_sideset_id()
         cmd(f"create {entity_type} {entity_id}")
