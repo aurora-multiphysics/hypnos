@@ -3,9 +3,6 @@ from blobmaker.assemblies import construct
 from blobmaker.generic_classes import CubismError, cmd
 from blobmaker.cubit_functions import initialise_cubit, reset_cubit
 from blobmaker.parsing import extract_data, ParameterFiller
-from blobmaker.default_params import DEFAULTS
-from blobmaker.constants import IMPRINT_AND_MERGE, MESH
-import shutil
 
 
 def make_everything(json_object):
@@ -154,18 +151,34 @@ class GeometryMaker():
         cmd('volume all scheme tet')
         cmd('mesh volume all')
 
-    def export(self, export_type: str = "cubit", rootname: str = "geometry"):
-        export_type = export_type.lower()
-        if export_type == "cubit" or "cub5" in export_type:
+    def export(self, format: str = "cubit", rootname: str = "geometry"):
+        '''Export mesh/ geometry in specfied format
+
+        :param format: Name of export format, defaults to "cubit"
+        :type format: str, optional
+        :param rootname: Name to give output file including path, defaults to "geometry"
+        :type rootname: str, optional
+        '''
+        format = format.lower()
+        if format == "cubit" or "cub5" in format:
             cmd(f'export cubit "{rootname}.cub5"')
-        elif export_type == "exodus" or ".e" in export_type:
+        elif format == "exodus" or ".e" in format:
             cmd(f'export mesh "{rootname}.e"')
-        elif export_type == "dagmc" or "h5m" in export_type:
+        elif format == "dagmc" or "h5m" in format:
             cmd(f'export cf_dagmc "{rootname}.h5m"')
-        elif export_type == "step" or "stp" in export_type:
+        elif format == "step" or "stp" in format:
             cmd(f'export Step "{rootname}.stp"')
 
     def export_exodus(self, rootname: str = "geometry", large_exodus= False, HDF5 = False):
+        '''Export as exodus II file.
+
+        :param rootname: Name to give output file including path, defaults to "geometry"
+        :type rootname: str, optional
+        :param large_exodus: Create a large model that can store individual datasets > 2GB, defaults to False
+        :type large_exodus: bool, optional
+        :param HDF5: Create a model that can store even larger files, defaults to False
+        :type HDF5: bool, optional
+        '''
         if large_exodus:
             cmd("set large exodus on")
         if HDF5:

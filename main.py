@@ -11,7 +11,7 @@ if __name__ == '__coreformcubit__':
 elif __name__ == "__main__":
     # accept command line arguments
     parser = argparse.ArgumentParser()
-    parser.add_argument("-f", "--file", type=str, help="Name of json file describing geometry", default="examples/sample_pin.json")
+    parser.add_argument("-f", "--file", type=str, help="Name of json file describing geometry", default="default")
     parser.add_argument("-i", "--info", type=str, help="Get info on available classes", default='none')
     parser.add_argument("-o", "--output", type=str, help="Root name of output file", default='default')
     parser.add_argument("-d", "--destination", type=str, help="Path of directory to generate output file in", default='default')
@@ -32,6 +32,14 @@ elif __name__ == "__main__":
     
     # get config file info
     config_data = extract_data(args.config)
+
+    if args.file != "default":
+        filename = args.file
+    elif "file" in config_data.keys():
+        filename = config_data["file"]
+    else:
+        filename = "examples/sample_pin.json"
+
     if args.output != 'default':
         root_name = args.output
     elif "root name" in config_data.keys():
