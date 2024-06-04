@@ -75,7 +75,7 @@ elif __name__ == "__main__":
     maker = GeometryMaker()
     maker.print_parameter_logs = True
     maker.track_components = False
-    maker.file_to_merged_geometry(args.file)
+    maker.file_to_merged_geometry(filename)
 
     export_name = destination + root_name
     for export_type in export_geometries:
