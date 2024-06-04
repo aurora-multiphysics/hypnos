@@ -116,6 +116,8 @@ class MaterialsTracker:
         self.sidesets = list(component_to_surfaces.keys())
         self.material_boundaries = list(material_to_surfaces.keys())
         self.blocks = [comp.identifier for comp in self.components]
+        self.materials_to_sidesets = materials_to_sidesets
+        self.types_to_sidesets = types_to_sidesets
 
     def make_boundary_name(self, parts_of_name: list[str], internal=False):
         separator = self.internal_separator if internal else self.external_separator
