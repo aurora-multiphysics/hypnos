@@ -154,20 +154,23 @@ class GeometryMaker():
         cmd('volume all scheme tet')
         cmd('mesh volume all')
 
-    def export_geometry(self, filename= 'out_geometry.cub5', destination='.'):
-        cmd(f'export cubit "{filename}"')
-        shutil.move(f"./{filename}", f"{destination}/{filename}")
+    def export(self, export_type: str = "cubit", rootname: str = "geometry"):
+        export_type = export_type.lower()
+        if export_type == "cubit" or "cub5" in export_type:
+            cmd(f'export cubit "{rootname}.cub5"')
+        elif export_type == "exodus" or ".e" in export_type:
+            cmd(f'export mesh "{rootname}.e"')
+        elif export_type == "dagmc" or "h5m" in export_type:
+            cmd(f'export cf_dagmc "{rootname}.h5m"')
+        elif export_type == "step" or "stp" in export_type:
+            cmd(f'export Step "{rootname}.stp"')
 
-    def export_mesh(self, filename='out_mesh.e', destination='.'):
-        '''Export exodus II file of mesh, as well as blocks and sidesets.
-
-        :param filename: name of file to output, defaults to 'out_mesh.e'
-        :type filename: str, optional
-        :param destination: destination to create file, defaults to '.'
-        :type destination: str, optional
-        '''
-        cmd(f'export mesh "{filename}"')
-        shutil.move(f"./{filename}", f"{destination}/{filename}")
+    def export_exodus(self, rootname: str = "geometry", large_exodus= False, HDF5 = False):
+        if large_exodus:
+            cmd("set large exodus on")
+        if HDF5:
+            cmd("set exodus NetCDF4 on")
+        cmd(f'export cubit "{rootname}.e"')
 
     def reset_cubit(self):
         '''Reset cubit and corresponding internal states.'''
