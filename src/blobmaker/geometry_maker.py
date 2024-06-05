@@ -165,7 +165,7 @@ class GeometryMaker():
         elif format == "exodus" or ".e" in format:
             cmd(f'export mesh "{rootname}.e"')
         elif format == "dagmc" or "h5m" in format:
-            cmd(f'export cf_dagmc "{rootname}.h5m"')
+            cmd(f'export dagmc "{rootname}.h5m"')
         elif format == "step" or "stp" in format:
             cmd(f'export Step "{rootname}.stp"')
 

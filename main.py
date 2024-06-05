@@ -15,7 +15,7 @@ elif __name__ == "__main__":
     parser.add_argument("-i", "--info", type=str, help="Get info on available classes", default='none')
     parser.add_argument("-o", "--output", type=str, help="Root name of output file", default='')
     parser.add_argument("-d", "--destination", type=str, help="Path of directory to generate output file in", default='')
-    parser.add_argument("-c", "--config", type=str, help="Name of config json file", default="examples/sample_config.json")
+    parser.add_argument("-c", "--config", type=str, help="Name of config json file")
     args = parser.parse_args()
 
     if args.info != 'none':
@@ -31,30 +31,42 @@ elif __name__ == "__main__":
         exit(0)
     
     # get config file info
-    config_data = extract_data(args.config)
+    config_data = extract_data(args.config) if args.config else {}
 
     if args.file != "":
         filename = args.file
+        filename_source = 'CLI flag'
     elif "file" in config_data.keys():
         filename = config_data["file"]
+        filename_source = 'config file'
     else:
         filename = "examples/sample_pin.json"
+        filename_source = 'default value'
+    print(f"input file name set to {filename} from {filename_source}")
 
     if args.output != '':
         root_name = args.output
+        root_name_source = 'CLI flag'
     elif "root name" in config_data.keys():
         root_name = config_data["root name"]
+        root_name_source = 'config file'
     else:
         root_name = "geometry"
+        root_name_source = 'default value'
+    print(f"output file root name set to {root_name} from {root_name_source}")
     
     if args.destination != '':
         destination = args.destination
+        destination_source = 'CLI flag'
     elif "destination" in config_data.keys():
         destination = config_data["destination"]
+        destination_source = 'config file'
     else:
         destination = './'
+        destination_source = 'default value'
     if not destination.endswith("/"):
         destination = destination + "/"
+    print(f'output file destination set to {destination} from {destination_source}')
     
     export_geometries = config_data["export geometry"] if "export geometry" in config_data.keys() else ["cubit"]
     if type(export_geometries) is not list:
