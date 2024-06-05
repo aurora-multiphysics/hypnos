@@ -168,6 +168,11 @@ class GeometryMaker():
             cmd(f'export dagmc "{rootname}.h5m"')
         elif format == "step" or "stp" in format:
             cmd(f'export Step "{rootname}.stp"')
+            print("The export_exodus method has more options for exodus file exports")
+        else:
+            print("format not recognised")
+            return 1
+        print(f"exported {format} file")
 
     def export_exodus(self, rootname: str = "geometry", large_exodus= False, HDF5 = False):
         '''Export as exodus II file.
