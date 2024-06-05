@@ -1,0 +1,11 @@
+{
+    "file": "examples/sample_pin.json",
+    "root name": "pin",
+    "export geometry": ["STEP"],
+    "export mesh": ["cubit", "exodus", "DAGMC"],
+    "destination": "./examples",
+    "exodus options": {
+        "large exodus": "false",
+        "HDF5": "false"
+    }
+}

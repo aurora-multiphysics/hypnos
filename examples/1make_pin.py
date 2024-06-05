@@ -15,7 +15,7 @@ def make_pin():
     maker.imprint_and_merge()
 
     # replace the . with destination path
-    maker.export_geometry("pin.cub5", ".")
+    maker.export("cubit", "pin")
 
     # global mesh setting
     maker.set_mesh_size(4)

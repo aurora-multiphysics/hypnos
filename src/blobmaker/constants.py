@@ -37,6 +37,3 @@ CLASS_MAPPING = {
 # components requiring only geometry and material parameters
 STANDARD_COMPONENTS = ["first wall", "multiplier", "pressure tube", "pin", "structure", "breeder", ]
 
-# some flags because i am lazy
-IMPRINT_AND_MERGE = True
-MESH = False

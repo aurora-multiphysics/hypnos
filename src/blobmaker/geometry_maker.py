@@ -3,9 +3,6 @@ from blobmaker.assemblies import construct
 from blobmaker.generic_classes import CubismError, cmd
 from blobmaker.cubit_functions import initialise_cubit, reset_cubit
 from blobmaker.parsing import extract_data, ParameterFiller
-from blobmaker.default_params import DEFAULTS
-from blobmaker.constants import IMPRINT_AND_MERGE, MESH
-import shutil
 
 
 def make_everything(json_object):
@@ -154,20 +151,44 @@ class GeometryMaker():
         cmd('volume all scheme tet')
         cmd('mesh volume all')
 
-    def export_geometry(self, filename= 'out_geometry.cub5', destination='.'):
-        cmd(f'export cubit "{filename}"')
-        shutil.move(f"./{filename}", f"{destination}/{filename}")
+    def export(self, format: str = "cubit", rootname: str = "geometry"):
+        '''Export mesh/ geometry in specfied format
 
-    def export_mesh(self, filename='out_mesh.e', destination='.'):
-        '''Export exodus II file of mesh, as well as blocks and sidesets.
-
-        :param filename: name of file to output, defaults to 'out_mesh.e'
-        :type filename: str, optional
-        :param destination: destination to create file, defaults to '.'
-        :type destination: str, optional
+        :param format: Name of export format, defaults to "cubit"
+        :type format: str, optional
+        :param rootname: Name to give output file including path, defaults to "geometry"
+        :type rootname: str, optional
         '''
-        cmd(f'export mesh "{filename}"')
-        shutil.move(f"./{filename}", f"{destination}/{filename}")
+        format = format.lower()
+        if format == "cubit" or "cub5" in format:
+            cmd(f'export cubit "{rootname}.cub5"')
+        elif format == "exodus" or ".e" in format:
+            cmd(f'export mesh "{rootname}.e"')
+        elif format == "dagmc" or "h5m" in format:
+            cmd(f'export dagmc "{rootname}.h5m"')
+        elif format == "step" or "stp" in format:
+            cmd(f'export Step "{rootname}.stp"')
+            print("The export_exodus method has more options for exodus file exports")
+        else:
+            print("format not recognised")
+            return 1
+        print(f"exported {format} file")
+
+    def export_exodus(self, rootname: str = "geometry", large_exodus= False, HDF5 = False):
+        '''Export as exodus II file.
+
+        :param rootname: Name to give output file including path, defaults to "geometry"
+        :type rootname: str, optional
+        :param large_exodus: Create a large model that can store individual datasets > 2GB, defaults to False
+        :type large_exodus: bool, optional
+        :param HDF5: Create a model that can store even larger files, defaults to False
+        :type HDF5: bool, optional
+        '''
+        if large_exodus:
+            cmd("set large exodus on")
+        if HDF5:
+            cmd("set exodus NetCDF4 on")
+        cmd(f'export cubit "{rootname}.e"')
 
     def reset_cubit(self):
         '''Reset cubit and corresponding internal states.'''
