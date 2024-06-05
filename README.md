@@ -17,12 +17,14 @@ Json files containing a json object describing a component (ex. hcpb_pin.json) c
 
 Examples are given in sample json files
 
-To use blobmaker, run main.py, passing the name of the json file to a -f flag:
-```python main.py -f examples/sample_blanket.json```
+To use blobmaker, run main.py, passing the name of the json file to a -f flag (default: examples/sample_pin.json):
+```python main.py -f examples/sample_pin.json```
 
 The following flags are also available:
 + -h: Print available flags for use
-+ -c: Name of class to print default template for
-+ -o: Name of geometry file to export
-+ -d: Destination to create output file(s)
-+ -i: Print cubit IDs of volumes in materials and surfaces in boundaries
++ -c: Name of config file to use (optional)
++ -o: Name of geometry file to export including path (default: examples/sample_pin)
++ -d: Destination to create output file(s) (default: ./)
++ -i: Name of class to print default template for. Leaving empty prints the available templates.
+
+The names given to flags -f, -o, and -d will be preferred over their equivalent options in the config file (file, root name, destination)
