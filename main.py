@@ -11,10 +11,10 @@ if __name__ == '__coreformcubit__':
 elif __name__ == "__main__":
     # accept command line arguments
     parser = argparse.ArgumentParser()
-    parser.add_argument("-f", "--file", type=str, help="Name of json file describing geometry", default="default")
+    parser.add_argument("-f", "--file", type=str, help="Name of json file describing geometry", default="")
     parser.add_argument("-i", "--info", type=str, help="Get info on available classes", default='none')
-    parser.add_argument("-o", "--output", type=str, help="Root name of output file", default='default')
-    parser.add_argument("-d", "--destination", type=str, help="Path of directory to generate output file in", default='default')
+    parser.add_argument("-o", "--output", type=str, help="Root name of output file", default='')
+    parser.add_argument("-d", "--destination", type=str, help="Path of directory to generate output file in", default='')
     parser.add_argument("-c", "--config", type=str, help="Name of config json file", default="examples/sample_config.json")
     args = parser.parse_args()
 
@@ -33,21 +33,21 @@ elif __name__ == "__main__":
     # get config file info
     config_data = extract_data(args.config)
 
-    if args.file != "default":
+    if args.file != "":
         filename = args.file
     elif "file" in config_data.keys():
         filename = config_data["file"]
     else:
         filename = "examples/sample_pin.json"
 
-    if args.output != 'default':
+    if args.output != '':
         root_name = args.output
     elif "root name" in config_data.keys():
         root_name = config_data["root name"]
     else:
         root_name = "geometry"
     
-    if args.destination != 'default':
+    if args.destination != '':
         destination = args.destination
     elif "destination" in config_data.keys():
         destination = config_data["destination"]
