@@ -26,5 +26,7 @@ The following flags are also available:
 + -o: Name of geometry file to export including path (default: examples/sample_pin)
 + -d: Destination to create output file(s) (default: ./)
 + -i: Name of class to print default template for. Leaving empty prints the available templates.
++ -g : Names of formats to export geometry to (defaults to cubit if neither geometry nor mesh options provided anywhere)
++ -m : Names of formats to export mesh to (optional)
 
 The names given to flags -f, -o, and -d will be preferred over their equivalent options in the config file (file, root name, destination)

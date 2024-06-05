@@ -16,6 +16,8 @@ elif __name__ == "__main__":
     parser.add_argument("-o", "--output", type=str, help="Root name of output file", default='')
     parser.add_argument("-d", "--destination", type=str, help="Path of directory to generate output file in", default='')
     parser.add_argument("-c", "--config", type=str, help="Name of config json file")
+    parser.add_argument("-g", "--geometry", type=str, help="Names of formats to export geometry to", default='')
+    parser.add_argument("-m", "--mesh", type=str, help="Name of formats to export mesh to", default='')
     args = parser.parse_args()
 
     if args.info != 'none':
@@ -30,7 +32,7 @@ elif __name__ == "__main__":
                 pp.pprint(default_class)
         exit(0)
     
-    # get config file info
+    # get config file info, CLI > config > default
     config_data = extract_data(args.config) if args.config else {}
 
     if args.file != "":
@@ -68,10 +70,17 @@ elif __name__ == "__main__":
         destination = destination + "/"
     print(f'output file destination set to {destination} from {destination_source}')
     
-    export_geometries = config_data["export geometry"] if "export geometry" in config_data.keys() else ["cubit"]
-    if type(export_geometries) is not list:
-        export_geometries = [export_geometries]
-    export_mesh = config_data["export mesh"] if "export mesh" in config_data.keys() else []
+    if args.mesh != '':
+        export_mesh = str(args.mesh).split(' ')
+        mesh_source = 'CLI flag'
+    elif "export mesh" in config_data.keys():
+        export_mesh = config_data["export mesh"]
+        mesh_source = "config file"
+    else:
+        # dont mesh by default
+        export_mesh = []
+        mesh_source = False
+    
     if type(export_mesh) is not list:
         export_mesh = [export_mesh]
     # get exodus options if specified in the mesh formats
@@ -83,6 +92,32 @@ elif __name__ == "__main__":
         else:
             large_exodus = False
             hdf5 = False
+    
+    if args.geometry != '':
+        export_geometries = str(args.geometry).split(' ')
+        geometry_source = 'CLI flag'
+    elif "export geometry" in config_data.keys():
+        export_geometries = config_data["export geometry"]
+        if type(export_geometries) is str:
+            export_geometries = " ".split(export_geometries)
+        geometry_source = 'config file'
+    elif not export_mesh:
+        # only set default if no mesh export provided
+        export_geometries = ['cubit']
+        geometry_source = 'default value'
+    else:
+        export_geometries = []
+        geometry_source = False
+    
+
+    if geometry_source:
+        print(f"geometry export formats set to {', '.join(export_geometries)} from {geometry_source}")
+    else:
+        print("No geometry will be exported")
+    if mesh_source:
+        print(f"mesh export formats set to {', '.join(export_mesh)} from {mesh_source}")
+    else:
+        print("No mesh will be exported")
 
     maker = GeometryMaker()
     maker.print_parameter_logs = True
