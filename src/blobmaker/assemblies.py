@@ -603,7 +603,7 @@ class PinAssembly(CreatedComponentAssembly):
 
         parameters = self.__extract_parameters(["coolant inlet radius", "inner length", "offset", "bluntness"])
         parameters["pressure tube length"] = pressure_tube_length - pressure_tube_thickness
-        parameters["pressure tube gap"] = pressure_tube_gap - pressure_tube_thickness
+        parameters["pressure tube gap"] = pressure_tube_gap
         parameters["pressure tube radius"] = pressure_tube_outer_radius - pressure_tube_thickness
         parameters["cladding thickness"] = geometry["inner cladding"] + geometry["breeder chamber thickness"] + geometry["outer cladding"]
 
