@@ -87,3 +87,16 @@ class ParameterFiller():
             self.add_log(f"key {key} not in default config")
         if "class" in design_tree.keys():
             self.add_log(f"---------- Finished logging class: {design_tree['class']} ----------")
+
+def get_format_extension(format_type: str):
+    format_type = format_type.lower()
+    if format_type == "cubit" or "cub5" in format_type:
+        return ".cub5"
+    elif format_type == "exodus" or ".e" in format_type:
+        return ".e"
+    elif format_type == "dagmc" or "h5m" in format_type:
+        return ".h5m"
+    elif format_type == "step" or "stp" in format_type:
+        return ".stp"
+    else:
+        raise CubismError(f"Unrecognised format: {format_type}")

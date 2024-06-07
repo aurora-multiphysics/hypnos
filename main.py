@@ -1,8 +1,10 @@
+from blobmaker.generic_classes import CubismError
 from blobmaker.cubit_functions import reset_cubit
-from blobmaker.parsing import extract_data
+from blobmaker.parsing import extract_data, get_format_extension
 from blobmaker.default_params import DEFAULTS
 from blobmaker.geometry_maker import make_everything, GeometryMaker
 import pprint, argparse
+from os.path import isfile
 
 
 if __name__ == '__coreformcubit__':
@@ -31,7 +33,7 @@ elif __name__ == "__main__":
                 pp = pprint.PrettyPrinter(indent=4)
                 pp.pprint(default_class)
         exit(0)
-    
+
     # get config file info, CLI > config > default
     config_data = extract_data(args.config) if args.config else {}
 
@@ -56,7 +58,7 @@ elif __name__ == "__main__":
         root_name = "geometry"
         root_name_source = 'default value'
     print(f"output file root name set to {root_name} from {root_name_source}")
-    
+
     if args.destination != '':
         destination = args.destination
         destination_source = 'CLI flag'
@@ -69,7 +71,7 @@ elif __name__ == "__main__":
     if not destination.endswith("/"):
         destination = destination + "/"
     print(f'output file destination set to {destination} from {destination_source}')
-    
+
     if args.mesh != '':
         export_mesh = str(args.mesh).split(' ')
         mesh_source = 'CLI flag'
@@ -80,7 +82,7 @@ elif __name__ == "__main__":
         # dont mesh by default
         export_mesh = []
         mesh_source = False
-    
+
     if type(export_mesh) is not list:
         export_mesh = [export_mesh]
     # get exodus options if specified in the mesh formats
@@ -92,7 +94,7 @@ elif __name__ == "__main__":
         else:
             large_exodus = False
             hdf5 = False
-    
+
     if args.geometry != '':
         export_geometries = str(args.geometry).split(' ')
         geometry_source = 'CLI flag'
@@ -108,7 +110,6 @@ elif __name__ == "__main__":
     else:
         export_geometries = []
         geometry_source = False
-    
 
     if geometry_source:
         print(f"geometry export formats set to {', '.join(export_geometries)} from {geometry_source}")
@@ -118,6 +119,11 @@ elif __name__ == "__main__":
         print(f"mesh export formats set to {', '.join(export_mesh)} from {mesh_source}")
     else:
         print("No mesh will be exported")
+
+    files_to_check = [destination + root_name + get_format_extension(exp_format) for exp_format in export_geometries + export_mesh]
+    for export_filename in files_to_check:
+        if isfile(export_filename):
+            raise CubismError(f"File {export_filename} already exists.")
 
     maker = GeometryMaker()
     maker.print_parameter_logs = True
