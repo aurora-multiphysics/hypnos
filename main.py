@@ -120,17 +120,21 @@ elif __name__ == "__main__":
         print(f"mesh export formats set to {', '.join(export_mesh)} from {mesh_source}")
     else:
         print("No mesh will be exported")
-
+    
     filepath = Path(destination, root_name)
     for export_type in export_geometries + export_mesh:
         export_filename = filepath.with_suffix(get_format_extension(export_type))
         if export_filename.exists():
             raise CubismError(f"File {export_filename} already exists.")
 
+    
+    scaling = config_data["output scale factor"] if "output scale factor" in config_data.keys() else 1
+
     maker = GeometryMaker()
     maker.print_parameter_logs = True
     maker.track_components = False
     maker.file_to_merged_geometry(filename)
+    maker.scale(scaling)
 
     for export_type in export_geometries:
         maker.export(export_type, str(filepath))
@@ -138,8 +142,8 @@ elif __name__ == "__main__":
     if len(export_mesh) > 0:
         maker.tetmesh()
         for export_type in export_mesh:
-            if export_type == "exodus":
-                maker.export_exodus(str(filepath), large_exodus, hdf5)
+            if export_type.lower() == "exodus":
+                maker.export_exodus(export_name, large_exodus, hdf5)
             else:
                 maker.export(export_type, str(filepath))
 

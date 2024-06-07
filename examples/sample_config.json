@@ -7,5 +7,6 @@
     "exodus options": {
         "large exodus": "false",
         "HDF5": "false"
-    }
+    },
+    "output scale factor": -1
 }
