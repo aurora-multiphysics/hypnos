@@ -3,6 +3,7 @@ from blobmaker.assemblies import construct
 from blobmaker.generic_classes import CubismError, cmd
 from blobmaker.cubit_functions import initialise_cubit, reset_cubit
 from blobmaker.parsing import extract_data, ParameterFiller
+import numpy as np
 
 
 def make_everything(json_object):
@@ -164,11 +165,11 @@ class GeometryMaker():
             cmd(f'export cubit "{rootname}.cub5"')
         elif format == "exodus" or ".e" in format:
             cmd(f'export mesh "{rootname}.e"')
+            print("The export_exodus method has more options for exodus file exports")
         elif format == "dagmc" or "h5m" in format:
             cmd(f'export dagmc "{rootname}.h5m"')
         elif format == "step" or "stp" in format:
             cmd(f'export Step "{rootname}.stp"')
-            print("The export_exodus method has more options for exodus file exports")
         else:
             print("format not recognised")
             return 1
@@ -206,4 +207,14 @@ class GeometryMaker():
         self.parse_json(filename)
         self.make_geometry()
         self.imprint_and_merge()
+
+    def scale(self, scaling: int):
+        '''Scale size of the geometry by 10^(scaling) to change what units cubit reports in.
+        The default parameters assume 1 cubit unit = 1mm so, for example, to get 1 cubit unit = 1cm
+        you would use scaling = -1.
+
+        :param scaling: Exponent to scale by
+        :type scaling: int
+        '''
+        cmd(f"volume all scale {10**scaling} about 0 0 0")
 
