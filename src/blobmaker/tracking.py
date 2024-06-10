@@ -95,13 +95,20 @@ class MaterialsTracker:
             component_to_surfaces[sideset_name].append(surf_id)
             material_to_surfaces[material_boundary_name].append(surf_id)
 
+        # create cubit materials
+        for material in self.materials:
+            cmd(f'create material name "{material}"')
+
         # add blocks corresponding to unique simple component identifiers
         for component in self.components:
-            add_to_new_entity("block", component.identifier, "volume", component.volume_id_string())
-        
+            entity_id = cubit.get_next_block_id()
+            cmd(f"create block {entity_id}")
+            cmd(f'block {entity_id} name "{component.identifier}"')
+            cmd(f'block {entity_id} material "{component.material}"')
+
         # add groups grouped according to material
         for material_name, vol_id_strings in material_to_volumes.items():
-            add_to_new_entity("group", "mat:" + material_name, "volume", vol_id_strings)
+            add_to_new_entity("group", material_name, "volume", vol_id_strings)
 
         # add sidesets corresponding to the simple components on either side of the boundary
         for boundary_name, surf_ids in component_to_surfaces.items():
@@ -132,7 +139,7 @@ class MaterialsTracker:
         '''Create groups for material, component, component boundary, 
         and material boundary groups in cubit'''
 
-        add_to_new_entity("group", "materials", "group", ["mat_" + mat for mat in self.materials])
+        add_to_new_entity("group", "materials", "group", list(self.materials))
         add_to_new_entity("group", "simple_components", "group", [comp.identifier for comp in self.components])
         add_to_new_entity("group", "component_boundaries", "group", self.sidesets)
         add_to_new_entity("group", "material_boundaries", "group", self.material_boundaries)
