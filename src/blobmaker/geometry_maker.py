@@ -11,7 +11,7 @@ from blobmaker.tracking import Tracker
 from blobmaker.assemblies import construct
 from blobmaker.generic_classes import CubismError, cmd
 from blobmaker.cubit_functions import initialise_cubit, reset_cubit
-from blobmaker.parsing import extract_data, ParameterFiller
+from blobmaker.parsing import extract_data, ParameterFiller, get_format_extension
 
 
 def make_everything(json_object):
@@ -178,12 +178,14 @@ class GeometryMaker():
         -------
         Class corresponding to the constructed cubit geometry
         '''
+        print("Making geometry")
         self.constructed_geometry = make_everything(self.design_tree)
         return self.constructed_geometry
 
     def imprint_and_merge(self):
         '''Imprint and merge geometry in cubit.
         '''
+        print("Imprint + merging")
         cmd("imprint volume all")
         cmd("merge volume all")
 
@@ -192,6 +194,7 @@ class GeometryMaker():
         Add components to blocks and component-component interfaces to sidesets
         Add materials and material-material interfaces to groups.
         '''
+        print("Tracking boundaries")
         for component in self.constructed_geometry:
             self.tracker.give_identifiers(component)
             self.tracker.extract_components(component)
@@ -211,6 +214,7 @@ class GeometryMaker():
     def tetmesh(self):
         '''Mesh geometry in cubit
         '''
+        print("Meshing")
         cmd('volume all scheme tet')
         cmd('mesh volume all')
 
@@ -223,6 +227,7 @@ class GeometryMaker():
         defaults to "geometry"
         :type rootname: str, optional
         '''
+        print(f"exporting {rootname + get_format_extension(format)}")
         format = format.lower()
         if format == "cubit" or "cub5" in format:
             cmd(f'export cubit "{rootname}.cub5"')
