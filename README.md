@@ -23,7 +23,7 @@ To use blobmaker, run main.py, passing the name of the json file to a -f flag (d
 The following flags are also available:
 + -h: Print available flags for use
 + -c: Name of config file to use (optional)
-+ -o: Name of geometry file to export including path (default: examples/sample_pin)
++ -o: Name of geometry file to export including path (default: geometry)
 + -d: Destination to create output file(s) (default: ./)
 + -i: Name of class to print default template for. Leaving empty prints the available templates.
 + -g : Names of formats to export geometry to (defaults to cubit if neither geometry nor mesh options provided anywhere)
