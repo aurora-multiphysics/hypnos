@@ -188,7 +188,7 @@ class GeometryMaker():
             cmd("set large exodus on")
         if HDF5:
             cmd("set exodus NetCDF4 on")
-        cmd(f'export cubit "{rootname}.e"')
+        cmd(f'export mesh "{rootname}.e"')
 
     def reset_cubit(self):
         '''Reset cubit and corresponding internal states.'''
