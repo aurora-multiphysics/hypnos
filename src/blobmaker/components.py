@@ -294,35 +294,110 @@ class CladdingComponent(SimpleComponent):
         net_thickness = inner_cladding + breeder_chamber_thickness + outer_cladding
         slope_angle = arctan(net_thickness, offset)
 
-        cladding_vertices = list(np.zeros(14))
+        
+        if inner_bluntness != 0 and outer_bluntness != 0:
+            cladding_vertices = list(np.zeros(14))
 
-        # set up points of face-to-sweep
-        cladding_vertices[0] = Vertex(0, inner_less_purge_thickness)
-        cladding_vertices[1] = Vertex(0)
+            # set up points of face-to-sweep
+            cladding_vertices[0] = Vertex(0, inner_less_purge_thickness)
+            cladding_vertices[1] = Vertex(0)
 
-        inner_cladding_ref1 = Vertex(-inner_length)
-        cladding_vertices[2] = inner_cladding_ref1 + Vertex(inner_bluntness)
-        cladding_vertices[3] = inner_cladding_ref1 + Vertex(inner_bluntness).rotate(slope_angle)
+            inner_cladding_ref1 = Vertex(-inner_length)
+            cladding_vertices[2] = inner_cladding_ref1 + Vertex(inner_bluntness)
+            cladding_vertices[3] = inner_cladding_ref1 + Vertex(inner_bluntness).rotate(slope_angle)
 
-        outer_cladding_ref1 = inner_cladding_ref1 + Vertex(offset, net_thickness)
-        cladding_vertices[4] = outer_cladding_ref1 + Vertex(outer_bluntness).rotate(slope_angle-np.pi)
-        cladding_vertices[5] = outer_cladding_ref1 + Vertex(outer_bluntness)
+            outer_cladding_ref1 = inner_cladding_ref1 + Vertex(offset, net_thickness)
+            cladding_vertices[4] = outer_cladding_ref1 + Vertex(outer_bluntness).rotate(slope_angle-np.pi)
+            cladding_vertices[5] = outer_cladding_ref1 + Vertex(outer_bluntness)
 
-        cladding_vertices[6] = outer_cladding_ref1 + Vertex(outer_length)
-        cladding_vertices[7] = outer_cladding_ref1 + Vertex(outer_length, -outer_cladding)
+            cladding_vertices[6] = outer_cladding_ref1 + Vertex(outer_length)
+            cladding_vertices[7] = outer_cladding_ref1 + Vertex(outer_length, -outer_cladding)
 
-        outer_cladding_ref2 = outer_cladding_ref1 + Vertex(outer_cladding * np.tan(slope_angle/2), -outer_cladding)
-        cladding_vertices[8] = outer_cladding_ref2 + Vertex(outer_bluntness)
-        cladding_vertices[9] = outer_cladding_ref2 + Vertex(outer_bluntness).rotate(slope_angle-np.pi)
+            outer_cladding_ref2 = outer_cladding_ref1 + Vertex(outer_cladding * np.tan(slope_angle/2), -outer_cladding)
+            cladding_vertices[8] = outer_cladding_ref2 + Vertex(outer_bluntness)
+            cladding_vertices[9] = outer_cladding_ref2 + Vertex(outer_bluntness).rotate(slope_angle-np.pi)
 
-        inner_cladding_ref2 = inner_cladding_ref1 + Vertex(inner_cladding/np.tan(slope_angle) + outer_cladding/np.sin(slope_angle), inner_cladding)
-        cladding_vertices[10] = inner_cladding_ref2 + Vertex(inner_bluntness).rotate(slope_angle)
-        cladding_vertices[11] = inner_cladding_ref2 + Vertex(inner_bluntness)
+            inner_cladding_ref2 = inner_cladding_ref1 + Vertex(inner_cladding/np.tan(slope_angle) + outer_cladding/np.sin(slope_angle), inner_cladding)
+            cladding_vertices[10] = inner_cladding_ref2 + Vertex(inner_bluntness).rotate(slope_angle)
+            cladding_vertices[11] = inner_cladding_ref2 + Vertex(inner_bluntness)
 
-        cladding_vertices[13] = cladding_vertices[0] + Vertex(-distance_to_step)
-        cladding_vertices[12] = cladding_vertices[13] + Vertex(0, step_thickness)
+            cladding_vertices[13] = cladding_vertices[0] + Vertex(-distance_to_step)
+            cladding_vertices[12] = cladding_vertices[13] + Vertex(0, step_thickness)
 
-        surface_to_sweep = make_surface(cladding_vertices, [2, 4, 8, 10])
+            surface_to_sweep = make_surface(cladding_vertices, [2, 4, 8, 10])
+        elif outer_bluntness != 0:
+            cladding_vertices = list(np.zeros(12))
+
+            # set up points of face-to-sweep
+            cladding_vertices[0] = Vertex(0, inner_less_purge_thickness)
+            cladding_vertices[1] = Vertex(0)
+            cladding_vertices[2] = Vertex(-inner_length)
+            inner_cladding_ref1 = cladding_vertices[2]
+
+            outer_cladding_ref1 = inner_cladding_ref1 + Vertex(offset, net_thickness)
+            cladding_vertices[3] = outer_cladding_ref1 + Vertex(outer_bluntness).rotate(slope_angle-np.pi)
+            cladding_vertices[4] = outer_cladding_ref1 + Vertex(outer_bluntness)
+
+            cladding_vertices[5] = outer_cladding_ref1 + Vertex(outer_length)
+            cladding_vertices[6] = outer_cladding_ref1 + Vertex(outer_length, -outer_cladding)
+
+            outer_cladding_ref2 = outer_cladding_ref1 + Vertex(outer_cladding * np.tan(slope_angle/2), -outer_cladding)
+            cladding_vertices[7] = outer_cladding_ref2 + Vertex(outer_bluntness)
+            cladding_vertices[8] = outer_cladding_ref2 + Vertex(outer_bluntness).rotate(slope_angle-np.pi)
+
+            cladding_vertices[9] = cladding_vertices[2] + Vertex(inner_cladding/np.tan(slope_angle) + outer_cladding/np.sin(slope_angle), inner_cladding)
+
+            cladding_vertices[11] = cladding_vertices[0] + Vertex(-distance_to_step)
+            cladding_vertices[10] = cladding_vertices[11] + Vertex(0, step_thickness)
+
+            surface_to_sweep = make_surface(cladding_vertices, [3, 7])
+
+        elif inner_bluntness != 0:
+            cladding_vertices = list(np.zeros(12))
+
+            # set up points of face-to-sweep
+            cladding_vertices[0] = Vertex(0, inner_less_purge_thickness)
+            cladding_vertices[1] = Vertex(0)
+
+            inner_cladding_ref1 = Vertex(-inner_length)
+            cladding_vertices[2] = inner_cladding_ref1 + Vertex(inner_bluntness)
+            cladding_vertices[3] = inner_cladding_ref1 + Vertex(inner_bluntness).rotate(slope_angle)
+
+            cladding_vertices[4] = inner_cladding_ref1 + Vertex(offset, net_thickness)
+            outer_cladding_ref1 = cladding_vertices[4]
+
+            cladding_vertices[5] = outer_cladding_ref1 + Vertex(outer_length)
+            cladding_vertices[6] = outer_cladding_ref1 + Vertex(outer_length, -outer_cladding)
+
+            cladding_vertices[7] = outer_cladding_ref1 + Vertex(outer_cladding * np.tan(slope_angle/2), -outer_cladding)
+
+            inner_cladding_ref2 = inner_cladding_ref1 + Vertex(inner_cladding/np.tan(slope_angle) + outer_cladding/np.sin(slope_angle), inner_cladding)
+            cladding_vertices[8] = inner_cladding_ref2 + Vertex(inner_bluntness).rotate(slope_angle)
+            cladding_vertices[9] = inner_cladding_ref2 + Vertex(inner_bluntness)
+
+            cladding_vertices[11] = cladding_vertices[0] + Vertex(-distance_to_step)
+            cladding_vertices[10] = cladding_vertices[11] + Vertex(0, step_thickness)
+
+            surface_to_sweep = make_surface(cladding_vertices, [2, 8])
+        else:
+            cladding_vertices = list(np.zeros(10))
+            # set up points of face-to-sweep
+            cladding_vertices[0] = Vertex(0, inner_less_purge_thickness)
+            cladding_vertices[1] = Vertex(0)
+
+            cladding_vertices[2] = Vertex(-inner_length)
+            cladding_vertices[3] = cladding_vertices[2] + Vertex(offset, net_thickness)
+            cladding_vertices[4] = cladding_vertices[3] + Vertex(outer_length)
+            cladding_vertices[5] = cladding_vertices[3] + Vertex(outer_length, -outer_cladding)
+
+            cladding_vertices[6] = cladding_vertices[3] + Vertex(outer_cladding * np.tan(slope_angle/2), -outer_cladding)
+            cladding_vertices[7] = cladding_vertices[2] + Vertex(inner_cladding/np.tan(slope_angle) + outer_cladding/np.sin(slope_angle), inner_cladding)
+
+            cladding_vertices[9] = cladding_vertices[0] + Vertex(-distance_to_step)
+            cladding_vertices[8] = cladding_vertices[9] + Vertex(0, step_thickness)
+
+            surface_to_sweep = make_surface(cladding_vertices, [])
+
         cmd(f"sweep surface {surface_to_sweep.cid} axis 0 {-coolant_inlet_radius} 0 1 0 0 angle 360")
         cladding = get_last_geometry("volume")
 
@@ -364,25 +439,81 @@ class BreederUnitCoolant(SimpleComponent):
 
         slope_angle = np.arctan(cladding_thickness / offset)
 
-        coolant_vertices = list(np.zeros(10))
+        if inner_bluntness != 0 and outer_bluntness != 0:
+            coolant_vertices = list(np.zeros(10))
 
-        coolant_vertices[0] = Vertex(0)
-        coolant_vertices[1] = Vertex(0, inlet_radius)
+            coolant_vertices[0] = Vertex(0)
+            coolant_vertices[1] = Vertex(0, inlet_radius)
 
-        inner_cladding_ref1 = Vertex(-inner_length, inlet_radius)
-        coolant_vertices[2] = inner_cladding_ref1 + Vertex(inner_bluntness)
-        coolant_vertices[3] = inner_cladding_ref1 + Vertex(inner_bluntness).rotate(slope_angle)
+            inner_cladding_ref1 = Vertex(-inner_length, inlet_radius)
+            coolant_vertices[2] = inner_cladding_ref1 + Vertex(inner_bluntness)
+            coolant_vertices[3] = inner_cladding_ref1 + Vertex(inner_bluntness).rotate(slope_angle)
 
-        outer_cladding_ref1 = inner_cladding_ref1 + Vertex(offset, cladding_thickness)
-        coolant_vertices[4] = outer_cladding_ref1 + Vertex(outer_bluntness).rotate(slope_angle-np.pi)
-        coolant_vertices[5] = outer_cladding_ref1 + Vertex(outer_bluntness)
-        coolant_vertices[6] = outer_cladding_ref1 + Vertex(pressure_tube_length-(offset+pressure_tube_gap))
+            outer_cladding_ref1 = inner_cladding_ref1 + Vertex(offset, cladding_thickness)
+            coolant_vertices[4] = outer_cladding_ref1 + Vertex(outer_bluntness).rotate(slope_angle-np.pi)
+            coolant_vertices[5] = outer_cladding_ref1 + Vertex(outer_bluntness)
+            coolant_vertices[6] = outer_cladding_ref1 + Vertex(pressure_tube_length-(offset+pressure_tube_gap))
 
-        coolant_vertices[9] = coolant_vertices[0] + Vertex(-(inner_length+pressure_tube_gap))
-        coolant_vertices[8] = coolant_vertices[9] + Vertex(0, pressure_tube_radius)
-        coolant_vertices[7] = coolant_vertices[8] + Vertex(pressure_tube_length)
+            coolant_vertices[9] = coolant_vertices[0] + Vertex(-(inner_length+pressure_tube_gap))
+            coolant_vertices[8] = coolant_vertices[9] + Vertex(0, pressure_tube_radius)
+            coolant_vertices[7] = coolant_vertices[8] + Vertex(pressure_tube_length)
 
-        surface_to_sweep = make_surface(coolant_vertices, [2, 4])
+            surface_to_sweep = make_surface(coolant_vertices, [2, 4])
+        elif outer_bluntness != 0:
+            coolant_vertices = list(np.zeros(9))
+
+            coolant_vertices[0] = Vertex(0)
+            coolant_vertices[1] = Vertex(0, inlet_radius)
+
+            coolant_vertices[2] = Vertex(-inner_length, inlet_radius)
+            inner_cladding_ref1 = coolant_vertices[2]
+
+            outer_cladding_ref1 = inner_cladding_ref1 + Vertex(offset, cladding_thickness)
+            coolant_vertices[3] = outer_cladding_ref1 + Vertex(outer_bluntness).rotate(slope_angle-np.pi)
+            coolant_vertices[4] = outer_cladding_ref1 + Vertex(outer_bluntness)
+            coolant_vertices[5] = outer_cladding_ref1 + Vertex(pressure_tube_length-(offset+pressure_tube_gap))
+
+            coolant_vertices[8] = coolant_vertices[0] + Vertex(-(inner_length+pressure_tube_gap))
+            coolant_vertices[7] = coolant_vertices[8] + Vertex(0, pressure_tube_radius)
+            coolant_vertices[6] = coolant_vertices[7] + Vertex(pressure_tube_length)
+
+            surface_to_sweep = make_surface(coolant_vertices, [3])
+        elif inner_bluntness != 0:
+            coolant_vertices = list(np.zeros(9))
+
+            coolant_vertices[0] = Vertex(0)
+            coolant_vertices[1] = Vertex(0, inlet_radius)
+
+            inner_cladding_ref1 = Vertex(-inner_length, inlet_radius)
+            coolant_vertices[2] = inner_cladding_ref1 + Vertex(inner_bluntness)
+            coolant_vertices[3] = inner_cladding_ref1 + Vertex(inner_bluntness).rotate(slope_angle)
+
+            coolant_vertices[4] = inner_cladding_ref1 + Vertex(offset, cladding_thickness)
+            outer_cladding_ref1 = coolant_vertices[4]
+
+            coolant_vertices[5] = outer_cladding_ref1 + Vertex(pressure_tube_length-(offset+pressure_tube_gap))
+
+            coolant_vertices[8] = coolant_vertices[0] + Vertex(-(inner_length+pressure_tube_gap))
+            coolant_vertices[7] = coolant_vertices[8] + Vertex(0, pressure_tube_radius)
+            coolant_vertices[6] = coolant_vertices[7] + Vertex(pressure_tube_length)
+
+            surface_to_sweep = make_surface(coolant_vertices, [2])
+        else:
+            coolant_vertices = list(np.zeros(8))
+
+            coolant_vertices[0] = Vertex(0)
+            coolant_vertices[1] = Vertex(0, inlet_radius)
+
+            coolant_vertices[2] = Vertex(-inner_length, inlet_radius)
+            coolant_vertices[3] = coolant_vertices[2] + Vertex(offset, cladding_thickness)
+            coolant_vertices[4] = coolant_vertices[3] + Vertex(pressure_tube_length-(offset+pressure_tube_gap))
+
+            coolant_vertices[7] = coolant_vertices[0] + Vertex(-(inner_length+pressure_tube_gap))
+            coolant_vertices[6] = coolant_vertices[7] + Vertex(0, pressure_tube_radius)
+            coolant_vertices[5] = coolant_vertices[6] + Vertex(pressure_tube_length)
+
+            surface_to_sweep = make_surface(coolant_vertices, [])
+
         cmd(f"sweep surface {surface_to_sweep.cid} axis 0 0 0 1 0 0 angle 360")
         coolant = get_last_geometry("volume")
         # realign with origin
@@ -523,17 +654,47 @@ class BreederChamber(SimpleComponent):
         thickness = outer_radius - inner_radius
         slope_angle = np.arctan(thickness / offset)
 
-        breeder_vertices = list(np.zeros(6))
-        breeder_vertices[0] = Vertex(length)
-        breeder_vertices[1] = Vertex(inner_bluntness)
-        breeder_vertices[2] = Vertex(inner_bluntness).rotate(slope_angle)
+        if inner_bluntness != 0 and outer_bluntness != 0:
+            breeder_vertices = list(np.zeros(6))
+            breeder_vertices[0] = Vertex(length)
+            breeder_vertices[1] = Vertex(inner_bluntness)
+            breeder_vertices[2] = Vertex(inner_bluntness).rotate(slope_angle)
 
-        outer_ref = Vertex(offset, thickness)
-        breeder_vertices[3] = outer_ref + Vertex(outer_bluntness).rotate(slope_angle-np.pi)
-        breeder_vertices[4] = outer_ref + Vertex(outer_bluntness)
-        breeder_vertices[5] = Vertex(length, thickness)
+            outer_ref = Vertex(offset, thickness)
+            breeder_vertices[3] = outer_ref + Vertex(outer_bluntness).rotate(slope_angle-np.pi)
+            breeder_vertices[4] = outer_ref + Vertex(outer_bluntness)
+            breeder_vertices[5] = Vertex(length, thickness)
 
-        surface_to_sweep = make_surface(breeder_vertices, [1, 3])
+            surface_to_sweep = make_surface(breeder_vertices, [1, 3])
+        elif outer_bluntness != 0:
+            breeder_vertices = list(np.zeros(5))
+            breeder_vertices[0] = Vertex(length)
+            breeder_vertices[1] = Vertex(0)
+
+            outer_ref = Vertex(offset, thickness)
+            breeder_vertices[2] = outer_ref + Vertex(outer_bluntness).rotate(slope_angle-np.pi)
+            breeder_vertices[3] = outer_ref + Vertex(outer_bluntness)
+            breeder_vertices[4] = Vertex(length, thickness)
+
+            surface_to_sweep = make_surface(breeder_vertices, [2])
+        elif inner_bluntness != 0:
+            breeder_vertices = list(np.zeros(5))
+            breeder_vertices[0] = Vertex(length)
+            breeder_vertices[1] = Vertex(inner_bluntness)
+            breeder_vertices[2] = Vertex(inner_bluntness).rotate(slope_angle)
+
+            breeder_vertices[3] =  Vertex(offset, thickness)
+            breeder_vertices[4] = Vertex(length, thickness)
+
+            surface_to_sweep = make_surface(breeder_vertices, [1])
+        else:
+            breeder_vertices = list(np.zeros(4))
+            breeder_vertices[0] = Vertex(length)
+            breeder_vertices[1] = Vertex(0)
+            breeder_vertices[2] = Vertex(offset, thickness)
+            breeder_vertices[3] = Vertex(length, thickness)
+
+            surface_to_sweep = make_surface(breeder_vertices, [])
         cmd(f"sweep surface {surface_to_sweep.cid} axis 0 {-inner_radius} 0 1 0 0 angle 360")
         breeder = get_last_geometry("volume")
         cubit.move(breeder.cubitInstance, [0, inner_radius, 0])
