@@ -40,10 +40,18 @@ FIRST_WALL = {
         "inner width": 1480,
         "outer width": 1600,
         "bluntness": 100,
-        "length": 500,
+        "length": 1000,
         "thickness": 30,
         "sidewall thickness": 25,
-        "height": 625
+        "height": 625,
+        "channel width": 10,
+        "channel back manifold offset": 100,
+        "channel back manifold width": 159,
+        "channel front manifold offset": 269,
+        "channel front manifold width": 159,
+        "channel padding": 10,
+        "channel depth": 10,
+        "channel spacing": 10
     }
 }
 

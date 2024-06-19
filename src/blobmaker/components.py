@@ -1,7 +1,7 @@
 from blobmaker.constants import BLOB_CLASSES
 from blobmaker.generic_classes import CubismError, CubitInstance, cmd, cubit
-from blobmaker.cubit_functions import to_volumes, to_bodies, cmd_check, get_last_geometry
-from blobmaker.geometry import make_cylinder_along, Vertex, make_surface, hypotenuse, arctan
+from blobmaker.cubit_functions import to_volumes, to_bodies, cmd_check, get_last_geometry, subtract
+from blobmaker.geometry import make_cylinder_along, Vertex, make_surface, hypotenuse, arctan, Line
 import numpy as np
 
 
@@ -723,6 +723,9 @@ class FirstWallComponent(SimpleComponent):
         sidewall_thickness = geometry["sidewall thickness"]
         height = geometry["height"]
 
+        channel_spacing = geometry["channel spacing"]
+        channel_width = geometry["channel width"]
+
         offset = (outer_width - inner_width)/2
         slope_angle = arctan(length, offset)
         sidewall_horizontal = sidewall_thickness/np.sin(slope_angle)
@@ -744,7 +747,7 @@ class FirstWallComponent(SimpleComponent):
 
             face_to_sweep = make_surface(vertices, [])
         else:
-            vertices = list(np.zeros(12))
+            vertices = [Vertex(0) for i in range(12)]
             vertices[0] = Vertex(0)
 
             left_ref = Vertex(offset, length)
@@ -773,11 +776,67 @@ class FirstWallComponent(SimpleComponent):
         # line up sweep direction along y axis
         cmd(f"surface {face_to_sweep.cid} move -{outer_width/2} 0 0")
         cmd(f"surface {face_to_sweep.cid} rotate 90 about x")
-
         cmd(f"sweep surface {face_to_sweep.cid} vector 0 1 0 distance {height}")
         first_wall = get_last_geometry("volume")
+
+        no_of_channels = (height - channel_spacing) // (channel_spacing + channel_width)
+        for i in range(no_of_channels):
+            channel = self.make_channel_volume(vertices)
+            if i%2 == 0:
+                cmd(f"{channel} reflect 1 0 0")
+            channel.move([0, i*(channel_spacing + channel_width) + channel_spacing, 0])
+            first_wall = subtract([first_wall], [channel])[0]
+
         # cubit.move(first_wall.cubitInstance, [0,0,length])
         return first_wall
+    
+    def make_channel_volume(self, vertices):
+        geometry = self.geometry
+        # get first wall params
+        inner_width = geometry["inner width"]
+        outer_width = geometry["outer width"]
+        length = geometry["length"]
+        offset = (outer_width - inner_width)/2
+
+        # get channel params
+        channel_width = geometry["channel width"]
+        channel_back_manifold_offset = geometry["channel back manifold offset"]
+        channel_back_manifold_width = geometry["channel back manifold width"]
+        channel_front_manifold_offset = geometry["channel front manifold offset"]
+        channel_front_manifold_width = geometry["channel front manifold width"]
+        channel_depth = geometry["channel depth"]
+        channel_padding = geometry["channel padding"]
+        # useful unit vectors
+        out_right = Vertex(length, offset).unit()
+        out_left = Vertex(-length, offset).unit()
+        slope_right = Vertex(-offset, length).unit()
+        slope_left = Vertex(offset, length).unit()
+        # construct channel vertices
+        channel_vertices = [Vertex(0) for i in range(16)]
+        channel_vertices[0] = Line(slope_left, vertices[11]).vertex_at(y=channel_back_manifold_offset) + (channel_padding * slope_left)
+        channel_vertices[2] = vertices[1] - out_left * channel_depth
+        channel_vertices[1] = Line(slope_left, channel_vertices[2]).vertex_at(y= channel_vertices[0].y)
+        channel_vertices[3] = vertices[2] - Vertex(0, channel_depth)
+        channel_vertices[4] = vertices[3] - Vertex(0, channel_depth)
+        channel_vertices[5] = vertices[4] - out_right * channel_depth
+        channel_vertices[7] = Line(slope_right, vertices[6]).vertex_at(y=channel_front_manifold_offset) + (channel_padding * slope_right)
+        channel_vertices[6] = Line(slope_right, channel_vertices[5]).vertex_at(y=channel_vertices[7].y)
+        channel_vertices[8] = channel_vertices[7] + (channel_front_manifold_width - 2*channel_padding) * slope_right
+        channel_vertices[10] = channel_vertices[5] - (channel_width * out_right)
+        channel_vertices[9] = Line(slope_right, channel_vertices[10]).vertex_at(y=channel_vertices[8].y)
+        channel_vertices[11] = channel_vertices[4] - Vertex(0, channel_width)
+        channel_vertices[12] = channel_vertices[3] - Vertex(0, channel_width)
+        channel_vertices[13] = channel_vertices[2] - channel_width * out_left
+        channel_vertices[15] = channel_vertices[0] + (channel_back_manifold_width - 2*channel_padding) * slope_left
+        channel_vertices[14] = Line(slope_left, channel_vertices[13]).vertex_at(y= channel_vertices[15].y)
+        # make into surface and sweep surface to make volume
+        channel_to_sweep = make_surface(channel_vertices, [2, 4, 10, 12])
+        cmd(f"surface {channel_to_sweep.cid} move -{outer_width/2} 0 0")
+        cmd(f"surface {channel_to_sweep.cid} rotate 90 about x")
+        cmd(f"sweep surface {channel_to_sweep.cid} vector 0 1 0 distance {channel_width}")
+        channel = get_last_geometry("volume")
+
+        return channel
 
 
 class Plate(SimpleComponent):
