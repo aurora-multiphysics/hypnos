@@ -239,7 +239,7 @@ class GeometryMaker():
         '''
         cmd(f"volume all scale {10**scaling} about 0 0 0")
 
-    def scale(self, scaling: int):
+    def exp_scale(self, scaling: int):
         '''Scale size of the geometry by 10^(scaling) to change what units cubit reports in.
         The default parameters assume 1 cubit unit = 1mm so, for example, to get 1 cubit unit = 1cm
         you would use scaling = -1.
