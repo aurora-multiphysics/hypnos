@@ -131,12 +131,13 @@ elif __name__ == "__main__":
             raise CubismError(f"File {export_filename} already exists.")
 
     
-    scaling = config_data["output scale factor"] if "output scale factor" in config_data.keys() else 1
+    scaling = config_data["output scale exponent"] if "output scale exponent" in config_data.keys() else 0
 
     maker = GeometryMaker()
     maker.print_parameter_logs = True
     maker.track_components = False
     maker.file_to_merged_geometry(filename)
+    maker.exp_scale(scaling)
 
     for export_type in export_geometries:
         maker.export(export_type, str(filepath))
