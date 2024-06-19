@@ -273,7 +273,7 @@ def subtract(subtract_from: list[CubitInstance], subtract: list[CubitInstance], 
     :type subtract_from: list[CubitInstance]
     :param subtract: geometries to be subtracted
     :type subtract: list[CubitInstance]
-    :param destroy: should original bodies be destroyed?, defaults to True
+    :param destroy: whether or not to destroy original geometries, defaults to True
     :type destroy: bool
     :return: geometries resulting from subtraction
     :rtype: list[CubitInstance]
