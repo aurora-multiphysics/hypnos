@@ -8,5 +8,5 @@
         "large exodus": "false",
         "HDF5": "false"
     },
-    "output scale factor": -1
+    "output scale exponent": -1
 }
