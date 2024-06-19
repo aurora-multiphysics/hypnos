@@ -146,4 +146,3 @@ elif __name__ == "__main__":
                 maker.export_exodus(export_name, large_exodus, hdf5)
             else:
                 maker.export(export_type, str(filepath))
-
