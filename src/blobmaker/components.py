@@ -631,13 +631,13 @@ class FirstWallComponent(SimpleComponent):
     
     def make_channel_volume(self, vertices):
         geometry = self.geometry
-
+        # get first wall params
         inner_width = geometry["inner width"]
         outer_width = geometry["outer width"]
         length = geometry["length"]
         offset = (outer_width - inner_width)/2
 
-        
+        # get channel params
         channel_width = geometry["channel width"]
         channel_back_manifold_offset = geometry["channel back manifold offset"]
         channel_back_manifold_width = geometry["channel back manifold width"]
@@ -645,12 +645,12 @@ class FirstWallComponent(SimpleComponent):
         channel_front_manifold_width = geometry["channel front manifold width"]
         channel_depth = geometry["channel depth"]
         channel_padding = geometry["channel padding"]
-
+        # useful unit vectors
         out_right = Vertex(length, offset).unit()
         out_left = Vertex(-length, offset).unit()
         slope_right = Vertex(-offset, length).unit()
         slope_left = Vertex(offset, length).unit()
-
+        # construct channel vertices
         channel_vertices = [Vertex(0) for i in range(16)]
         channel_vertices[0] = Line(slope_left, vertices[11]).vertex_at(y=channel_back_manifold_offset) + (channel_padding * slope_left)
         channel_vertices[2] = vertices[1] - out_left * channel_depth
@@ -668,7 +668,7 @@ class FirstWallComponent(SimpleComponent):
         channel_vertices[13] = channel_vertices[2] - channel_width * out_left
         channel_vertices[15] = channel_vertices[0] + (channel_back_manifold_width - 2*channel_padding) * slope_left
         channel_vertices[14] = Line(slope_left, channel_vertices[13]).vertex_at(y= channel_vertices[15].y)
-
+        # make into surface and sweep surface to make volume
         channel_to_sweep = make_surface(channel_vertices, [2, 4, 10, 12])
         cmd(f"surface {channel_to_sweep.cid} move -{outer_width/2} 0 0")
         cmd(f"surface {channel_to_sweep.cid} rotate 90 about x")
