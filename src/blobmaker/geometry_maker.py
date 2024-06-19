@@ -3,6 +3,7 @@ from blobmaker.assemblies import construct
 from blobmaker.generic_classes import CubismError, cmd
 from blobmaker.cubit_functions import initialise_cubit, reset_cubit
 from blobmaker.parsing import extract_data, ParameterFiller, get_format_extension
+import functools
 
 
 def make_everything(json_object):
@@ -16,6 +17,23 @@ def make_everything(json_object):
     elif type(json_object) is dict:
         return [construct(json_object)]
     raise CubismError("json object not recognised")
+
+
+def log_method(method_name: str):
+    '''Decorator to print logs for class methods
+
+    :param method_name: Name of task the method will perform
+    :type method_name: str
+    '''
+    def decorator_log(func):
+        @functools.wraps(func)
+        def wrapper_logger(*args, **kwargs):
+            print(f"Starting: {method_name}")
+            to_return = func(*args, **kwargs)
+            print(f"Finished: {method_name}")
+            return to_return
+        return wrapper_logger
+    return decorator_log
 
 
 class GeometryMaker():
@@ -117,14 +135,14 @@ class GeometryMaker():
             raise CubismError("Path given does not correspond to existing parameters")
         param_dict[key_route[0]] = self.__build_param_dict(key_route[1:], param_dict[key_route[0]], updated_value)
         return param_dict
-
+    
+    @log_method("Making geometry")
     def make_geometry(self):
         '''Build geometry corresponding to design tree in cubit
 
         :return: Constructed geometry
         :rtype: Python class corresponding to top-level of design tree
         '''
-        print("Making geometry")
         self.constructed_geometry = make_everything(self.design_tree)
         if self.track_components:
             for component in self.constructed_geometry:
@@ -132,26 +150,31 @@ class GeometryMaker():
                 print(f"components being tracked in root {self.component_tracker.root_name}")
         return self.constructed_geometry
 
+    @log_method("Imprint and merge")
     def imprint_and_merge(self):
-        '''Imprint and merge geometry in cubit. Add materials to blocks and material-material interfaces to sidesets.
+        '''Imprint and merge geometry in cubit. 
+        '''
+        cmd("imprint volume all")
+        cmd("merge volume all")
+        
+    @log_method("Tracking components and materials")
+    def track_components_and_materials(self):
+        '''Add components to blocks and component-component interfaces to sidesets.
+        Add materials and material-material interfaces to groups. 
         '''
         for component in self.constructed_geometry:
             self.component_tracker.give_identifiers(component)
             self.materials_tracker.extract_components(component)
-        print("Imprint + merging")
-        cmd("imprint volume all")
-        cmd("merge volume all")
-        print("Tracking boundaries")
         self.materials_tracker.track_boundaries()
         self.materials_tracker.organise_into_groups()
 
     def set_mesh_size(self, size: int):
         cmd(f'volume all size {size}')
 
+    @log_method("Meshing")
     def tetmesh(self):
         '''Mesh geometry in cubit
         '''
-        print("Meshing")
         cmd('volume all scheme tet')
         cmd('mesh volume all')
 
@@ -202,13 +225,18 @@ class GeometryMaker():
         self.component_tracker.reset_counter()
         self.constructed_geometry = []
     
-    def file_to_merged_geometry(self, filename: str):
+    def file_to_tracked_geometry(self, filename: str):
         '''Parse json file, make geometry, imprint + merge it, track boundaries.
 
         :param filename: Name of file to parse
         :type filename: str
         '''
         self.parse_json(filename)
+        self.make_tracked_geometry()
+    
+    def make_tracked_geometry(self):
+        '''Make geometry, imprint + merge it, track boundaries.
+        '''
         self.make_geometry()
         self.imprint_and_merge()
-
+        self.track_components_and_materials()
