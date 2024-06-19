@@ -5,6 +5,7 @@ from blobmaker.default_params import DEFAULTS
 from blobmaker.geometry_maker import make_everything, GeometryMaker
 import pprint, argparse
 from os.path import isfile
+from pathlib import Path
 
 
 if __name__ == '__coreformcubit__':
@@ -120,9 +121,10 @@ elif __name__ == "__main__":
     else:
         print("No mesh will be exported")
 
-    files_to_check = [destination + root_name + get_format_extension(exp_format) for exp_format in export_geometries + export_mesh]
-    for export_filename in files_to_check:
-        if isfile(export_filename):
+    filepath = Path(destination, root_name)
+    for export_type in export_geometries + export_mesh:
+        export_filename = filepath.with_suffix(get_format_extension(export_type))
+        if export_filename.exists():
             raise CubismError(f"File {export_filename} already exists.")
 
     maker = GeometryMaker()
@@ -130,15 +132,14 @@ elif __name__ == "__main__":
     maker.track_components = False
     maker.file_to_merged_geometry(filename)
 
-    export_name = destination + root_name
     for export_type in export_geometries:
-        maker.export(export_type, export_name)
+        maker.export(export_type, str(filepath))
     # only mesh if export mesh format(s) given
     if len(export_mesh) > 0:
         maker.tetmesh()
         for export_type in export_mesh:
             if export_type == "exodus":
-                maker.export_exodus(export_name, large_exodus, hdf5)
+                maker.export_exodus(str(filepath), large_exodus, hdf5)
             else:
-                maker.export(export_type, export_name)
+                maker.export(export_type, str(filepath))
 
