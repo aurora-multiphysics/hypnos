@@ -120,13 +120,13 @@ elif __name__ == "__main__":
         print("No mesh will be exported")
     
     
-    scaling = config_data["output scale factor"] if "output scale factor" in config_data.keys() else 1
+    scaling = config_data["output scale exponent"] if "output scale exponent" in config_data.keys() else 0
 
     maker = GeometryMaker()
     maker.print_parameter_logs = True
     maker.track_components = False
     maker.file_to_merged_geometry(filename)
-    maker.scale(scaling)
+    maker.exp_scale(scaling)
 
     export_name = destination + root_name
     for export_type in export_geometries:

@@ -189,7 +189,7 @@ class GeometryMaker():
             cmd("set large exodus on")
         if HDF5:
             cmd("set exodus NetCDF4 on")
-        cmd(f'export cubit "{rootname}.e"')
+        cmd(f'export mesh "{rootname}.e"')
 
     def reset_cubit(self):
         '''Reset cubit and corresponding internal states.'''
@@ -208,7 +208,7 @@ class GeometryMaker():
         self.make_geometry()
         self.imprint_and_merge()
 
-    def scale(self, scaling: int):
+    def exp_scale(self, scaling: int):
         '''Scale size of the geometry by 10^(scaling) to change what units cubit reports in.
         The default parameters assume 1 cubit unit = 1mm so, for example, to get 1 cubit unit = 1cm
         you would use scaling = -1.
