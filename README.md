@@ -7,7 +7,7 @@ Blobmaker is a parametric geometry engine to create meshes for structures involv
 + [Python 3](https://www.python.org/downloads/)
 + The numpy python library: `pip install numpy`
 
-This code should be run with Coreform Cubit 2023.8
+This code should be run with Coreform Cubit 2024.3. The DAGMC workflow will not work in previous versions.
 The cubit python library must be on your python path
 
 ## Usage
@@ -23,7 +23,7 @@ To use blobmaker, run main.py, passing the name of the json file to a -f flag (d
 The following flags are also available:
 + -h: Print available flags for use
 + -c: Name of config file to use (optional)
-+ -o: Name of geometry file to export including path (default: examples/sample_pin)
++ -o: Name of geometry file to export including path (default: geometry)
 + -d: Destination to create output file(s) (default: ./)
 + -i: Name of class to print default template for. Leaving empty prints the available templates.
 + -g : Names of formats to export geometry to (defaults to cubit if neither geometry nor mesh options provided anywhere)
