@@ -10,8 +10,7 @@ from blobmaker.cubit_functions import (
     to_volumes,
     to_surfaces,
     to_bodies,
-    get_entities_from_group,
-    create_new_entity
+    get_entities_from_group
 )
 from blobmaker.generic_classes import CubitInstance
 

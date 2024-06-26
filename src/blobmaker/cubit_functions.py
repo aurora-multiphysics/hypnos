@@ -279,8 +279,8 @@ def subtract(subtract_from: list[CubitInstance], subtract: list[CubitInstance], 
     :rtype: list[CubitInstance]
     '''
     from_ids = {body.cid for body in to_bodies(subtract_from)}
-    subtract_from = [body.cubitInstance for body in to_bodies(subtract_from)]
-    subtract = [body.cubitInstance for body in to_bodies(subtract)]
+    subtract_from = [body.handle for body in to_bodies(subtract_from)]
+    subtract = [body.handle for body in to_bodies(subtract)]
     pre_ids = set(cubit.get_entities("body"))
     if destroy:
         cubit.subtract(subtract, subtract_from)
