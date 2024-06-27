@@ -154,13 +154,10 @@ def to_volumes(geometry_list: list) -> list[CubitInstance]:
     all_volumes_that_exist = cubit.get_entities("volume")
     return_list = []
     for component in geometry_list:
-        if isinstance(component, CubitInstance):
-            if component.geometry_type == "body":
-                for volume_id in all_volumes_that_exist:
-                    if cubit.get_owning_body("volume", volume_id) == component.cid:
-                        return_list.append(CubitInstance(volume_id, "volume"))
-            else:
-                return_list.append(component)
+        if isinstance(component, CubitInstance) and component.geometry_type == "body":
+            for volume_id in all_volumes_that_exist:
+                if cubit.get_owning_body("volume", volume_id) == component.cid:
+                    return_list.append(CubitInstance(volume_id, "volume"))
         else:
             return_list.append(component)
     return return_list
@@ -296,6 +293,32 @@ def subtract(subtract_from: list[CubitInstance], subtract: list[CubitInstance], 
 
         subtract_ids = list(post_ids.difference(pre_ids))
     return [CubitInstance(sub_id, "body") for sub_id in subtract_ids]
+
+def union(geometries: list[CubitInstance], destroy=True):
+    '''Take the union of a list of geometries
+
+    :param geometries: Geometries to unite
+    :type geometries: list[CubitInstance]
+    :param destroy: whether to destroy the original geometries , defaults to True
+    :type destroy: bool, optional
+    :return: list of volumes created in union
+    :rtype: list[CubitInstance]
+    '''
+    as_vols = to_volumes(geometries)
+    vol_ids = {vol.cid for vol in as_vols}
+    vol_id_string = " ".join(str(vol_id) for vol_id in list(vol_ids))
+    if destroy:
+        cmd(f"unite volume {vol_id_string}")
+        all_vols = set(cubit.get_entities("volume"))
+        # the created union can have a volume ID(s) from the set of all volumes union'd
+        created_vol = list(vol_ids.intersection(all_vols))
+    else:
+        pre_vols = set(cubit.get_entities("volume"))
+        cmd(f"unite volume {vol_id_string} keep")
+        post_vols = set(cubit.get_entities("volume"))
+        # the created union will have a new volume ID(s)
+        created_vol = list(post_vols.difference(pre_vols))
+    return [CubitInstance(vol, "volume") for vol in created_vol]
 
 # unionise is in Assemblies.py as it needs to know about the
 # ComplexComponent and Assembly classes
