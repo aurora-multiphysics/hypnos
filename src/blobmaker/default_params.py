@@ -151,8 +151,61 @@ HCPB_BLANKET = {
         "FW backplate thickness": 100
     },
     "components": {
-        "pin": PIN,
-        "first_wall": FIRST_WALL,
+        "pin": {
+            "class": "pin",
+            "materials": {
+                "cladding": "EUROFER",
+                "pressure tube": "EUROFER",
+                "multiplier": "Beryllium",
+                "coolant": "Helium",
+                "breeder": "KALOS",
+                "filter disk": "EUROFER",
+                "filter lid": "Perf_Steel",
+                "purge gas": "H_He"
+            },
+            "geometry": {
+                "outer length": 370,
+                "inner length": 500,
+                "offset": 60,
+                "bluntness": 5,
+                "inner cladding": 6,
+                "outer cladding": 3,
+                "breeder chamber thickness": 16,
+                "coolant inlet radius": 8,
+                "filter disk thickness": 10,
+                "pressure tube gap": 20,
+                "pressure tube outer radius": 40,
+                "pressure tube thickness": 1,
+                "pressure tube length": 400,
+                "multiplier length": 385,
+                "multiplier side": 72,
+                "purge duct thickness": 1,
+                "purge duct cladding": 2,
+                "purge duct offset": 30,
+                "filter lid length": 300
+            }
+        },
+        "first_wall": {
+            "class": "first_wall",
+            "material": "Tungsten",
+            "geometry": {
+                "inner width": 1480,
+                "outer width": 1600,
+                "bluntness": 100,
+                "length": 1000,
+                "thickness": 30,
+                "sidewall thickness": 25,
+                "height": 625,
+                "channel width": 10,
+                "channel back manifold offset": 100,
+                "channel back manifold width": 159,
+                "channel front manifold offset": 269,
+                "channel front manifold width": 159,
+                "channel padding": 10,
+                "channel depth": 10,
+                "channel spacing": 10
+            }
+        },
         "front_rib": {
             "class": "front_rib",
             "geometry": {
