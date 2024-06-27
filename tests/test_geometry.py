@@ -101,7 +101,7 @@ class TestVertex:
 
     def test_rotate(self, vertex: Vertex):
         vert1 = vertex.rotate(np.pi/2)
-        assert str(vert1) == "-2 1 3"
+        assert (vert1.x, vert1.y, vert1.z) == pytest.approx((-2, 1, 3))
 
     def test_distance(self, vertex: Vertex):
         assert vertex.distance() == hypotenuse(vertex.x, vertex.y, vertex.z)
