@@ -150,6 +150,14 @@ class Vertex():
         self.x = x
         self.y = y
         self.z = z
+    
+    def __eq__(self, other):
+        if not isinstance(other, Vertex):
+            return NotImplemented
+        return self.x == other.x and self.y == other.y and self.z == other.z
+    
+    def __repr__(self) -> str:
+        return f"Vertex({self.x}, {self.y}, {self.z})"
 
     def __add__(self, other):
         if isinstance(other, Vertex):
@@ -178,12 +186,16 @@ class Vertex():
     def __mul__(self, other):
         if isinstance(other, Vertex):
             return Vertex(self.x*other.x, self.y*other.y, self.z*other.z)
+        elif isinstance(other, Line):
+            return Vertex(self.x*other.slope.x, self.y*other.slope.y, self.z*other.slope.z)
         else:
             return Vertex(self.x*other, self.y*other, self.z*other)
     
     def __rmul__(self, other):
         if isinstance(other, Vertex):
             return Vertex(self.x*other.x, self.y*other.y, self.z*other.z)
+        elif isinstance(other, Line):
+            return Vertex(self.x*other.slope.x, self.y*other.slope.y, self.z*other.slope.z)
         else:
             return Vertex(self.x*other, self.y*other, self.z*other)
 
@@ -228,6 +240,8 @@ class Vertex():
         return np.sqrt(np.square(self.x)+np.square(self.y)+np.square(self.z))
     
     def unit(self):
+        if self.distance() == 0:
+            return Vertex(0)
         x = self.x / self.distance()
         y = self.y / self.distance()
         z = self.z / self.distance()
@@ -242,31 +256,46 @@ class Vertex():
         return Vertex(x, y)
 
 class Line:
+    '''This helps with calculations involving points on a line defined by a point + slope
+    '''
     def __init__(self, slope: Vertex, const: Vertex = Vertex(0)) -> None:
         self.const = const
         self.slope = slope.unit()
+    
+    def __repr__(self) -> str:
+        return f"Line(Vertex({self.slope}), Vertex({self.const}))"
 
-    def __mul__(self, other):
-        return other * self.slope
-
-    def __rmul__(self, other):
-        return other * self.slope
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, Line):
+            return NotImplemented
+        return self.const == other.const and self.slope == other.slope
 
     def vertex_at(self, x: float = None, y: float = None, z: float = None):
-        if x:
+        '''Find the vertex on this line with given x, y, or z coordinate
+
+        :param x: x-coordinate, defaults to None
+        :type x: float, optional
+        :param y: y-coordinate, defaults to None
+        :type y: float, optional
+        :param z: z-coordinate, defaults to None
+        :type z: float, optional
+        :return: vertex on the line, if there is no point with given x/y/z coordinate then None
+        :rtype: Vertex | None
+        '''
+        if x is not None:
+            if self.slope.x == 0: return None
             k = (x - self.const.x) / self.slope.x
             return Vertex(x, self.const.y + k*self.slope.y, self.const.z + k*self.slope.z)
-        elif y:
+        elif y is not None:
+            if self.slope.y == 0: return None
             k = (y - self.const.y) / self.slope.y
             return Vertex(self.const.x + k*self.slope.x, y,  self.const.z + k*self.slope.z)
-        elif z:
+        elif z is not None:
+            if self.slope.z == 0: return None
             k = (z - self.const.z) / self.slope.z
             return Vertex(self.const.x + k*self.slope.x, self.const.y + k*self.slope.y, z)
         else:
             raise CubismError("At least one argument should be provided")
-    
-    def const(self, const: Vertex):
-        return Line(self.slope, const)
 
 
 def make_surface(vertices: list[Vertex], tangent_indices: list[int]):
