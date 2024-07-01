@@ -24,7 +24,7 @@ from blobmaker.components import (
     SeparatorPlate, 
     FWBackplate
 )
-from blobmaker.cubit_functions import to_volumes, get_bodies_and_volumes_from_group
+from blobmaker.cubit_functions import to_volumes, get_entities_from_group
 from blobmaker.geometry import Vertex, arctan
 from blobmaker.cubit_functions import to_bodies
 from blobmaker.constants import (
@@ -433,7 +433,7 @@ class ExternalComponentAssembly(GenericComponentAssembly):
         temp_group_id = cubit.get_id_from_name(temp_group_name)
 
         # convert everything to volumes
-        volumes_list = to_volumes(get_bodies_and_volumes_from_group(temp_group_id))
+        volumes_list = to_volumes([CubitInstance(cid, "body") for cid in get_entities_from_group(temp_group_id, "body")])
         for volume in volumes_list:
             cmd(f'group "{self.group}" add {volume.geometry_type} {volume.cid}')
         print(f"volumes imported in group {self.group}")
