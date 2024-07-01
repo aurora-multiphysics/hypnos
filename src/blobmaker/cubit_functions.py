@@ -21,36 +21,20 @@ def get_last_geometry(geometry_type: str):
     geom_id = cubit.get_last_id(geometry_type)
     return CubitInstance(geom_id, geometry_type)
 
-
-def cmd_check(command: str, id_type: str):
-    '''Perform cubit command and check whether a new entity has been created.
-    If this is a geometry return CubitInstance, if a group then the group id.
-
-    :param cmd: command to run
-    :type cmd: str
-    :param id_type: type of entity to check for
-    :type id_type: str
-    :return: geometry/ id/ false
-    :rtype: CubitInstance/ int/ bool
-    '''
-    if id_type == "group" and float(cubit.get_version()) > 2023.8:
-        pre_id = cubit.get_next_group_id() - 1
-        cmd(command)
-        post_id = cubit.get_next_group_id() - 1
-    else:
-        pre_id = cubit.get_last_id(id_type)
-        cmd(command)
-        post_id = cubit.get_last_id(id_type)
+def cmd_geom(command: str, geom_type: str):
+    pre_id = cubit.get_last_id(geom_type)
+    cmd(command)
+    post_id = cubit.get_last_id(geom_type)
     if pre_id == post_id:
-        if not id_type == "group":
-            raise CubismError(f"no new {id_type} created, last id: {pre_id}")
-        # material tracking function depends on this btw
-        return False
-    elif id_type == "group" and type(post_id) is int:
-        return post_id
-    else:
-        return CubitInstance(post_id, id_type)
+        raise CubismError(f"no new {geom_type} created, last id created: {pre_id}")
+    return CubitInstance(post_id, geom_type)
 
+def cmd_group(command: str):
+    pre_id = cubit.get_next_group_id() - 1
+    cmd(command)
+    post_id = cubit.get_next_group_id() - 1
+    if pre_id == post_id: return 0
+    return post_id
 
 def get_id_string(geometry_list: list[CubitInstance]):
     '''Convert list of CubitInstances to a string of space-separated IDs.
@@ -61,35 +45,6 @@ def get_id_string(geometry_list: list[CubitInstance]):
     :rtype: str
     '''
     return " ".join([str(geometry.cid) for geometry in geometry_list])
-
-
-# functions to delete and copy lists
-def delete_instances(component_list: list):
-    '''Deletes cubit instances of all geometries
-
-    :param component_list: List of geometries
-    :type component_list: list[CubitInstance]
-    '''
-    for component in component_list:
-        if isinstance(component, CubitInstance):
-            component.destroy_cubit_instance()
-
-
-def copy_geometries(geometry_list: list):
-    '''Copy geometries
-
-    :param component_list: List of geometries
-    :type component_list: list[CubitInstance]
-    :raises CubismError: All items in list are not geometries
-    '''
-    copied_list = []
-    for component in geometry_list:
-        if isinstance(component, CubitInstance):
-            copied_list.append(component.copy())
-        else:
-            raise CubismError("All items in list are not geometries :(")
-    return copied_list
-
 
 # THIS IS VERY SILLY WHY DO I HAVE TO DO THIS
 def to_owning_body(geometry: CubitInstance):
@@ -105,25 +60,6 @@ def to_owning_body(geometry: CubitInstance):
         return geometry
     else:
         return CubitInstance(cubit.get_owning_body(geometry.geometry_type, geometry.cid), "body")
-
-
-def get_bodies_and_volumes_from_group(group_id: int):
-    '''Find bodies and volumes at the top-level of a group.
-
-    :param group_id: ID of group
-    :type group_id: int
-    :return: list of bodies and volumes as GenericCubitInstances
-    :rtype: list
-    '''
-    instance_list = []
-    body_ids = cubit.get_group_bodies(group_id)
-    for body_id in body_ids:
-        instance_list.append(CubitInstance(body_id, "body"))
-    volume_ids = cubit.get_group_volumes(group_id)
-    for volume_id in volume_ids:
-        instance_list.append(CubitInstance(volume_id, "volume"))
-    return instance_list
-
 
 def remove_overlaps_between_geometries(from_list: list[CubitInstance], tool_list: list[CubitInstance]):
     '''Remove overlaps between lists of geometries
@@ -253,7 +189,7 @@ def add_to_new_entity(entity_type: str, name: str, thing_type: str, things_to_ad
         cmd(f"create {entity_type} {entity_id}")
         cmd(f"{entity_type} {entity_id} name '{name}'")
     elif entity_type == "group":
-        entity_id = cmd_check(f"create group '{name}'", "group")
+        entity_id = cmd_group(f"create group '{name}'")
         if entity_id == 0:
             entity_id = cubit.get_id_from_name(name)
 

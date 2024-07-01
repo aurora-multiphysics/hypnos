@@ -1,5 +1,5 @@
 from blobmaker.generic_classes import CubitInstance, CubismError, cmd
-from blobmaker.cubit_functions import cmd_check, get_id_string
+from blobmaker.cubit_functions import get_id_string, cmd_geom
 import numpy as np
 
 
@@ -14,7 +14,7 @@ def create_2d_vertex(x, y):
     :return: created vertex
     :rtype: CubitInstance
     '''
-    vertex = cmd_check(f"create vertex {x} {y} 0", "vertex")
+    vertex = cmd_geom(f"create vertex {x} {y} 0", "vertex")
     if vertex:
         return vertex
     else:
@@ -32,7 +32,7 @@ def connect_vertices_straight(vertex1: CubitInstance, vertex2: CubitInstance):
     :rtype: CubitInstance/ bool
     '''
     if vertex1.geometry_type == "vertex" and vertex2.geometry_type == "vertex":
-        connection = cmd_check(f"create curve vertex {vertex1.cid} {vertex2.cid}", "curve")
+        connection = cmd_geom(f"create curve vertex {vertex1.cid} {vertex2.cid}", "curve")
     else:
         raise CubismError("Given geometries are not vertices")
     return connection
@@ -50,7 +50,7 @@ def connect_curves_tangentially(vertex1: CubitInstance, vertex2: CubitInstance):
     :rtype: CubitInstance/ bool
     '''
     if vertex1.geometry_type == "vertex" and vertex2.geometry_type == "vertex":
-        connection = cmd_check(f"create curve tangent vertex {vertex1.cid} vertex {vertex2.cid}", "curve")
+        connection = cmd_geom(f"create curve tangent vertex {vertex1.cid} vertex {vertex2.cid}", "curve")
     else:
         raise CubismError("Given geometries are not vertices")
     return connection
@@ -65,7 +65,7 @@ def make_surface_from_curves(curves_list: list[CubitInstance]):
     :rtype: CubitInstance/ bool
     '''
     curve_id_string = get_id_string(curves_list)
-    surface = cmd_check(f"create surface curve {curve_id_string}", "surface")
+    surface = cmd_geom(f"create surface curve {curve_id_string}", "surface")
     return surface
 
 
@@ -81,7 +81,7 @@ def make_cylinder_along(radius: int, length: int, axis: str):
     :return: cylinder geometry
     :rtype: CubitInstance
     '''
-    cylinder = cmd_check(f"create cylinder radius {radius} height {length}", "volume")
+    cylinder = cmd_geom(f"create cylinder radius {radius} height {length}", "volume")
     if axis == "x":
         cmd(f"rotate volume {cylinder.cid} about Y angle -90")
     elif axis == "y":
@@ -208,7 +208,7 @@ class Vertex():
         :return: created vertex
         :rtype: CubitInstance
         '''
-        vertex = cmd_check(f"create vertex {str(self)}", "vertex")
+        vertex = cmd_geom(f"create vertex {str(self)}", "vertex")
         if vertex:
             return vertex
         else:
@@ -260,10 +260,10 @@ class Line:
     '''
     def __init__(self, slope: Vertex, const: Vertex = Vertex(0)) -> None:
         self.const = const
-        self.slope = slope.unit()
+        self.slope = slope
     
     def __repr__(self) -> str:
-        return f"Line(Vertex({self.slope}), Vertex({self.const}))"
+        return f"Line({repr(self.slope)}, {repr(self.const)})"
 
     def __eq__(self, other) -> bool:
         if not isinstance(other, Line):
@@ -282,18 +282,19 @@ class Line:
         :return: vertex on the line, if there is no point with given x/y/z coordinate then None
         :rtype: Vertex | None
         '''
+        slope = self.slope.unit()
         if x is not None:
-            if self.slope.x == 0: return None
-            k = (x - self.const.x) / self.slope.x
-            return Vertex(x, self.const.y + k*self.slope.y, self.const.z + k*self.slope.z)
+            if slope.x == 0: return None
+            k = (x - self.const.x) / slope.x
+            return Vertex(x, self.const.y + k*slope.y, self.const.z + k*slope.z)
         elif y is not None:
-            if self.slope.y == 0: return None
-            k = (y - self.const.y) / self.slope.y
-            return Vertex(self.const.x + k*self.slope.x, y,  self.const.z + k*self.slope.z)
+            if slope.y == 0: return None
+            k = (y - self.const.y) / slope.y
+            return Vertex(self.const.x + k*slope.x, y,  self.const.z + k*slope.z)
         elif z is not None:
-            if self.slope.z == 0: return None
-            k = (z - self.const.z) / self.slope.z
-            return Vertex(self.const.x + k*self.slope.x, self.const.y + k*self.slope.y, z)
+            if slope.z == 0: return None
+            k = (z - self.const.z) / slope.z
+            return Vertex(self.const.x + k*slope.x, self.const.y + k*slope.y, z)
         else:
             raise CubismError("At least one argument should be provided")
 
