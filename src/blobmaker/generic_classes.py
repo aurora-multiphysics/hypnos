@@ -16,6 +16,11 @@ class CubitInstance:
         self.cid = cid
         self.geometry_type = geometry_type
         self.handle = get_cubit_geometry(self.cid, self.geometry_type)
+    
+    def __eq__(self, other) -> bool:
+        if isinstance(other, CubitInstance):
+            return self.cid == other.cid and self.geometry_type == other.geometry_type
+        return NotImplemented
 
     def __str__(self) -> str:
         return f"{self.geometry_type} {self.cid}"
