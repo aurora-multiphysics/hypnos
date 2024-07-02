@@ -22,6 +22,8 @@ def get_last_geometry(geometry_type: str):
     return CubitInstance(geom_id, geometry_type)
 
 def cmd_geom(command: str, geom_type: str):
+    if geom_type not in ["vertex", "curve", "surface", "volume", "body"]:
+        raise CubismError(f"Geometry type not recognised: {geom_type}")
     pre_id = cubit.get_last_id(geom_type)
     cmd(command)
     post_id = cubit.get_last_id(geom_type)
@@ -46,7 +48,6 @@ def get_id_string(geometry_list: list[CubitInstance]):
     '''
     return " ".join([str(geometry.cid) for geometry in geometry_list])
 
-# THIS IS VERY SILLY WHY DO I HAVE TO DO THIS
 def to_owning_body(geometry: CubitInstance):
     '''Convert entity reference to a reference to it's parent body
 
@@ -56,28 +57,10 @@ def to_owning_body(geometry: CubitInstance):
     :rtype: CubitInstance
     '''
     assert isinstance(geometry, CubitInstance)
-    if geometry.cid == "body":
+    if geometry.geometry_type == "body":
         return geometry
     else:
         return CubitInstance(cubit.get_owning_body(geometry.geometry_type, geometry.cid), "body")
-
-def remove_overlaps_between_geometries(from_list: list[CubitInstance], tool_list: list[CubitInstance]):
-    '''Remove overlaps between lists of geometries
-
-    :param from_list: List of geometries from which the overlap will be subtracted
-    :type from_list: list[CubitInstance]
-    :param tool_list: List of geometries kept as is
-    :type tool_list: list[CubitInstance]
-    '''
-    from_volumes = to_volumes(from_list)
-    tool_volumes = to_volumes(tool_list)
-    # check each pair
-    for from_volume in from_volumes:
-        for tool_volume in tool_volumes:
-            # if there is an overlap, remove it
-            if not (cubit.get_overlapping_volumes([from_volume.cid, tool_volume.cid]) == ()):
-                cmd(f"remove overlap volume {tool_volume.cid} {from_volume.cid} modify volume {from_volume.cid}")
-
 
 def to_volumes(geometry_list: list) -> list[CubitInstance]:
     '''Turns references to bodies into references to their children volumes.
@@ -88,14 +71,19 @@ def to_volumes(geometry_list: list) -> list[CubitInstance]:
     :rtype: list[CubitInstance]
     '''
     all_volumes_that_exist = cubit.get_entities("volume")
+    vol_ids = set([])
     return_list = []
+
     for component in geometry_list:
         if isinstance(component, CubitInstance) and component.geometry_type == "body":
             for volume_id in all_volumes_that_exist:
                 if cubit.get_owning_body("volume", volume_id) == component.cid:
-                    return_list.append(CubitInstance(volume_id, "volume"))
+                    vol_ids.add(volume_id)
+        elif isinstance(component, CubitInstance) and component.geometry_type == "volume":
+            vol_ids.add(component.cid)
         else:
             return_list.append(component)
+    return_list.extend([CubitInstance(vol_id, "volume") for vol_id in vol_ids])
     return return_list
 
 
@@ -118,10 +106,12 @@ def to_surfaces(component_list: list[CubitInstance]) -> list[CubitInstance]:
             # get surfaces belonging to volume
             surfs = cubit.volume(component.cid).surfaces()
             surf_ids = surf_ids.union({surf.id() for surf in surfs})
+        elif component.geometry_type == "surface":
+            surf_ids.union({component.cid})
         else:
             return_list.append(component)
     return_list.extend([CubitInstance(surf_id, "surface") for surf_id in surf_ids])
-    return list(set(return_list))
+    return return_list
 
 
 def to_bodies(component_list: list) -> list[CubitInstance]:
@@ -160,15 +150,17 @@ def get_entities_from_group(group_identifier: int | str, entity_type: str) -> li
         if group_identifier == 0:
             raise CubismError("could not find group corresponding to name")
     if entity_type == "surface":
-        return cubit.get_group_surfaces(group_identifier)
+        return list(cubit.get_group_surfaces(group_identifier))
     elif entity_type == "volume":
-        return cubit.get_group_volumes(group_identifier)
+        return list(cubit.get_group_volumes(group_identifier))
     elif entity_type == "body":
-        return cubit.get_group_bodies(group_identifier)
+        return list(cubit.get_group_bodies(group_identifier))
     elif entity_type == "vertex":
-        return cubit.get_group_vertices(group_identifier)
+        return list(cubit.get_group_vertices(group_identifier))
+    elif entity_type == "curve":
+        return list(cubit.get_group_curves(group_identifier))
     elif entity_type == "group":
-        return cubit.get_group_groups(group_identifier)
+        return list(cubit.get_group_groups(group_identifier))
     else:
         raise CubismError(f"Entity type {entity_type} not recognised")
 
