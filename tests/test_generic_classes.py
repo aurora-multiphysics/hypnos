@@ -8,9 +8,9 @@ from blobmaker.generic_classes import (
     CubismError
 )
 
-@pytest.fixture
+
+@pytest.fixture(scope='function')
 def brick():
-    cubit.reset()
     cubit.brick(1, 1, 1)
     return CubitInstance(1, "body")
 
@@ -20,7 +20,15 @@ def test_cmd():
     assert list(cubit.get_entities("volume")) == [1]
 
 class TestCubitInstance:
-    
+    def test_handle(self, brick):
+        assert CubitInstance(1, "volume").handle.volume() == 1
+
+    def test_eq(self, brick):
+        cubit.brick(1, 1, 1)
+        assert brick == CubitInstance(1, "body")
+        assert brick != CubitInstance(2, "body")
+        assert brick != CubitInstance(1, "volume")
+
     def test_stringify(self, brick):
         assert str(brick) == "body 1"
     
