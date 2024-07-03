@@ -23,14 +23,9 @@ import pytest, cubit
 
 @pytest.fixture
 def brick():
-    cubit.reset()
     cubit.brick(1, 1, 1)
     return CubitInstance(1, "volume")
 
-@pytest.fixture(autouse=True)
-def reset():
-    yield 0
-    cubit.reset()
 
 def test_reset_cubit(brick):
     reset_cubit()

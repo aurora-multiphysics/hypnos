@@ -20,3 +20,8 @@ def geometry_json():
 def simple_component(geometry_json):
     cubit.reset()
     return SimpleComponent("air", geometry_json)
+
+@pytest.fixture(autouse=True)
+def reset():
+    yield 0
+    cubit.reset()
