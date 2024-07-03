@@ -12,12 +12,11 @@ from blobmaker.geometry import (
     Line
 )
 from blobmaker.generic_classes import CubitInstance
-import pytest, cubit
+import pytest
 import numpy as np
 
 @pytest.fixture(autouse=True)
 def verts():
-    cubit.reset()
     verts = [0, 0, 0, 0]
     verts[0] = create_2d_vertex(-5, -5)
     verts[1] = create_2d_vertex(5, -5)
