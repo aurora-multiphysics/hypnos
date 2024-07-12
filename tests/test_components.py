@@ -1,7 +1,21 @@
 from blobmaker.components import SimpleComponent
 from blobmaker.generic_classes import CubitInstance
-import cubit
+import cubit, pytest
 
+@pytest.fixture(scope="module")
+def geometry_json():
+    return {
+        "material": "Steel",
+        "geometry": {
+            "dimensions": 5
+        },
+        "origin": [10, 0, 0]
+    }
+
+@pytest.fixture(scope="function")
+def simple_component(geometry_json):
+    cubit.reset()
+    return SimpleComponent("air", geometry_json)
 
 class TestSimpleComponent:
     def test_get_subcomponents(self, simple_component):
