@@ -76,7 +76,8 @@ class GeometryMaker():
         :type updated_params: dict
         '''
         for param_path, updated_value in updated_params.items():
-            assert type(param_path) is str
+            if type(param_path) is not str:
+                raise CubismError(f"path should be given as a string: {str(param_path)}")
             key_route = param_path.split(self.key_route_delimiter)
             self.design_tree = self.__build_param_dict(key_route, self.design_tree, updated_value)
 
@@ -132,13 +133,18 @@ class GeometryMaker():
         return self.constructed_geometry
 
     def imprint_and_merge(self):
-        '''Imprint and merge geometry in cubit. Add materials to blocks and material-material interfaces to sidesets.
+        '''Imprint and merge geometry in cubit. 
+        '''
+        cmd("imprint volume all")
+        cmd("merge volume all")
+
+    def track_components_and_materials(self):
+        '''Add components to blocks and component-component interfaces to sidesets.
+        Add materials and material-material interfaces to groups. 
         '''
         for component in self.constructed_geometry:
             self.component_tracker.give_identifiers(component)
             self.materials_tracker.extract_components(component)
-        cmd("imprint volume all")
-        cmd("merge volume all")
         self.materials_tracker.track_boundaries()
         self.materials_tracker.organise_into_groups()
 
@@ -163,15 +169,15 @@ class GeometryMaker():
         if format == "cubit" or "cub5" in format:
             cmd(f'export cubit "{rootname}.cub5"')
         elif format == "exodus" or ".e" in format:
+            print("The export_exodus method has more options for exodus file exports")
             cmd(f'export mesh "{rootname}.e"')
         elif format == "dagmc" or "h5m" in format:
             cmd(f'export dagmc "{rootname}.h5m"')
         elif format == "step" or "stp" in format:
             cmd(f'export Step "{rootname}.stp"')
-            print("The export_exodus method has more options for exodus file exports")
         else:
             print("format not recognised")
-            return 1
+            raise CubismError(f"Export format not recognised: {format}")
         print(f"exported {format} file")
 
     def export_exodus(self, rootname: str = "geometry", large_exodus= False, HDF5 = False):
@@ -197,7 +203,7 @@ class GeometryMaker():
         self.component_tracker.reset_counter()
         self.constructed_geometry = []
     
-    def file_to_merged_geometry(self, filename: str):
+    def file_to_tracked_geometry(self, filename: str):
         '''Parse json file, make geometry, imprint + merge it, track boundaries.
 
         :param filename: Name of file to parse
@@ -206,4 +212,12 @@ class GeometryMaker():
         self.parse_json(filename)
         self.make_geometry()
         self.imprint_and_merge()
+        self.track_components_and_materials()
+    
+    def make_tracked_geometry(self):
+        '''Make geometry, imprint and merge, track blocks + sidesets
+        '''
+        self.make_geometry()
+        self.imprint_and_merge()
+        self.track_components_and_materials()
 
