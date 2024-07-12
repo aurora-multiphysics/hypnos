@@ -22,12 +22,15 @@ def test_cmd():
 class TestCubitInstance:
     def test_handle(self, brick):
         assert CubitInstance(1, "volume").handle.volume() == 1
+        with pytest.raises(CubismError):
+            CubitInstance(100000, "volume")
 
     def test_eq(self, brick):
         cubit.brick(1, 1, 1)
         assert brick == CubitInstance(1, "body")
         assert brick != CubitInstance(2, "body")
         assert brick != CubitInstance(1, "volume")
+        assert brick != 1
 
     def test_stringify(self, brick):
         assert str(brick) == "body 1"
@@ -77,6 +80,9 @@ def test_get_cubit_geometry(brick):
     cmd("create surface circle radius 5")
     surf_handle = get_cubit_geometry(1, "surface")
     assert surf_handle.area() == pytest.approx(25*np.pi)
+
+    with pytest.raises(CubismError):
+        get_cubit_geometry(1, "not a geometry type")
 
 def test_cubism_error():
     with pytest.raises(CubismError) as excinfo:
