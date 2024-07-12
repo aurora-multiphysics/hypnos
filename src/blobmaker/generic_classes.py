@@ -15,7 +15,10 @@ class CubitInstance:
     def __init__(self, cid: int, geometry_type: str) -> None:
         self.cid = cid
         self.geometry_type = geometry_type
-        self.handle = get_cubit_geometry(self.cid, self.geometry_type)
+        try:
+            self.handle = get_cubit_geometry(self.cid, self.geometry_type)
+        except RuntimeError:
+            raise CubismError(f"Specified {geometry_type} doesn't exist: {cid}")
     
     def __eq__(self, other) -> bool:
         if isinstance(other, CubitInstance):
