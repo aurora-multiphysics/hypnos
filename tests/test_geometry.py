@@ -11,9 +11,15 @@ from blobmaker.geometry import (
     make_surface,
     Line
 )
-from blobmaker.generic_classes import CubitInstance
-import pytest
+from blobmaker.generic_classes import (
+    CubitInstance, 
+    CubismError
+)
+import pytest, cubit
 import numpy as np
+
+cubism_err = pytest.raises(CubismError)
+type_err = pytest.raises(TypeError)
 
 @pytest.fixture(autouse=True)
 def verts():
@@ -50,11 +56,18 @@ def test_create_2d_vertex():
     vert = create_2d_vertex(x, y)
     assert vert.handle.coordinates() == (x, y, 0)
 
+    with cubism_err:
+        create_2d_vertex("not a coord", 1)
+
 def test_connect_vertices_straight(verts):
     connecting_curve = connect_vertices_straight(verts[0], verts[1])
     assert isinstance(connecting_curve, CubitInstance)
     assert connecting_curve.cid > 0
     assert connecting_curve.handle.curve_center() == (0, -5, 0)
+
+    with cubism_err:
+        cubit.brick(1, 1, 1)
+        connect_vertices_straight(verts[0], CubitInstance(1, "volume"))
 
 def test_connect_curves_tangentially(verts):
     connect_vertices_straight(verts[0], verts[1])
@@ -62,6 +75,10 @@ def test_connect_curves_tangentially(verts):
     connecting_curve = connect_curves_tangentially(verts[1], verts[2])
     assert connecting_curve.handle.curve_center()[1] == 0
     assert connecting_curve.handle.curve_center()[2] == 0
+
+    with cubism_err:
+        cubit.brick(1, 1, 1)
+        connect_curves_tangentially(verts[0], CubitInstance(1, "volume"))
 
 def test_make_loop_straight(verts, midpoints):
     loop = make_loop(verts, [])
@@ -82,9 +99,25 @@ def test_make_surface_from_curves(verts):
 
 def test_make_cylinder_along():
     cylinder = make_cylinder_along(2, 5, "x")
-    assert round(cylinder.handle.volume(), 3) == round(20*np.pi, 3)
-    centroid = [round(coord, 10) for coord in cylinder.handle.centroid()]
-    assert centroid == [0, 0, 0]
+    moments = cylinder.handle.principal_moments()
+    assert cylinder.handle.volume() == pytest.approx(20*np.pi)
+    assert cylinder.handle.centroid() == pytest.approx((0, 0, 0))
+    assert moments[0] < moments[1] and moments[0] < moments[2]
+
+    cylinderY = make_cylinder_along(1, 5, "y")
+    momentsY = cylinderY.handle.principal_moments()
+    assert cylinderY.handle.volume() == pytest.approx(5*np.pi)
+    assert cylinderY.handle.centroid() == pytest.approx((0, 0, 0))
+    assert momentsY[1] < momentsY[0] and momentsY[1] < momentsY[2]
+
+    cylinderZ = make_cylinder_along(1, 5, "z")
+    momentsZ = cylinderZ.handle.principal_moments()
+    assert cylinderZ.handle.volume() == pytest.approx(5*np.pi)
+    assert cylinderZ.handle.centroid() == pytest.approx((0, 0, 0))
+    assert momentsZ[2] < momentsZ[0] and momentsZ[2] < momentsZ[1]
+
+    with cubism_err:
+        make_cylinder_along(2, 2, "not an axis")
 
 def test_hypotenuse():
     assert hypotenuse(3, 4) == 5
@@ -111,10 +144,30 @@ class TestVertex:
     def test_add(self, vertex: Vertex):
         vert_sum = vertex + Vertex(1, 0, -1)
         assert vert_sum == Vertex(2, 2, 2)
+        with type_err:
+            vertex + 1
+    
+    def test_neg(self, vertex):
+        assert -vertex == Vertex(-1, -2, -3)
+    
+    def test_sub(self, vertex):
+        assert vertex - Vertex(0, 1, 2) == Vertex(1, 1, 1)
+        with type_err:
+            vertex - 1
+    
+    def test_mul(self, vertex: Vertex):
+        assert vertex * Vertex(1, 2, 3) == Vertex(1, 4, 9)
+        assert vertex.__rmul__(Vertex(1, 2, 3)) == Vertex(1, 4, 9)
+        assert vertex * 2 == Vertex(2, 4, 6)
+        assert 2 * vertex == Vertex(2, 4, 6)
+        assert vertex * Line(Vertex(1, 2, 3)) == Vertex(1, 4, 9)
+        assert vertex.__rmul__(Line(Vertex(1, 2, 3))) == Vertex(1, 4, 9)
 
     def test_create(self, vertex: Vertex):
         created_vertex = vertex.create()
         assert created_vertex.handle.coordinates() == (1, 2, 3)
+        with cubism_err:
+            Vertex("ha").create()
 
     def test_rotate(self, vertex: Vertex):
         vert1 = vertex.rotate(np.pi/2)
@@ -122,6 +175,7 @@ class TestVertex:
 
     def test_distance(self, vertex: Vertex):
         assert vertex.distance() == hypotenuse(vertex.x, vertex.y, vertex.z)
+        assert Vertex(0).unit() == Vertex(0)
     
     def test_unit(self, vertex: Vertex):
         assert Vertex(5, 0, 0).unit() == Vertex(1, 0, 0)
@@ -148,6 +202,10 @@ class TestLine:
         assert line.vertex_at(0, 5, 2) == Vertex(0, -2)
         assert line.vertex_at(y=2) == Vertex(2, 2)
         assert line.vertex_at(z=3) == None
+        assert Line(Vertex(0, 1, 0)).vertex_at(x = 5) == None
+        assert Line(Vertex(0, 0, 1)).vertex_at(z = 5) == Vertex(0, 0, 5)
+        with cubism_err:
+            line.vertex_at()
 
 def test_make_surface():
     vertices = [Vertex(5, 5), Vertex(5, -5), Vertex(-5, -5), Vertex(-5, 5)]

@@ -133,6 +133,11 @@ def test_add_to_new_entity(brick):
     assert cubit.get_next_group_id() == group_id + 1
     assert get_entities_from_group("test_group", "surface") == [1, 2, 3, 4]
 
+    # using an already created group should just add to that group
+    add_to_new_entity("group", "test_group", "surface", 5)
+    assert cubit.get_next_group_id() == group_id + 1
+    assert get_entities_from_group("test_group", "surface") == [1, 2, 3, 4, 5]
+
     block_id = cubit.get_next_block_id()
     add_to_new_entity("block", "test_block", "volume", [1])
     assert cubit.get_next_block_id() == block_id + 1
@@ -142,6 +147,8 @@ def test_add_to_new_entity(brick):
     add_to_new_entity("sideset", "test_sideset", "surface", [3, 4, 5])
     assert cubit.get_next_sideset_id() == sideset_id + 1
     assert list(cubit.get_sideset_surfaces(sideset_id)) == [3, 4, 5]
+
+
 
 def test_subtract(brick):
     brick2 = cmd_geom("create brick x 3", "volume")
