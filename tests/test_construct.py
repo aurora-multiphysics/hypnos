@@ -14,11 +14,13 @@ def goldpath(pytestconfig):
     cubit.reset()
     return pytestconfig.rootpath / "tests" / "gold"
 
+@pytest.mark.slow
 def test_first_wall(goldpath):
     first_wall_path = goldpath / FIRST_WALL_GOLD
     gold_volume, maker_volume, net_volume = get_union_volumes(first_wall_path, FIRST_WALL)
     assert gold_volume == maker_volume == net_volume
 
+@pytest.mark.slow
 def test_first_wall_diff(goldpath):
     first_wall_path = goldpath / FIRST_WALL_GOLD
     design_tree = FIRST_WALL.copy()
@@ -30,11 +32,13 @@ def test_first_wall_diff(goldpath):
     assert gold_volume != net_volume
     assert net_volume != maker_volume
 
+@pytest.mark.slow
 def test_pin(goldpath):
     pin_path = goldpath / PIN_GOLD
     gold_volume, maker_volume, net_volume = get_union_volumes(pin_path, PIN)
     assert gold_volume == pytest.approx(maker_volume) == pytest.approx(net_volume)
 
+@pytest.mark.slow
 def test_blanket(goldpath):
     blanket_path = goldpath / BLANKET_GOLD
     gold_volume, maker_volume, net_volume = get_union_volumes(blanket_path, HCPB_BLANKET)
