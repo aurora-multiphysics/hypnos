@@ -8,13 +8,13 @@ from blobmaker.components import (
     StructureComponent, 
     WallComponent, 
     CladdingComponent, 
-    BreederUnitCoolant, 
+    PinCoolant, 
     PressureTubeComponent, 
     FilterLidComponent, 
     PurgeGasComponent, 
     FilterDiskComponent, 
     MultiplierComponent, 
-    BreederChamber, 
+    PinBreeder, 
     FirstWallComponent, 
     BZBackplate, 
     PurgeGasPlate, 
@@ -505,10 +505,10 @@ class PinAssembly(CreatedComponentAssembly):
         cladding = CladdingComponent(cladding_json)
         pressure_tube = PressureTubeComponent(self.__jsonify(pressure_tube_geometry, "pressure tube", 0))
         multiplier = MultiplierComponent(self.__jsonify(multiplier_geometry, "multiplier", 0))
-        breeder = BreederChamber(breeder_json)
+        breeder = PinBreeder(breeder_json)
         filter_disk = FilterDiskComponent(filter_disk_json)
         filter_lid = FilterLidComponent(filter_lid_json)
-        coolant = BreederUnitCoolant(coolant_json)
+        coolant = PinCoolant(coolant_json)
         purge_gas = PurgeGasComponent(purge_gas_json)
 
         self.components.extend([cladding, pressure_tube, multiplier, breeder, filter_disk, filter_lid, coolant, purge_gas])

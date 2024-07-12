@@ -417,7 +417,7 @@ class CladdingComponent(SimpleComponent):
         return [cladding, duct]
 
 
-class BreederUnitCoolant(SimpleComponent):
+class PinCoolant(SimpleComponent):
     def __init__(self, json_object: dict):
         super().__init__("coolant", json_object)
 
@@ -634,7 +634,7 @@ class MultiplierComponent(SimpleComponent):
         return multiplier
 
 
-class BreederChamber(SimpleComponent):
+class PinBreeder(SimpleComponent):
     def __init__(self, json_object):
         super().__init__("breeder", json_object)
 
