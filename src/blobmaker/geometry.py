@@ -69,7 +69,7 @@ def make_surface_from_curves(curves_list: list[CubitInstance]):
     return surface
 
 
-def make_cylinder_along(radius: int, length: int, axis: str):
+def make_cylinder_along(radius: int, length: int, axis: str = "z"):
     '''Make a cylinder along one of the cartesian axes
 
     :param radius: radius of cylinder
@@ -81,11 +81,14 @@ def make_cylinder_along(radius: int, length: int, axis: str):
     :return: cylinder geometry
     :rtype: CubitInstance
     '''
+    axis = axis.lower()
     cylinder = cmd_geom(f"create cylinder radius {radius} height {length}", "volume")
     if axis == "x":
         cmd(f"rotate volume {cylinder.cid} about Y angle -90")
     elif axis == "y":
         cmd(f"rotate volume {cylinder.cid} about X angle -90")
+    elif axis != "z":
+        raise CubismError(f"Axis not recognised: {axis}")
     return cylinder
 
 
@@ -279,7 +282,8 @@ class Line:
         :type y: float, optional
         :param z: z-coordinate, defaults to None
         :type z: float, optional
-        :return: vertex on the line, if there is no point with given x/y/z coordinate then None
+        :return: vertex on the line, if there is no point/ 
+        every point has the given x/y/z coordinate then None
         :rtype: Vertex | None
         '''
         slope = self.slope.unit()

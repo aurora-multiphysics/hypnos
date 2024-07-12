@@ -108,8 +108,7 @@ def to_surfaces(component_list: list[CubitInstance]) -> list[CubitInstance]:
             surf_ids = surf_ids.union({surf.id() for surf in surfs})
         elif component.geometry_type == "surface":
             surf_ids.union({component.cid})
-        else:
-            return_list.append(component)
+
     return_list.extend([CubitInstance(surf_id, "surface") for surf_id in surf_ids])
     return return_list
 
@@ -187,6 +186,8 @@ def add_to_new_entity(entity_type: str, name: str, thing_type: str, things_to_ad
 
     if isinstance(things_to_add, list):
         things_to_add = " ".join([str(thing) for thing in things_to_add])
+    elif type(things_to_add) is int:
+        things_to_add = str(things_to_add)
 
     cmd(f"{entity_type} {entity_id} add {thing_type} {things_to_add}")
 
