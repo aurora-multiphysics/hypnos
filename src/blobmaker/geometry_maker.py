@@ -30,6 +30,17 @@ class GeometryMaker():
         self.track_components = False
         self.key_route_delimiter = '/'
 
+    def fill_design_tree(self):
+        '''Manually activate ParameterFiller to fill design tree parameters.
+
+        :return: Filled design tree
+        :rtype: dict
+        '''
+        self.design_tree = self.parameter_filler.process_design_tree(self.design_tree)
+        if self.print_parameter_logs:
+            self.parameter_filler.print_log()
+        return self.design_tree
+
     def parse_json(self, filename: str):
         '''Parse a json file and add corresponding design tree to design_tree attribute
 
@@ -38,13 +49,9 @@ class GeometryMaker():
         :return: design tree corresponding to given json file
         :rtype: dict
         '''
-        json_object = extract_data(filename)
-        filled_json_object = self.parameter_filler.process_design_tree(json_object)
-        if self.print_parameter_logs:
-            self.parameter_filler.print_log()
-        self.design_tree = filled_json_object
-        return filled_json_object
-    
+        self.design_tree = extract_data(filename)
+        return self.fill_design_tree()
+
     def change_delimiter(self, delimiter: str):
         '''Change the delimiter to use in key paths 
         for the change_params and get_param methods.

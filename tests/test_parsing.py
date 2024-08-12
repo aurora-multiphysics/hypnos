@@ -2,7 +2,8 @@ from blobmaker.parsing import (
     extract_data,
     extract_if_string,
     delve,
-    ParameterFiller
+    ParameterFiller,
+    get_format_extension
 )
 from blobmaker.default_params import HCPB_BLANKET
 from blobmaker.generic_classes import CubismError
@@ -78,4 +79,10 @@ def test_unfilled_params(p_filler):
     assert p_filler.process_design_tree(non_existent) == non_existent
     assert f"Default configuration not found for: {non_existent['class']}" in p_filler.log
 
-
+def test_get_format_extension():
+    assert get_format_extension("Cubit") == ".cub5"
+    assert get_format_extension("exodus") == ".e"
+    assert get_format_extension("DAGMC") == ".h5m"
+    assert get_format_extension("stp") == ".stp"
+    with cubism_err:
+        get_format_extension("this is not a format extension")
