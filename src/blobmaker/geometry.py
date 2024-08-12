@@ -15,10 +15,7 @@ def create_2d_vertex(x, y):
     :rtype: CubitInstance
     '''
     vertex = cmd_geom(f"create vertex {x} {y} 0", "vertex")
-    if vertex:
-        return vertex
-    else:
-        raise CubismError("Failed to create vertex")
+    return vertex
 
 
 def connect_vertices_straight(vertex1: CubitInstance, vertex2: CubitInstance):
@@ -212,10 +209,7 @@ class Vertex():
         :rtype: CubitInstance
         '''
         vertex = cmd_geom(f"create vertex {str(self)}", "vertex")
-        if vertex:
-            return vertex
-        else:
-            raise CubismError("Failed to create vertex")
+        return vertex
 
     def rotate(self, z: int, y=0, x=0):
         '''Rotate about z, then y, and then x axes.
