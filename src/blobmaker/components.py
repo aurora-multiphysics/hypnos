@@ -146,6 +146,90 @@ class SimpleComponent:
         return " ".join(str(subcomponent.cid) for subcomponent in self.get_subcomponents()) 
 
 
+class CylindricalComponent(SimpleComponent):
+    """A generic cylindrical component of a single material.
+    """
+    def __init__(self, classname: str, parameter_dict: dict):
+        """Initialise a class instance.
+
+        Parameters
+        ----------
+        classname : str
+            Name to be used to label the component.
+        parameter_dict : dict
+            Dictionary containing required parameters to construct the
+            component; must contain the following keys:
+            {"material"}: str
+            {"length"}: float
+            {"radius"}: float
+            {"axis"}: str ("x", "y", or "z")
+        """
+        super().__init__(classname, parameter_dict)
+
+    def make_geometry(self):
+        """Generate the component geometry.
+
+        Returns
+        -------
+        volume : CubitInstance
+            The constructed component geometry.
+        """
+        # Get parameters.
+        length = self.geometry["length"]
+        radius = self.geometry["radius"]
+        axis = self.geometry["axis"]
+
+        # Make geometry.
+        volume = make_cylinder_along(radius, length, axis)
+
+        return volume
+
+
+class CylindricalLayerComponent(SimpleComponent):
+    """A generic cylindrical layer component comprised of a single material
+    surrounding a central void.
+    """
+    def __init__(self, classname: str, parameter_dict: dict):
+        """Initialise a class instance.
+
+        Parameters
+        ----------
+        classname : str
+            Name to be used to label the component.
+        parameter_dict : dict
+            Dictionary containing required parameters to construct the
+            component; must contain the following keys:
+            {"material"}: str
+            {"length"}: float
+            {"inner radius"}: float
+            {"thickness"}: float
+            {"axis"}: str ("x", "y", or "z")
+        """
+        super().__init__(classname, parameter_dict)
+
+    def make_geometry(self):
+        """Generate the component geometry.
+
+        Returns
+        -------
+        volume : CubitInstance
+            The constructed component geometry.
+        """
+        # Get parameters.
+        length = self.geometry["breeder region length"]
+        inner_radius = self.geometry["breeder inner radius"]
+        thickness = self.geometry["breeder thickness"]
+        outer_radius = inner_radius + thickness
+        axis = self.geometry["axis"]
+
+        # Make geometry.
+        positive_volume = make_cylinder_along(outer_radius, length, axis)
+        negative_volume = make_cylinder_along(inner_radius, length, axis)
+        volume = subtract(positive_volume, negative_volume)
+
+        return volume
+
+
 class SurroundingWallsComponent(SimpleComponent):
     '''Surrounding walls, filled with air'''
     def __init__(self, json_object: dict):
