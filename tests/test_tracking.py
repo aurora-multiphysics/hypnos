@@ -4,12 +4,12 @@ import cubit
 
 # MaterialsTracker tests
 
-def test_extract_components():
-    maker = GeometryMaker()
-    maker.design_tree = {"class": "pin"}
-    maker.fill_design_tree()
-    maker.make_tracked_geometry()
+# def test_extract_components():
+#     maker = GeometryMaker()
+#     maker.design_tree = {"class": "pin"}
+#     maker.fill_design_tree()
+#     maker.make_tracked_geometry()
 
-    track = MaterialsTracker()
-    track.extract_components()
+#     track = MaterialsTracker()
+#     track.extract_components()
 

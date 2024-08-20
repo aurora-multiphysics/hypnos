@@ -249,37 +249,5 @@ def union(geometries: list[CubitInstance], destroy=True):
         created_vol = list(post_vols.difference(pre_vols))
     return [CubitInstance(vol, "volume") for vol in created_vol]
 
-
-def subtract(subtract_from: list[CubitInstance], subtract: list[CubitInstance], destroy=True):
-    '''Subtract some geometries from others.
-
-    :param subtract_from: geometries to subtract from
-    :type subtract_from: list[CubitInstance]
-    :param subtract: geometries to be subtracted
-    :type subtract: list[CubitInstance]
-    :param destroy: should original bodies be destroyed?, defaults to True
-    :type destroy: bool
-    :return: geometries resulting from subtraction
-    :rtype: list[CubitInstance]
-    '''
-    from_ids = {body.cid for body in to_bodies(subtract_from)}
-    subtract_from = [body.cubitInstance for body in to_bodies(subtract_from)]
-    subtract = [body.cubitInstance for body in to_bodies(subtract)]
-    pre_ids = set(cubit.get_entities("body"))
-    if destroy:
-        cubit.subtract(subtract, subtract_from)
-        post_ids = set(cubit.get_entities("body"))
-
-        common_body_ids = post_ids.intersection(from_ids)
-        new_ids = post_ids.difference(pre_ids)
-
-        subtract_ids = list(common_body_ids.union(new_ids))
-    else:
-        cubit.subtract(subtract, subtract_from, keep_old_in=True)
-        post_ids = set(cubit.get_entities("body"))
-
-        subtract_ids = list(post_ids.difference(pre_ids))
-    return [CubitInstance(sub_id, "body") for sub_id in subtract_ids]
-
 # unionise is in Assemblies.py as it needs to know about the
 # ComplexComponent and Assembly classes
