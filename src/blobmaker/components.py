@@ -149,21 +149,30 @@ class SimpleComponent:
 class CylindricalComponent(SimpleComponent):
     """A generic cylindrical component of a single material.
     """
-    def __init__(self, classname: str, parameter_dict: dict):
+    def __init__(self, classname: str, material: str, length: float,
+                 radius: float, axis: str):
         """Initialise a class instance.
 
         Parameters
         ----------
         classname : str
             Name to be used to label the component.
-        parameter_dict : dict
-            Dictionary containing required parameters to construct the
-            component; must contain the following keys:
-            {"material"}: str
-            {"length"}: float
-            {"radius"}: float
-            {"axis"}: str ("x", "y", or "z")
+        material : str
+            The cylinder's material, expressed as a string.
+        length : float
+            The cylinder's length in metres.
+        radius : float
+            The cylinder's radius in metres.
+        axis : str
+            The orientation axis of the cylinder (the dimension to which its
+            length is parallel). Expressed as "x", "y", "z".
         """
+        parameter_dict = {
+            "material": material,
+            "length": length,
+            "radius": radius,
+            "axis": axis,
+        }
         super().__init__(classname, parameter_dict)
 
     def make_geometry(self):
@@ -189,22 +198,33 @@ class CylindricalLayerComponent(SimpleComponent):
     """A generic cylindrical layer component comprised of a single material
     surrounding a central void.
     """
-    def __init__(self, classname: str, parameter_dict: dict):
+    def __init__(self, classname: str, material: str, length: float,
+                 inner_radius: float, thickness: float, axis: str):
         """Initialise a class instance.
 
         Parameters
         ----------
         classname : str
             Name to be used to label the component.
-        parameter_dict : dict
-            Dictionary containing required parameters to construct the
-            component; must contain the following keys:
-            {"material"}: str
-            {"length"}: float
-            {"inner radius"}: float
-            {"thickness"}: float
-            {"axis"}: str ("x", "y", or "z")
+        material : str
+            The cylindrical layer's material.
+        length : float
+            The cylindrical layer's length in metres.
+        inner_radius : float
+            The cylindrical layer's inner radius in metres.
+        thickness : float
+            The cylindrical layer's thickness in metres.
+        axis : str
+            The orientation axis of the cylindrical layer (the dimension to
+            which its length is parallel). Expressed as "x", "y", "z".
         """
+        parameter_dict = {
+            "material": material,
+            "length": length,
+            "inner_radius": inner_radius,
+            "thickness": thickness,
+            "axis": axis,
+        }
         super().__init__(classname, parameter_dict)
 
     def make_geometry(self):
