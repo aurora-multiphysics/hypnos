@@ -1,7 +1,7 @@
 from blobmaker.constants import BLOB_CLASSES
 from blobmaker.generic_classes import CubismError, CubitInstance, cmd, cubit
 from blobmaker.cubit_functions import to_volumes, to_bodies, get_last_geometry, subtract, cmd_geom
-from blobmaker.geometry import make_cylinder_along, Vertex, make_surface, hypotenuse, arctan, Line
+from blobmaker.geometry import make_cylinder_along, make_prism_along, Vertex, make_surface, hypotenuse, arctan, Line
 import numpy as np
 
 
