@@ -250,6 +250,69 @@ class CylindricalLayerComponent(SimpleComponent):
         return volume
 
 
+class PolygonalPrismComponent(SimpleComponent):
+    """A generic polygonal prism component of a single material.
+    """
+    def __init__(self, classname: str, material: str, polygon_sides: int,
+                 length: float, radius: float, axis: str):
+        """Initialise a class instance.
+
+        Parameters
+        ----------
+        classname : str
+            Name to be used to label the component.
+        material : str
+            The prism's material, expressed as a string.
+        polygon_sides : int
+            The prism's number of sides, e.g. 6 for a hexagonal prism.
+        length : float
+            The prism's length in metres.
+        radius : float
+            The prism's radius in metres.
+        axis : str
+            The orientation axis of the prism (the dimension to which its
+            length is parallel). Expressed as "x", "y", "z".
+        """
+        parameter_dict = {
+            "material": material,
+            "polygon sides": polygon_sides,
+            "length": length,
+            "radius": radius,
+            "axis": axis,
+        }
+        super().__init__(classname, parameter_dict)
+
+    def make_geometry(self):
+        """Generate the component geometry.
+
+        Returns
+        -------
+        volume : CubitInstance
+            The constructed component geometry.
+        """
+        # Get parameters.
+        pi = np.pi
+        n = self.geometry["polygon sides"]
+        length = self.geometry["length"]
+        radius = self.geometry["radius"]
+        axis = self.geometry["axis"]
+        rotate_axis = "Y" if axis == "x" else "X" if axis == "y" else None
+
+        # Make geometry.
+        planar_face_vertex_positions = [
+            Vertex(radius).rotate(i/n * 2*pi) for i in range(n)
+        ]
+        planar_face = make_surface(planar_face_vertex_positions, [])
+        cmd(f"sweep surface {planar_face.cid} vector 0 0 1 distance {length}")
+        volume = get_last_geometry("volume")
+
+        # Rotate.
+        if rotate_axis is not None:
+            cmd(f"rotate volume {volume.cid} about {rotate_axis} angle 90")
+
+        return volume
+
+
 class SurroundingWallsComponent(SimpleComponent):
     '''Surrounding walls, filled with air'''
     def __init__(self, json_object: dict):
