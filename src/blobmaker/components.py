@@ -149,8 +149,8 @@ class SimpleComponent:
 class CylindricalComponent(SimpleComponent):
     """A generic cylindrical component of a single material.
     """
-    def __init__(self, classname: str, material: str, length: float,
-                 radius: float, axis: str):
+    def __init__(self, classname: str, material: str,  radius: float,
+                 length: float, axis: str):
         """Initialise a class instance.
 
         Parameters
@@ -159,18 +159,18 @@ class CylindricalComponent(SimpleComponent):
             Name to be used to label the component.
         material : str
             The cylinder's material, expressed as a string.
-        length : float
-            The cylinder's length in metres.
         radius : float
             The cylinder's radius in metres.
+        length : float
+            The cylinder's length in metres.
         axis : str
             The orientation axis of the cylinder (the dimension to which its
             length is parallel). Expressed as "x", "y", "z".
         """
         parameter_dict = {
             "material": material,
-            "length": length,
             "radius": radius,
+            "length": length,
             "axis": axis,
         }
         super().__init__(classname, parameter_dict)
@@ -184,8 +184,8 @@ class CylindricalComponent(SimpleComponent):
             The constructed component geometry.
         """
         # Get parameters.
-        length = self.geometry["length"]
         radius = self.geometry["radius"]
+        length = self.geometry["length"]
         axis = self.geometry["axis"]
 
         # Make geometry.
@@ -198,8 +198,8 @@ class CylindricalLayerComponent(SimpleComponent):
     """A generic cylindrical layer component comprised of a single material
     surrounding a central void.
     """
-    def __init__(self, classname: str, material: str, length: float,
-                 inner_radius: float, thickness: float, axis: str):
+    def __init__(self, classname: str, material: str, inner_radius: float,
+                 thickness: float, length: float, axis: str):
         """Initialise a class instance.
 
         Parameters
@@ -208,21 +208,21 @@ class CylindricalLayerComponent(SimpleComponent):
             Name to be used to label the component.
         material : str
             The cylindrical layer's material.
-        length : float
-            The cylindrical layer's length in metres.
         inner_radius : float
             The cylindrical layer's inner radius in metres.
         thickness : float
             The cylindrical layer's thickness in metres.
+        length : float
+            The cylindrical layer's length in metres.
         axis : str
             The orientation axis of the cylindrical layer (the dimension to
-            which its length is parallel). Expressed as "x", "y", "z".
+            which its length is parallel). Can be either "x", "y", "z".
         """
         parameter_dict = {
             "material": material,
-            "length": length,
             "inner_radius": inner_radius,
             "thickness": thickness,
+            "length": length,
             "axis": axis,
         }
         super().__init__(classname, parameter_dict)
@@ -236,10 +236,10 @@ class CylindricalLayerComponent(SimpleComponent):
             The constructed component geometry.
         """
         # Get parameters.
-        length = self.geometry["length"]
         inner_radius = self.geometry["inner_radius"]
         thickness = self.geometry["thickness"]
         outer_radius = inner_radius + thickness
+        length = self.geometry["length"]
         axis = self.geometry["axis"]
 
         # Make geometry.
@@ -254,7 +254,7 @@ class PolygonalPrismComponent(SimpleComponent):
     """A generic polygonal prism component of a single material.
     """
     def __init__(self, classname: str, material: str, polygon_sides: int,
-                 length: float, radius: float, axis: str):
+                 radius: float, length: float, axis: str):
         """Initialise a class instance.
 
         Parameters
@@ -265,19 +265,19 @@ class PolygonalPrismComponent(SimpleComponent):
             The prism's material, expressed as a string.
         polygon_sides : int
             The prism's number of sides, e.g. 6 for a hexagonal prism.
-        length : float
-            The prism's length in metres.
         radius : float
             The prism's radius in metres.
+        length : float
+            The prism's length in metres.
         axis : str
             The orientation axis of the prism (the dimension to which its
-            length is parallel). Expressed as "x", "y", "z".
+            length is parallel). Can be either "x", "y", "z".
         """
         parameter_dict = {
             "material": material,
             "polygon sides": polygon_sides,
-            "length": length,
             "radius": radius,
+            "length": length,
             "axis": axis,
         }
         super().__init__(classname, parameter_dict)
