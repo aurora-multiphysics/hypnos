@@ -236,9 +236,9 @@ class CylindricalLayerComponent(SimpleComponent):
             The constructed component geometry.
         """
         # Get parameters.
-        length = self.geometry["breeder region length"]
-        inner_radius = self.geometry["breeder inner radius"]
-        thickness = self.geometry["breeder thickness"]
+        length = self.geometry["length"]
+        inner_radius = self.geometry["inner_radius"]
+        thickness = self.geometry["thickness"]
         outer_radius = inner_radius + thickness
         axis = self.geometry["axis"]
 
