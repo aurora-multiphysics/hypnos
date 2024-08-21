@@ -301,6 +301,65 @@ class PolygonalPrismComponent(SimpleComponent):
 
         return volume
 
+
+class PolygonalPrismLayerComponent(SimpleComponent):
+    """A generic polygonal prism layer component of a single material
+    surrounding a central void.
+    """
+    def __init__(self, classname: str, material: str, polygon_sides: int,
+                 inner_radius: float, radial_thickness: float, length: float,
+                 axis: str):
+        """Initialise a class instance.
+
+        Parameters
+        ----------
+        classname : str
+            Name to be used to label the component.
+        material : str
+            The prism layer's material, expressed as a string.
+        polygon_sides : int
+            The prism layer's number of sides, e.g. 6 for a hexagonal prism.
+        inner_radius : float
+            The prism layer's inner radius in metres.
+        thickness : float
+            The prism layer's thickness in metres.
+        length : float
+            The prism layer's length in metres.
+        axis : str
+            The orientation axis of the prism (the dimension to which its
+            length is parallel). Can be either "x", "y", "z".
+        """
+        parameter_dict = {
+            "material": material,
+            "polygon sides": polygon_sides,
+            "inner radius": inner_radius,
+            "radial thickness": radial_thickness,
+            "length": length,
+            "axis": axis,
+        }
+        super().__init__(classname, parameter_dict)
+
+    def make_geometry(self):
+        """Generate the component geometry.
+
+        Returns
+        -------
+        volume : CubitInstance
+            The constructed component geometry.
+        """
+        # Get parameters.
+        polygon_sides = self.geometry["polygon sides"]
+        inner_radius = self.geometry["inner_radius"]
+        thickness = self.geometry["thickness"]
+        outer_radius = inner_radius + thickness
+        length = self.geometry["length"]
+        axis = self.geometry["axis"]
+
+        # Make geometry.
+        positive_volume = make_prism_along(polygon_sides, outer_radius, length, axis)
+        negative_volume = make_cylinder_along(inner_radius, length, axis)
+        volume = subtract(positive_volume, negative_volume)
+
         return volume
 
 
