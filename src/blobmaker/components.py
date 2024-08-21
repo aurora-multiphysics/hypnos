@@ -291,24 +291,15 @@ class PolygonalPrismComponent(SimpleComponent):
             The constructed component geometry.
         """
         # Get parameters.
-        pi = np.pi
-        n = self.geometry["polygon sides"]
-        length = self.geometry["length"]
+        polygon_sides = self.geometry["polygon sides"]
         radius = self.geometry["radius"]
+        length = self.geometry["length"]
         axis = self.geometry["axis"]
-        rotate_axis = "Y" if axis == "x" else "X" if axis == "y" else None
 
         # Make geometry.
-        planar_face_vertex_positions = [
-            Vertex(radius).rotate(i/n * 2*pi) for i in range(n)
-        ]
-        planar_face = make_surface(planar_face_vertex_positions, [])
-        cmd(f"sweep surface {planar_face.cid} vector 0 0 1 distance {length}")
-        volume = get_last_geometry("volume")
+        volume = make_prism_along(polygon_sides, radius, length, axis)
 
-        # Rotate.
-        if rotate_axis is not None:
-            cmd(f"rotate volume {volume.cid} about {rotate_axis} angle 90")
+        return volume
 
         return volume
 

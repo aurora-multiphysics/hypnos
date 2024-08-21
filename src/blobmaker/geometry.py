@@ -1,5 +1,5 @@
 from blobmaker.generic_classes import CubitInstance, CubismError, cmd
-from blobmaker.cubit_functions import get_id_string, cmd_geom
+from blobmaker.cubit_functions import get_id_string, cmd_geom, get_last_geometry
 import numpy as np
 
 
@@ -87,6 +87,48 @@ def make_cylinder_along(radius: int, length: int, axis: str = "z"):
     elif axis != "z":
         raise CubismError(f"Axis not recognised: {axis}")
     return cylinder
+
+
+def make_prism_along(polygon_sides: int, radius: float, length: float,
+                     axis: str = "z"):
+    """Make a polygonal prism along one of the cartesian axes.
+
+    Parameters
+    ----------
+    polygon_sides : int
+        The prism's number of sides, e.g. 6 for a hexagonal prism.
+    length : float
+        The prism's length in metres.
+    radius : float
+        The prism's radius in metres.
+    axis : str
+        The orientation axis of the prism (the dimension to which its length is
+        parallel). Can be either "x", "y", or "z"; by default "z"
+
+    Returns
+    -------
+    volume : CubitInstance
+        The constructed prism geometry.
+    """
+    # Get parameters.
+    pi = np.pi
+    n = polygon_sides
+    axis = axis.lower()
+    rotate_axis = "Y" if axis == "x" else "X" if axis == "y" else None
+
+    # Make geometry.
+    planar_face_vertex_positions = [
+        Vertex(radius).rotate(i/n * 2*pi) for i in range(n)
+    ]
+    planar_face = make_surface(planar_face_vertex_positions, [])
+    cmd(f"sweep surface {planar_face.cid} vector 0 0 1 distance {length}")
+    volume = get_last_geometry("volume")
+
+    # Rotate geometry.
+    if rotate_axis is not None:
+        cmd(f"rotate volume {volume.cid} about {rotate_axis} angle 90")
+
+    return volume
 
 
 def make_loop(vertices: list[CubitInstance], tangent_indices: list[int]) -> list[CubitInstance]:
