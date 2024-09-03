@@ -192,8 +192,7 @@ def add_to_new_entity(entity_type: str, name: str, thing_type: str, things_to_ad
     cmd(f"{entity_type} {entity_id} add {thing_type} {things_to_add}")
 
 
-def subtract(subtract_from: CubitInstance | list[CubitInstance],
-             subtract: CubitInstance | list[CubitInstance], destroy=True):
+def subtract(subtract_from: list[CubitInstance], subtract: list[CubitInstance], destroy=True):
     '''Subtract some geometries from others.
 
     :param subtract_from: geometries to subtract from
@@ -205,11 +204,6 @@ def subtract(subtract_from: CubitInstance | list[CubitInstance],
     :return: geometries resulting from subtraction
     :rtype: list[CubitInstance]
     '''
-    # Convert single value inputs to lists of length 1.
-    if isinstance(subtract_from, CubitInstance):
-        subtract_from = (subtract_from, )
-    if isinstance(subtract, CubitInstance):
-        subtract = (subtract, )
 
     # Subtract volumes.
     from_ids = {body.cid for body in to_bodies(subtract_from)}
@@ -257,70 +251,6 @@ def union(geometries: list[CubitInstance], destroy=True):
         # the created union will have a new volume ID(s)
         created_vol = list(post_vols.difference(pre_vols))
     return [CubitInstance(vol, "volume") for vol in created_vol]
-
-
-def subtract(subtract_from: list[CubitInstance], subtract: list[CubitInstance], destroy=True):
-    '''Subtract some geometries from others.
-
-    :param subtract_from: geometries to subtract from
-    :type subtract_from: list[CubitInstance]
-    :param subtract: geometries to be subtracted
-    :type subtract: list[CubitInstance]
-    :param destroy: should original bodies be destroyed?, defaults to True
-    :type destroy: bool
-    :return: geometries resulting from subtraction
-    :rtype: list[CubitInstance]
-    '''
-    from_ids = {body.cid for body in to_bodies(subtract_from)}
-    subtract_from = [body.cubitInstance for body in to_bodies(subtract_from)]
-    subtract = [body.cubitInstance for body in to_bodies(subtract)]
-    pre_ids = set(cubit.get_entities("body"))
-    if destroy:
-        cubit.subtract(subtract, subtract_from)
-        post_ids = set(cubit.get_entities("body"))
-
-        common_body_ids = post_ids.intersection(from_ids)
-        new_ids = post_ids.difference(pre_ids)
-
-        subtract_ids = list(common_body_ids.union(new_ids))
-    else:
-        cubit.subtract(subtract, subtract_from, keep_old_in=True)
-        post_ids = set(cubit.get_entities("body"))
-
-        subtract_ids = list(post_ids.difference(pre_ids))
-    return [CubitInstance(sub_id, "body") for sub_id in subtract_ids]
-
-
-def subtract(subtract_from: list[CubitInstance], subtract: list[CubitInstance], destroy=True):
-    '''Subtract some geometries from others.
-
-    :param subtract_from: geometries to subtract from
-    :type subtract_from: list[CubitInstance]
-    :param subtract: geometries to be subtracted
-    :type subtract: list[CubitInstance]
-    :param destroy: should original bodies be destroyed?, defaults to True
-    :type destroy: bool
-    :return: geometries resulting from subtraction
-    :rtype: list[CubitInstance]
-    '''
-    from_ids = {body.cid for body in to_bodies(subtract_from)}
-    subtract_from = [body.cubitInstance for body in to_bodies(subtract_from)]
-    subtract = [body.cubitInstance for body in to_bodies(subtract)]
-    pre_ids = set(cubit.get_entities("body"))
-    if destroy:
-        cubit.subtract(subtract, subtract_from)
-        post_ids = set(cubit.get_entities("body"))
-
-        common_body_ids = post_ids.intersection(from_ids)
-        new_ids = post_ids.difference(pre_ids)
-
-        subtract_ids = list(common_body_ids.union(new_ids))
-    else:
-        cubit.subtract(subtract, subtract_from, keep_old_in=True)
-        post_ids = set(cubit.get_entities("body"))
-
-        subtract_ids = list(post_ids.difference(pre_ids))
-    return [CubitInstance(sub_id, "body") for sub_id in subtract_ids]
 
 # unionise is in Assemblies.py as it needs to know about the
 # ComplexComponent and Assembly classes
