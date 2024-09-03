@@ -124,6 +124,9 @@ def make_prism_along(polygon_sides: int, radius: float, length: float,
     cmd(f"sweep surface {planar_face.cid} vector 0 0 1 distance {length}")
     volume = get_last_geometry("volume")
 
+    # Centre geometry.
+    volume.move((0, 0, -length/2))
+
     # Rotate geometry.
     if rotate_axis is not None:
         cmd(f"rotate volume {volume.cid} about {rotate_axis} angle 90")
