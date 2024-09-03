@@ -366,7 +366,7 @@ class PolygonalPrismLayerComponent(SimpleComponent):
         # Make geometry.
         positive_volume = make_prism_along(polygon_sides, outer_radius, length, axis)
         negative_volume = make_cylinder_along(inner_radius, length, axis)
-        volume = subtract(positive_volume, negative_volume)
+        volume = subtract([positive_volume], [negative_volume])[0]
 
         return volume
 
