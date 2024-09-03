@@ -149,7 +149,7 @@ class SimpleComponent:
 class CylindricalComponent(SimpleComponent):
     """A generic cylindrical component of a single material.
     """
-    def __init__(self, classname: str, material: str,  radius: float,
+    def __init__(self, classname: str, material: str, radius: float,
                  length: float, axis: str):
         """Initialise a class instance.
 
@@ -169,9 +169,11 @@ class CylindricalComponent(SimpleComponent):
         """
         parameter_dict = {
             "material": material,
-            "radius": radius,
-            "length": length,
-            "axis": axis,
+            "geometry": {
+                "radius": radius,
+                "length": length,
+                "axis": axis,
+            },
         }
         super().__init__(classname, parameter_dict)
 
@@ -220,10 +222,12 @@ class CylindricalLayerComponent(SimpleComponent):
         """
         parameter_dict = {
             "material": material,
-            "inner_radius": inner_radius,
-            "thickness": thickness,
-            "length": length,
-            "axis": axis,
+            "geometry": {
+                "inner_radius": inner_radius,
+                "thickness": thickness,
+                "length": length,
+                "axis": axis,
+            },
         }
         super().__init__(classname, parameter_dict)
 
@@ -275,10 +279,12 @@ class PolygonalPrismComponent(SimpleComponent):
         """
         parameter_dict = {
             "material": material,
-            "polygon sides": polygon_sides,
-            "radius": radius,
-            "length": length,
-            "axis": axis,
+            "geometry": {
+                "polygon_sides": polygon_sides,
+                "radius": radius,
+                "length": length,
+                "axis": axis,
+            },
         }
         super().__init__(classname, parameter_dict)
 
@@ -291,7 +297,7 @@ class PolygonalPrismComponent(SimpleComponent):
             The constructed component geometry.
         """
         # Get parameters.
-        polygon_sides = self.geometry["polygon sides"]
+        polygon_sides = self.geometry["polygon_sides"]
         radius = self.geometry["radius"]
         length = self.geometry["length"]
         axis = self.geometry["axis"]
@@ -321,7 +327,7 @@ class PolygonalPrismLayerComponent(SimpleComponent):
             The prism layer's number of sides, e.g. 6 for a hexagonal prism.
         inner_radius : float
             The prism layer's inner radius in metres.
-        thickness : float
+        radial_thickness : float
             The prism layer's thickness in metres.
         length : float
             The prism layer's length in metres.
@@ -331,11 +337,13 @@ class PolygonalPrismLayerComponent(SimpleComponent):
         """
         parameter_dict = {
             "material": material,
-            "polygon sides": polygon_sides,
-            "inner radius": inner_radius,
-            "radial thickness": radial_thickness,
-            "length": length,
-            "axis": axis,
+            "geometry": {
+                "polygon_sides": polygon_sides,
+                "inner_radius": inner_radius,
+                "radial_thickness": radial_thickness,
+                "length": length,
+                "axis": axis,
+            },
         }
         super().__init__(classname, parameter_dict)
 
@@ -348,10 +356,10 @@ class PolygonalPrismLayerComponent(SimpleComponent):
             The constructed component geometry.
         """
         # Get parameters.
-        polygon_sides = self.geometry["polygon sides"]
+        polygon_sides = self.geometry["polygon_sides"]
         inner_radius = self.geometry["inner_radius"]
-        thickness = self.geometry["thickness"]
-        outer_radius = inner_radius + thickness
+        radial_thickness = self.geometry["radial_thickness"]
+        outer_radius = inner_radius + radial_thickness
         length = self.geometry["length"]
         axis = self.geometry["axis"]
 
