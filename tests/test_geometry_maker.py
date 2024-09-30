@@ -3,8 +3,7 @@ from blobmaker.default_params import PIN
 from blobmaker.generic_classes import CubismError
 from blobmaker.assemblies import PinAssembly
 from blobmaker.components import (
-    SimpleComponent,
-    MultiplierComponent, 
+    MultiplierComponent,
     PressureTubeComponent,
     CladdingComponent,
     PinCoolant,
@@ -14,14 +13,17 @@ from blobmaker.components import (
     PinBreeder
 )
 
-import difflib, sys, re, pytest
+import difflib
+import sys
+import re
+import pytest
 from pathlib import Path
 
 PIN_STP = "pin.stp"
 PARSE_FILE = "parse_this.json"
 # classes of components in a pin assembly
 PIN_COMPS = [
-        MultiplierComponent, 
+        MultiplierComponent,
         PressureTubeComponent,
         CladdingComponent,
         PinCoolant,
@@ -33,6 +35,7 @@ PIN_COMPS = [
 
 # is this bad practice?
 raise_cubism = pytest.raises(CubismError)
+
 
 def fopen(filename: str):
     '''Open a file
@@ -46,6 +49,7 @@ def fopen(filename: str):
         sys.stderr.write(f"Couldn't open file {filename}: {detail}")
         return 0
 
+
 def compare_stp(filepath1: str, filepath2: str):
     '''Compare if two stp files are identical (excluding metadata)
 
@@ -58,7 +62,7 @@ def compare_stp(filepath1: str, filepath2: str):
     file2 = fopen(filename2)
     if not file1 or not file2:
         return False
-    
+
     text1 = file1.readlines()
     text2 = file2.readlines()
 
@@ -69,19 +73,24 @@ def compare_stp(filepath1: str, filepath2: str):
         if not (line.startswith("  ") or line.startswith("?")):
             header = re.match(r'^[\+\-] FILE_NAME(.*);$', line)
             if isinstance(header, re.Match):
-                file_params = header.group(1)
+                # i dont remember what this is meant to do
+                # file_params = header.group(1)
+                pass
             else:
                 print(line)
                 return False
     return True
 
+
 @pytest.fixture(scope='function')
 def maker():
     return GeometryMaker()
 
+
 @pytest.fixture(scope="function")
 def dirpath(pytestconfig):
     return pytestconfig.rootpath / "tests" / "geometry_maker_testing"
+
 
 @pytest.fixture(scope='function')
 def parsed(maker, dirpath):
@@ -89,9 +98,11 @@ def parsed(maker, dirpath):
     maker.parse_json(parse_file)
     return maker
 
+
 @pytest.fixture(scope="function")
 def goldpath(pytestconfig):
     return pytestconfig.rootpath / "tests" / "gold"
+
 
 def test_make_everything():
     # this should make a pin assembly
@@ -104,7 +115,7 @@ def test_make_everything():
     comp_classes = [type(comp) for comp in geom.components]
     for pin_comp in PIN_COMPS:
         assert pin_comp in comp_classes
-    
+
     fake_json_obj = [PIN]
     json_list = make_everything(fake_json_obj)
     assert len(json_list) == 1
@@ -113,9 +124,11 @@ def test_make_everything():
     with pytest.raises(CubismError):
         make_everything(1)
 
+
 def test_parse_json(parsed):
     assert parsed.design_tree == PIN
-    
+
+
 def test_change_params(parsed):
     pin_changed = PIN.copy()
     pin_changed["geometry"]["offset"] = "dummy"
@@ -129,7 +142,8 @@ def test_change_params(parsed):
         parsed.change_params({"geometry/not a path": 3})
     with raise_cubism:
         parsed.change_params({1: 1})
-    
+
+
 def test_change_delimiter(parsed):
     pin_changed = PIN.copy()
     pin_changed["geometry"]["offset"] = "dummy"
@@ -138,14 +152,17 @@ def test_change_delimiter(parsed):
     assert parsed.design_tree == pin_changed
     with raise_cubism:
         parsed.change_params({"geometry/offset": "dummy"})
-    # why do i have to do this? shouldnt each function get its own copy of parsed?
+    # why do i have to do this?
+    # shouldnt each function get its own copy of parsed?
     parsed.change_params({"geometry...offset": 60})
+
 
 def test_get_param(parsed):
     assert parsed.get_param("geometry/offset") == 60
 
     with raise_cubism:
         parsed.get_param("haha")
+
 
 def test_export_stp(goldpath, parsed, tmp_path):
     goldfile = goldpath / PIN_STP
@@ -155,6 +172,7 @@ def test_export_stp(goldpath, parsed, tmp_path):
     parsed.export("stp", stp_path)
 
     assert compare_stp(goldfile, stp_file)
+
 
 @pytest.mark.slow
 def test_export_existence(parsed, tmp_path):
@@ -177,5 +195,3 @@ def test_export_existence(parsed, tmp_path):
 
     with pytest.raises(CubismError):
         parsed.export("not a file type", file_path)
-
-
