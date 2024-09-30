@@ -18,11 +18,16 @@ class CubitInstance:
         try:
             self.handle = get_cubit_geometry(self.cid, self.geometry_type)
         except RuntimeError:
-            raise CubismError(f"Specified {geometry_type} doesn't exist: {cid}")
-    
+            raise CubismError(
+                f"Specified {geometry_type} doesn't exist: {cid}"
+                )
+
     def __eq__(self, other) -> bool:
         if isinstance(other, CubitInstance):
-            return self.cid == other.cid and self.geometry_type == other.geometry_type
+            return (
+                self.cid == other.cid and
+                self.geometry_type == other.geometry_type
+                )
         return NotImplemented
 
     def __str__(self) -> str:
@@ -54,7 +59,8 @@ def get_cubit_geometry(geometry_id: int, geometry_type: str):
 
     :param geometry_id: Cubit ID of geometry
     :type geometry_id: int
-    :param geometry_type: Cubit geometry type (body/volume/surface/curve/vertex)
+    :param geometry_type: Cubit geometry type
+    (body/volume/surface/curve/vertex)
     :type geometry_type: str
     :raises CubismError: If geometry type provided is not recognised
     :return: Cubit handle of geometry
