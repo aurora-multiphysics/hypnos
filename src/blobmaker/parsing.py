@@ -63,14 +63,20 @@ class ParameterFiller():
 
     def __fill_params(self, design_tree: dict, config: dict):
         design_tree = self.__setup_tree(design_tree)
+        # we look at every key-value pair in the default dictionary
         for key, default_value in config.items():
+            # stuff we do if the corresponding key also exists in our dictionary
             if key in design_tree.keys():
                 if type(default_value) is dict:
+                    # if there is another layer of nesting, recurse
+                    # set our value to the filled dictionary that gets returned
                     design_tree[key] = self.__fill_params(design_tree[key], config[key])
                 else:
+                    # if the user has set a value we are happy
                     self.add_log(f"{key} set to: {design_tree[key]} (default: {default_value})")
+            # otherwise set our key to the default value
             else:
-                self.design_tree[key] = default_value
+                design_tree[key] = default_value
                 self.add_log(f"key {key} not specified. Added default.")
         self.__cleanup_logs(design_tree, config)
         return design_tree
