@@ -153,6 +153,7 @@ def test_arctan():
     assert arctan(3, -3) == 3*np.pi/4
 
 
+# tests for Vertex
 def test_eq(vertex):
     assert vertex == Vertex(1, 2, 3)
     assert vertex != Vertex(1, 2, 2)
@@ -224,22 +225,25 @@ def test_extend_to_x():
     assert Vertex(4, 5).extend_to_x(8).y == 10
 
 
-class TestLine:
-    def test_eq(self, line):
-        assert line == Line(Vertex(1, 2), Vertex(1))
+# tests for Line
+def test_line_eq(line):
+    assert line == Line(Vertex(1, 2), Vertex(1))
 
-    def test_repr(self, line):
-        assert line == pytest.approx(eval(repr(line)))
 
-    def test_vertex_at(self, line: Line):
-        assert line.vertex_at(0) == Vertex(0, -2)
-        assert line.vertex_at(0, 5, 2) == Vertex(0, -2)
-        assert line.vertex_at(y=2) == Vertex(2, 2)
-        assert line.vertex_at(z=3) is None
-        assert Line(Vertex(0, 1, 0)).vertex_at(x=5) is None
-        assert Line(Vertex(0, 0, 1)).vertex_at(z=5) == Vertex(0, 0, 5)
-        with cubism_err:
-            line.vertex_at()
+def test_line_repr(line):
+    assert line == pytest.approx(eval(repr(line)))
+
+
+def test_line_vertex_at(line: Line):
+    assert line.vertex_at(0) == Vertex(0, -2)
+    assert line.vertex_at(0, 5, 2) == Vertex(0, -2)
+    assert line.vertex_at(y=2) == Vertex(2, 2)
+    assert line.vertex_at(z=3) is None
+    assert Line(Vertex(0, 1, 0)).vertex_at(x=5) is None
+    assert Line(Vertex(1, 0, 0)).vertex_at(y=5) is None
+    assert Line(Vertex(0, 0, 1)).vertex_at(z=5) == Vertex(0, 0, 5)
+    with cubism_err:
+        line.vertex_at()
 
 
 def test_make_surface():

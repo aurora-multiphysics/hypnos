@@ -1,3 +1,74 @@
 {
-    "class": "HCPB_blanket"
+    "class": "HCPB_blanket",
+    "geometry": {
+        "pin spacing": 135,
+        "pin vertical offset": 0,
+        "pin horizontal offset": 0,
+        "front rib positions": [
+            3,
+            7
+        ],
+        "PG front plate thickness": 5,
+        "PG mid plate thickness": 5,
+        "PG mid plate gap": 20,
+        "PG back plate thickness": 15,
+        "rib connection height": 10,
+        "rib connection width": 10,
+        "rib side channel gap": 107,
+        "rib side channel vertical margin": 50,
+        "coolant outlet plenum gap": 30,
+        "separator plate gap": 30,
+        "separator plate thickness": 10,
+        "FW backplate thickness": 100
+    },
+    "components": {
+        "pin": {"class": "pin"},
+        "first_wall": {
+            "class": "first_wall",
+            "material": "Tungsten",
+            "geometry": {
+                "inner width": 1480,
+                "outer width": 1600,
+                "bluntness": 100,
+                "length": 1000,
+                "thickness": 30,
+                "sidewall thickness": 25,
+                "height": 625,
+                "channel width": 10,
+                "channel back manifold offset": 100,
+                "channel back manifold width": 159,
+                "channel front manifold offset": 269,
+                "channel front manifold width": 159,
+                "channel padding": 10,
+                "channel depth": 10,
+                "channel spacing": 10
+            }
+        },
+        "front_rib": {
+            "class": "front_rib",
+            "geometry": {
+                "thickness": 30,
+                "side channel width": 10,
+                "side channel height": 10,
+                "side channel horizontal offset": 0
+            }
+        },
+        "back_rib": {
+            "class": "back_rib",
+            "geometry": {
+                "thickness": 60,
+                "side channel width": 10,
+                "side channel height": 10,
+                "side channel horizontal offset": 70
+            }
+        },
+        "coolant_outlet_plenum": {
+            "class": "coolant_outlet_plenum",
+            "geometry": {
+                "length": 120,
+                "width": 1000,
+                "thickness": 15
+            }
+        }
+    }
 }
