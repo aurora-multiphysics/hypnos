@@ -147,7 +147,7 @@ class GeometryMaker():
 
     def track_components_and_materials(self):
         '''Add components to blocks and component-component interfaces to sidesets.
-        Add materials and material-material interfaces to groups. 
+        Add materials and material-material interfaces to groups.
         '''
         for component in self.constructed_geometry:
             self.component_tracker.give_identifiers(component)
@@ -169,7 +169,8 @@ class GeometryMaker():
 
         :param format: Name of export format, defaults to "cubit"
         :type format: str, optional
-        :param rootname: Name to give output file including path, defaults to "geometry"
+        :param rootname: Name to give output file including path,
+        defaults to "geometry"
         :type rootname: str, optional
         '''
         format = format.lower()
@@ -188,7 +189,7 @@ class GeometryMaker():
             raise CubismError(f"Export format not recognised: {format}")
         print(f"exported {format} file")
 
-    def export_exodus(self, rootname: str = "geometry", large_exodus= False, HDF5 = False):
+    def export_exodus(self, rootname: str = "geometry", large_exodus=False, HDF5=False):
         '''Export as exodus II file.
 
         :param rootname: Name to give output file including path, defaults to "geometry"
@@ -210,9 +211,11 @@ class GeometryMaker():
         self.materials_tracker.reset()
         self.component_tracker.reset_counter()
         self.constructed_geometry = []
-    
+
     def file_to_tracked_geometry(self, filename: str):
-        '''Parse json file, make geometry, imprint + merge it, track boundaries.
+        '''Parse json file, make geometry, 
+        imprint + merge it, 
+        track boundaries.
 
         :param filename: Name of file to parse
         :type filename: str
@@ -221,7 +224,7 @@ class GeometryMaker():
         self.make_geometry()
         self.imprint_and_merge()
         self.track_components_and_materials()
-    
+
     def make_tracked_geometry(self):
         '''Make geometry, imprint and merge, track blocks + sidesets
         '''
@@ -238,4 +241,3 @@ class GeometryMaker():
         :type scaling: int
         '''
         cmd(f"volume all scale {10**scaling} about 0 0 0")
-
