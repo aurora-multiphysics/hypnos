@@ -43,14 +43,14 @@ def test_add_to_subcomponents(simple_component: SimpleComponent):
 def test_as_bodies(simple_component: SimpleComponent):
     simple_component.as_bodies()
     subcmps = simple_component.get_subcomponents()
-    assert 1 in [body.cid for body in subcmps if body.geometry_type == "body"]
+    assert [1] == [body.cid for body in subcmps if body.geometry_type == "body"]
 
 
 def test_as_volumes(simple_component: SimpleComponent):
     simple_component.subcomponents = [CubitInstance(1, "body")]
     simple_component.as_volumes()
     subcmps = simple_component.get_subcomponents()
-    assert 1 in [vol.cid for vol in subcmps if vol.geometry_type == "volume"]
+    assert [1] == [vol.cid for vol in subcmps if vol.geometry_type == "volume"]
 
 
 def test_get_parameters(simple_component: SimpleComponent):

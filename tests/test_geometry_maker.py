@@ -73,8 +73,6 @@ def compare_stp(filepath1: str, filepath2: str):
         if not (line.startswith("  ") or line.startswith("?")):
             header = re.match(r'^[\+\-] FILE_NAME(.*);$', line)
             if isinstance(header, re.Match):
-                # i dont remember what this is meant to do
-                # file_params = header.group(1)
                 pass
             else:
                 print(line)
