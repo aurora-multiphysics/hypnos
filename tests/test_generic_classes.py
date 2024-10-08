@@ -58,11 +58,16 @@ def test_move(brick):
 def test_update_reference(brick):
     # here we want to check that 'updating' the reference to volume 1 will
     # make CubitInstance refer to the same volume
+    cubit.brick(2, 2, 2)
+    brick1 = cubit.volume(1)
+    brick2 = cubit.volume(2)
     brick.move([1, 0, 0])
-    brick.update_reference(1, "volume")
+    assert brick1.centroid() == (1, 0, 0)
+    assert brick2.centroid() == (0, 0, 0)
+    brick.update_reference(2, "volume")
     brick.move([-1, 0, 0])
-    brick_vol = cubit.volume(1)
-    assert brick_vol.centroid() == (0, 0, 0)
+    assert brick1.centroid() == (1, 0, 0)
+    assert brick2.centroid() == (-1, 0, 0)
 
 
 # function tests
