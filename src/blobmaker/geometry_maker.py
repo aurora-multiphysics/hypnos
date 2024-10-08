@@ -1,16 +1,8 @@
-"""geometrymaker.py
-
-GeometryMaker class and supporting functions.
-
-(c) UKAEA 2024
-"""
-from typing import Collection
-
 from blobmaker.tracking import ComponentTracker, MaterialsTracker
 from blobmaker.assemblies import construct
 from blobmaker.generic_classes import CubismError, cmd
 from blobmaker.cubit_functions import initialise_cubit, reset_cubit
-from blobmaker.parsing import load_json, get_subclass_from_classname, ParameterFiller
+from blobmaker.parsing import extract_data, ParameterFiller
 
 
 def make_everything(json_object):
