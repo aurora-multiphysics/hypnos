@@ -1,8 +1,16 @@
+"""geometrymaker.py
+
+GeometryMaker class and supporting functions.
+
+(c) UKAEA 2024
+"""
+from typing import Collection
+
 from blobmaker.tracking import ComponentTracker, MaterialsTracker
 from blobmaker.assemblies import construct
 from blobmaker.generic_classes import CubismError, cmd
 from blobmaker.cubit_functions import initialise_cubit, reset_cubit
-from blobmaker.parsing import extract_data, ParameterFiller
+from blobmaker.parsing import load_json, get_subclass_from_classname, ParameterFiller
 
 
 def make_everything(json_object):
@@ -19,7 +27,20 @@ def make_everything(json_object):
 
 
 class GeometryMaker():
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        track_components: bool = False,
+        delimiter: str = "/",
+    ) -> None:
+        """Initialise GeometryMaker instance.
+
+        Parameters
+        ----------
+        track_components : bool, optional
+            _description_, by default False
+        delimiter : str, optional
+            _description_, by default "/"
+        """
         initialise_cubit()
         self.parameter_filler = ParameterFiller()
         self.materials_tracker = MaterialsTracker()
@@ -27,8 +48,8 @@ class GeometryMaker():
         self.design_tree = {}
         self.constructed_geometry = []
         self.print_parameter_logs = False
-        self.track_components = False
-        self.key_route_delimiter = '/'
+        self.track_components = track_components
+        self.key_route_delimiter = delimiter
 
     def fill_design_tree(self):
         '''Manually activate ParameterFiller to fill design tree parameters.
