@@ -1,6 +1,6 @@
 from blobmaker.generic_classes import CubismError
 from blobmaker.cubit_functions import reset_cubit
-from blobmaker.parsing import extract_data, get_format_extension
+from blobmaker.parsing import load_json, get_format_extension
 from blobmaker.default_params import DEFAULTS
 from blobmaker.geometry_maker import make_everything, GeometryMaker
 import pprint, argparse
@@ -10,7 +10,7 @@ from pathlib import Path
 
 if __name__ == '__coreformcubit__':
     reset_cubit()
-    make_everything(extract_data("sample_blanket.json"))
+    make_everything(load_json("sample_blanket.json"))
 elif __name__ == "__main__":
     # accept command line arguments
     parser = argparse.ArgumentParser()
@@ -36,7 +36,7 @@ elif __name__ == "__main__":
         exit(0)
 
     # get config file info, CLI > config > default
-    config_data = extract_data(args.config) if args.config else {}
+    config_data = load_json(args.config) if args.config else {}
 
     if args.file != "":
         filename = args.file

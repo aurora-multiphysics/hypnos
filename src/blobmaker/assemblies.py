@@ -1,34 +1,36 @@
+from abc import ABC, abstractmethod
+# from dataclasses import dataclass
+from typing import Self
+
+import numpy as np
+
 from blobmaker.generic_classes import CubismError, CubitInstance, cmd, cubit
 from blobmaker.components import ( 
-    ExternalComponent, 
-    SimpleComponent, 
-    SurroundingWallsComponent, 
-    AirComponent, 
-    BreederComponent, 
-    StructureComponent, 
-    WallComponent, 
-    CladdingComponent, 
-    PinCoolant, 
-    PressureTubeComponent, 
-    FilterLidComponent, 
-    PurgeGasComponent, 
-    FilterDiskComponent, 
-    MultiplierComponent, 
-    PinBreeder, 
-    FirstWallComponent, 
-    BZBackplate, 
-    PurgeGasPlate, 
-    FrontRib, 
-    BackRib, 
-    CoolantOutletPlenum, 
-    SeparatorPlate, 
-    FWBackplate
+    ExternalComponent,
+    SimpleComponent,
+    SurroundingWallsComponent,
+    WallComponent,
+    CladdingComponent,
+    PinCoolant,
+    PressureTubeComponent,
+    FilterLidComponent,
+    PurgeGasComponent,
+    FilterDiskComponent,
+    MultiplierComponent,
+    PinBreeder,
+    FirstWallComponent,
+    BZBackplate,
+    PurgeGasPlate,
+    FrontRib,
+    BackRib,
+    CoolantOutletPlenum,
+    SeparatorPlate,
+    FWBackplate,
 )
 from blobmaker.cubit_functions import to_volumes, get_entities_from_group
 from blobmaker.geometry import Vertex, arctan
 from blobmaker.cubit_functions import to_bodies
 from blobmaker.constants import (
-    CLASS_MAPPING, 
     NEUTRON_TEST_FACILITY_REQUIREMENTS, 
     ROOM_REQUIREMENTS, 
     BLANKET_REQUIREMENTS, 
@@ -36,7 +38,141 @@ from blobmaker.constants import (
     FACILITY_MORPHOLOGIES, 
     HCPB_BLANKET_REQUIREMENTS
 )
-import numpy as np
+from blobmaker.parsing import load_json, get_subclass_from_classname
+
+
+class Assembly(ABC):
+    """Base class for an assembly: a collection and arrangement of several
+    components and/or other assemblies.
+
+    Attributes
+    ----------
+    materials : Materials or dict or None (optional)
+        ...
+    geometry : Geometry or dict or None (optional)
+        ...
+    components : dict or None (optional)
+        Dictionary of components and/or other assemblies contained in the
+        assembly.
+    """
+    @property
+    @abstractmethod
+    def name(self) -> str:
+        """Name of the assembly as it will appear in the cubit design tree."""
+
+    def __init__(
+        self,
+        materials: Materials | dict | None = None,
+        geometry: Geometry | dict | None = None,
+        components: dict[
+            str, dict[str, Materials | Geometry | dict | None]
+        ] | None = None,
+    ):
+        self.identifier = self.name
+        self.materials = materials
+        self.geometry = geometry
+        self.components = components
+
+    @classmethod
+    def make_dataclasses(cls, param_dict) -> dict:
+        """Recursively search the parameter dictionary for classes with
+        associated materials & geometry dataclasses and instantiate them within
+        the dictionary. For parameter dictionaries without materials or
+        geometry keys, these are added with the value None.
+        """
+        # Convert material parameters for the assembly.
+        if "materials" not in param_dict:
+            param_dict["materials"] = None
+        elif hasattr(cls, "materials_dataclass"):
+            materials_dict = param_dict["materials"]
+            param_dict["materials"] = cls.materials_dataclass(**materials_dict)
+
+        # Convert geometry parameters for the assembly.
+        if "geometry" not in param_dict:
+            param_dict["geometry"] = None
+        elif hasattr(cls, "geometry_dataclass"):
+            geometry_dict = param_dict["geometry"]
+            param_dict["geometry"] = cls.geometry_dataclass(**geometry_dict)
+
+        # Recursively convert any components.
+        for (name, component_param_dict) in param_dict["components"].items():
+            classname = component_param_dict["class"]
+            component_subcls = get_subclass_from_classname(classname)
+            param_dict["components"][name] = component_subcls.make_dataclasses(
+                component_param_dict
+            )
+
+        return param_dict
+
+    @classmethod
+    def load_nested_jsons(cls, param_dict) -> dict:
+        """Recursively search the components section of a parameter dictionary
+        for references to json files and load them in. Return the full nested
+        parameter dictionary.
+
+        Parameters
+        ----------
+        param_dict : dict
+            The assembly's parameter dictionary to resolve.
+
+        Returns
+        -------
+        param_dict : dict
+            The resolved parameter dictionary.
+        """
+        if "components" not in param_dict:
+            return param_dict
+        for (name, component_param_dict) in param_dict["components"].items():
+            if isinstance(component_param_dict, str):
+                component_param_dict = load_json(component_param_dict)
+            param_dict["components"][name] = cls.load_nested_jsons(
+                component_param_dict
+            )
+        return param_dict
+
+    @classmethod
+    def from_dict(cls, param_dict: dict) -> Self:
+        """Instantiate an Assembly subclass by parsing a parameter dictionary.
+
+        Parameters
+        ----------
+        param_dict : dict
+            Dictionary describing which Assembly subclass to instantiate and
+            the required materials, geometry, and component parameters.
+
+        Returns
+        -------
+        assembly : Assembly
+            An instance of the Assembly subclass described by param_dict.
+        """
+        classname = param_dict["class"]
+        subcls = get_subclass_from_classname(classname)
+        param_dict = cls.load_nested_jsons(param_dict)
+        param_dict = subcls.make_dataclasses(param_dict)
+        materials = param_dict["materials"]
+        geometry = param_dict["geometry"]
+        components = param_dict["components"]
+        assembly = subcls(materials, geometry, components)
+        return assembly
+
+    @classmethod
+    def from_json(cls, json_file: str) -> Self:
+        """Instantiate an Assembly subclass by parsing a json file.
+
+        Parameters
+        ----------
+        json_file : str
+            Path to the json file describing which Assembly subclass to
+            instantiate and the required materials, geometry, and component
+            parameters.
+
+        Returns
+        -------
+        assembly : Assembly
+            An instance of the Assembly subclass described by param_dict.
+        """
+        param_dict = load_json(json_file)
+        return cls.from_dict(param_dict)
 
 
 class GenericComponentAssembly:
@@ -157,7 +293,9 @@ class GenericComponentAssembly:
             component.move(vector)
 
     def set_mesh_size(self, component_classes: list, size: int):
-        component_classes = [globals()[CLASS_MAPPING[classname]] for classname in component_classes]
+        component_classes = [[
+            get_subclass_from_classname(classname)
+        ] for classname in component_classes]
         components = self.get_components_of_class(component_classes)
         for component in components:
             if isinstance(component, SimpleComponent):
@@ -1158,5 +1296,6 @@ def construct(json_object: dict, *args):
     :return: Corresponding component class
     :rtype: SimpleComponent | GenericComponentAssembly
     '''
-    constructor = globals()[CLASS_MAPPING[json_object["class"]]]
+    classname = json_object["class"]
+    constructor = [get_subclass_from_classname(classname)]
     return constructor(json_object, *args)

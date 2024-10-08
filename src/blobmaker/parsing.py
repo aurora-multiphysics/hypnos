@@ -1,18 +1,29 @@
 import json
 from blobmaker.default_params import DEFAULTS
 from blobmaker.generic_classes import CubismError
+from blobmaker.assemblies import Assembly
+from blobmaker.components import Component
 
 
-def extract_data(filename) -> dict:
-    with open(filename) as jsonFile:
-        data = jsonFile.read()
-        objects = json.loads(data)
-    return objects
+def load_json(json_file) -> dict:
+    """Load a json file to dict."""
+    with open(json_file, "r", encoding="utf-8") as file:
+        data = json.load(file)
+    return data
+
+
+def get_subclass_from_classname(classname) -> Assembly | Component:
+    """Return an Assembly or Component subclass by name."""
+    base_classes = [Assembly, Component]
+    for subclass in [bc.__subclasses__() for bc in base_classes]:
+        if subclass.__name__ == classname:
+            return subclass
+    raise ValueError("No such class.")
 
 
 def extract_if_string(possible_filename):
     if type(possible_filename) is str:
-        return extract_data(possible_filename)
+        return load_json(possible_filename)
     return possible_filename
 
 
@@ -22,7 +33,7 @@ def delve(component_obj: list | dict):
     elif type(component_obj) is list:
         return [extract_if_string(component) for component in component_obj]
     elif type(component_obj) is str:
-        return extract_data(component_obj)
+        return load_json(component_obj)
     raise TypeError(f"Unrecognised delvee: {component_obj}")
 
 

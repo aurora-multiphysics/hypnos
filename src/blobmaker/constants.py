@@ -13,27 +13,5 @@ WALL_CLASSES = ["wall"]
 # currently only supports exclusive, inclusive, and overlap
 FACILITY_MORPHOLOGIES = ["exclusive", "inclusive", "overlap", "wall"]
 
-# mapping from json class names to python class names
-CLASS_MAPPING = {
-    "complex": "ComplexComponent",
-    "external": "ExternalComponentAssembly",
-    "source": "SourceAssembly",
-    "neutron_test_facility": "NeutronTestFacility",
-    "blanket": "BlanketAssembly",
-    "room": "RoomAssembly",
-    "surrounding_walls": "SurroundingWallsComponent",
-    "breeder": "BreederComponent",
-    "structure": "StructureComponent",
-    "pin": "PinAssembly",
-    "cladding": "CladdingComponent",
-    "pressure_tube": "PressureTubeComponent",
-    "multiplier": "MultiplierComponent",
-    "first_wall": "FirstWallComponent",
-    "blanket_shell": "BlanketShellAssembly",
-    "blanket_ring": "BlanketRingAssembly",
-    "HCPB_blanket": "HCPBBlanket"
-}
-
 # components requiring only geometry and material parameters
 STANDARD_COMPONENTS = ["first wall", "multiplier", "pressure tube", "pin", "structure", "breeder", ]
-

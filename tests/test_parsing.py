@@ -1,5 +1,5 @@
 from blobmaker.parsing import (
-    extract_data,
+    load_json,
     extract_if_string,
     delve,
     ParameterFiller,
@@ -26,8 +26,8 @@ def p_filler():
 def check(obj: dict):
     return "class" in obj.keys()
 
-def test_extract_data(filename):
-    data = extract_data(filename)
+def test_load_json(filename):
+    data = load_json(filename)
     assert check(data)
 
 def test_extract_if_string(filename):
@@ -57,7 +57,7 @@ def test_add_log(p_filler):
     assert "test message" in p_filler.log
     
 def test_process_design_tree(filename, p_filler):
-    design_tree = extract_data(filename)
+    design_tree = load_json(filename)
     p_filler.process_design_tree(design_tree)
     assert p_filler.design_tree == HCPB_BLANKET
     
