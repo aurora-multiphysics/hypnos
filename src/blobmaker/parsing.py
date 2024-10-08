@@ -14,8 +14,8 @@ def load_json(json_file) -> dict:
 
 def get_subclass_from_classname(classname) -> Assembly | Component:
     """Return an Assembly or Component subclass by name."""
-    base_classes = [Assembly, Component]
-    for subclass in [bc.__subclasses__() for bc in base_classes]:
+    subclasses = Assembly.__subclasses__() + Component.__subclasses__()
+    for subclass in subclasses:
         if subclass.__name__ == classname:
             return subclass
     raise ValueError("No such class.")
