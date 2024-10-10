@@ -16,6 +16,7 @@ from blobmaker.components import (
 import difflib
 import sys
 import re
+import copy
 import pytest
 from pathlib import Path
 
@@ -128,7 +129,7 @@ def test_parse_json(parsed):
 
 
 def test_change_params(parsed):
-    pin_changed = PIN.copy()
+    pin_changed = copy.deepcopy(PIN)
     pin_changed["geometry"]["offset"] = "dummy"
 
     # check if parameter actually changes
@@ -143,16 +144,13 @@ def test_change_params(parsed):
 
 
 def test_change_delimiter(parsed):
-    pin_changed = PIN.copy()
+    pin_changed = copy.deepcopy(PIN)
     pin_changed["geometry"]["offset"] = "dummy"
     parsed.change_delimiter("...")
     parsed.change_params({"geometry...offset": "dummy"})
     assert parsed.design_tree == pin_changed
     with raise_cubism:
         parsed.change_params({"geometry/offset": "dummy"})
-    # why do i have to do this?
-    # shouldnt each function get its own copy of parsed?
-    parsed.change_params({"geometry...offset": 60})
 
 
 def test_get_param(parsed):

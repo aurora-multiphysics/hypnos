@@ -1,4 +1,5 @@
 import json
+import copy
 from blobmaker.default_params import DEFAULTS
 from blobmaker.generic_classes import CubismError
 
@@ -57,7 +58,7 @@ class ParameterFiller():
     def __get_config(self):
         for default_class in DEFAULTS:
             if default_class["class"].lower() == self.design_tree["class"].lower():
-                return default_class
+                return copy.deepcopy(default_class)
         self.add_log(f"Default configuration not found for: {self.design_tree['class']}")
         return False
 
