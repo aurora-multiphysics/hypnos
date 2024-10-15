@@ -3,7 +3,6 @@ from blobmaker.assemblies import construct
 from blobmaker.generic_classes import CubismError, cmd
 from blobmaker.cubit_functions import initialise_cubit, reset_cubit
 from blobmaker.parsing import extract_data, ParameterFiller
-import numpy as np
 
 
 def make_everything(json_object):
@@ -31,6 +30,17 @@ class GeometryMaker():
         self.track_components = False
         self.key_route_delimiter = '/'
 
+    def fill_design_tree(self):
+        '''Manually activate ParameterFiller to fill design tree parameters.
+
+        :return: Filled design tree
+        :rtype: dict
+        '''
+        self.design_tree = self.parameter_filler.process_design_tree(self.design_tree)
+        if self.print_parameter_logs:
+            self.parameter_filler.print_log()
+        return self.design_tree
+
     def parse_json(self, filename: str):
         '''Parse a json file and add corresponding design tree to design_tree attribute
 
@@ -39,13 +49,9 @@ class GeometryMaker():
         :return: design tree corresponding to given json file
         :rtype: dict
         '''
-        json_object = extract_data(filename)
-        filled_json_object = self.parameter_filler.process_design_tree(json_object)
-        if self.print_parameter_logs:
-            self.parameter_filler.print_log()
-        self.design_tree = filled_json_object
-        return filled_json_object
-    
+        self.design_tree = extract_data(filename)
+        return self.fill_design_tree()
+
     def change_delimiter(self, delimiter: str):
         '''Change the delimiter to use in key paths 
         for the change_params and get_param methods.
@@ -77,7 +83,8 @@ class GeometryMaker():
         :type updated_params: dict
         '''
         for param_path, updated_value in updated_params.items():
-            assert type(param_path) is str
+            if type(param_path) is not str:
+                raise CubismError(f"path should be given as a string: {str(param_path)}")
             key_route = param_path.split(self.key_route_delimiter)
             self.design_tree = self.__build_param_dict(key_route, self.design_tree, updated_value)
 
@@ -133,13 +140,18 @@ class GeometryMaker():
         return self.constructed_geometry
 
     def imprint_and_merge(self):
-        '''Imprint and merge geometry in cubit. Add materials to blocks and material-material interfaces to sidesets.
+        '''Imprint and merge geometry in cubit. 
+        '''
+        cmd("imprint volume all")
+        cmd("merge volume all")
+
+    def track_components_and_materials(self):
+        '''Add components to blocks and component-component interfaces to sidesets.
+        Add materials and material-material interfaces to groups.
         '''
         for component in self.constructed_geometry:
             self.component_tracker.give_identifiers(component)
             self.materials_tracker.extract_components(component)
-        cmd("imprint volume all")
-        cmd("merge volume all")
         self.materials_tracker.track_boundaries()
         self.materials_tracker.organise_into_groups()
 
@@ -157,13 +169,15 @@ class GeometryMaker():
 
         :param format: Name of export format, defaults to "cubit"
         :type format: str, optional
-        :param rootname: Name to give output file including path, defaults to "geometry"
+        :param rootname: Name to give output file including path,
+        defaults to "geometry"
         :type rootname: str, optional
         '''
         format = format.lower()
         if format == "cubit" or "cub5" in format:
             cmd(f'export cubit "{rootname}.cub5"')
         elif format == "exodus" or ".e" in format:
+            print("The export_exodus method has more options for exodus file exports")
             cmd(f'export mesh "{rootname}.e"')
             print("The export_exodus method has more options for exodus file exports")
         elif format == "dagmc" or "h5m" in format:
@@ -172,10 +186,10 @@ class GeometryMaker():
             cmd(f'export Step "{rootname}.stp"')
         else:
             print("format not recognised")
-            return 1
+            raise CubismError(f"Export format not recognised: {format}")
         print(f"exported {format} file")
 
-    def export_exodus(self, rootname: str = "geometry", large_exodus= False, HDF5 = False):
+    def export_exodus(self, rootname: str = "geometry", large_exodus=False, HDF5=False):
         '''Export as exodus II file.
 
         :param rootname: Name to give output file including path, defaults to "geometry"
@@ -218,3 +232,32 @@ class GeometryMaker():
         '''
         cmd(f"volume all scale {10**scaling} about 0 0 0")
 
+    def file_to_tracked_geometry(self, filename: str):
+        '''Parse json file, make geometry, 
+        imprint + merge it, 
+        track boundaries.
+
+        :param filename: Name of file to parse
+        :type filename: str
+        '''
+        self.parse_json(filename)
+        self.make_geometry()
+        self.imprint_and_merge()
+        self.track_components_and_materials()
+
+    def make_tracked_geometry(self):
+        '''Make geometry, imprint and merge, track blocks + sidesets
+        '''
+        self.make_geometry()
+        self.imprint_and_merge()
+        self.track_components_and_materials()
+
+    def exp_scale(self, scaling: int):
+        '''Scale size of the geometry by 10^(scaling) to change what units cubit reports in.
+        The default parameters assume 1 cubit unit = 1mm so, for example, to get 1 cubit unit = 1cm
+        you would use scaling = -1.
+
+        :param scaling: Exponent to scale by
+        :type scaling: int
+        '''
+        cmd(f"volume all scale {10**scaling} about 0 0 0")

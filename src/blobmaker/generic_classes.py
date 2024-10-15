@@ -15,7 +15,20 @@ class CubitInstance:
     def __init__(self, cid: int, geometry_type: str) -> None:
         self.cid = cid
         self.geometry_type = geometry_type
-        self.cubitInstance = get_cubit_geometry(self.cid, self.geometry_type)
+        try:
+            self.handle = get_cubit_geometry(self.cid, self.geometry_type)
+        except RuntimeError:
+            raise CubismError(
+                f"Specified {geometry_type} doesn't exist: {cid}"
+                )
+
+    def __eq__(self, other) -> bool:
+        if isinstance(other, CubitInstance):
+            return (
+                self.cid == other.cid and
+                self.geometry_type == other.geometry_type
+                )
+        return NotImplemented
 
     def __str__(self) -> str:
         return f"{self.geometry_type} {self.cid}"
@@ -24,20 +37,20 @@ class CubitInstance:
         '''delete cubitside instance'''
         cmd(f"delete {self.geometry_type} {self.cid}")
 
-    def copy_cubit_instance(self):
+    def copy(self):
         '''create a copy (also in cubit)'''
         cmd(f"{self.geometry_type} {self.cid} copy")
         copied_id = cubit.get_last_id(self.geometry_type)
         return CubitInstance(copied_id, self.geometry_type)
 
     def move(self, vector):
-        cubit.move(self.cubitInstance, vector)
+        cubit.move(self.handle, vector)
 
     def update_reference(self, cid: int, geometry_type: str):
         '''Change what this instance refers to cubitside'''
         self.cid = cid
         self.geometry_type = geometry_type
-        self.cubitInstance = get_cubit_geometry(cid, geometry_type)
+        self.handle = get_cubit_geometry(cid, geometry_type)
 
 
 # make finding instances less annoying
@@ -46,7 +59,8 @@ def get_cubit_geometry(geometry_id: int, geometry_type: str):
 
     :param geometry_id: Cubit ID of geometry
     :type geometry_id: int
-    :param geometry_type: Cubit geometry type (body/volume/surface/curve/vertex)
+    :param geometry_type: Cubit geometry type
+    (body/volume/surface/curve/vertex)
     :type geometry_type: str
     :raises CubismError: If geometry type provided is not recognised
     :return: Cubit handle of geometry

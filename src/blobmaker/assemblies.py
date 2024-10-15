@@ -8,13 +8,13 @@ from blobmaker.components import (
     StructureComponent, 
     WallComponent, 
     CladdingComponent, 
-    BreederUnitCoolant, 
+    PinCoolant, 
     PressureTubeComponent, 
     FilterLidComponent, 
     PurgeGasComponent, 
     FilterDiskComponent, 
     MultiplierComponent, 
-    BreederChamber, 
+    PinBreeder, 
     FirstWallComponent, 
     BZBackplate, 
     PurgeGasPlate, 
@@ -24,7 +24,7 @@ from blobmaker.components import (
     SeparatorPlate, 
     FWBackplate
 )
-from blobmaker.cubit_functions import to_volumes, get_bodies_and_volumes_from_group
+from blobmaker.cubit_functions import to_volumes, get_entities_from_group
 from blobmaker.geometry import Vertex, arctan
 from blobmaker.cubit_functions import to_bodies
 from blobmaker.constants import (
@@ -47,44 +47,6 @@ class GenericComponentAssembly:
         self.classname = classname
         self.identifier = classname
         self.components = []
-
-    # These refer to cubit handles
-    def get_cubit_instances_from_class(self, class_list: list) -> list:
-        '''Get list of cubit instances of specified classnames
-
-        :param classname_list: list of classnames to search in
-        :type classname_list: list
-        :return: list of cubit handles
-        :rtype: list
-        '''
-        instances_list = []
-        for component in self.get_components():
-            for component_class in class_list:
-                if isinstance(component, component_class):
-                    # fetches instances
-                    if isinstance(component, CubitInstance):
-                        instances_list.append(component.cubitInstance)
-                    elif isinstance(component, SimpleComponent):
-                        instances_list += component.subcomponents
-                    elif isinstance(component, GenericComponentAssembly):
-                        instances_list += component.get_cubit_instances_from_class(class_list)
-        return instances_list
-
-    def get_all_cubit_instances(self) -> list:
-        '''Get every cubit instance stored in this assembly instance recursively
-
-        :return: list of cubit handles
-        :rtype: list
-        '''
-        instances_list = []
-        for component in self.get_components():
-            if isinstance(component, CubitInstance):
-                instances_list.append(component.cubitInstance)
-            elif isinstance(component, SimpleComponent):
-                instances_list += [subcomp.cubitInstance for subcomp in component.subcomponents]
-            elif isinstance(component, GenericComponentAssembly):
-                instances_list += component.get_all_cubit_instances()
-        return instances_list
 
     # 'geometries' refer to CubitInstance objects
     def get_geometries_from(self, class_list: list) -> list[CubitInstance]:
@@ -156,10 +118,10 @@ class GenericComponentAssembly:
         return self.components
     
     def get_all_components(self) -> list[SimpleComponent]:
-        '''Return all components stored in this assembly recursively
+        '''Return all simple components stored in this assembly recursively
 
         :return: List of components
-        :rtype: list[ComplexComponent]
+        :rtype: list[SimpleComponent]
         '''
         instances_list = []
         for component in self.get_components():
@@ -314,9 +276,9 @@ class NeutronTestFacility(CreatedComponentAssembly):
         union_object = unionise([source_object, blanket_object])
 
         # get their volumes
-        source_volume = source_object.cubitInstance.volume()
-        blanket_volume = blanket_object.cubitInstance.volume()
-        union_volume = union_object.cubitInstance.volume()
+        source_volume = source_object.handle.volume()
+        blanket_volume = blanket_object.handle.volume()
+        union_volume = union_object.handle.volume()
 
         # cleanup
         source_object.destroy_cubit_instance()
@@ -372,8 +334,8 @@ class NeutronTestFacility(CreatedComponentAssembly):
         union_object = unionise([room_bounding_box, all_geometries])
 
         # get volumes
-        bounding_volume = room_bounding_box.cubitInstance.volume()
-        union_volume = union_object.cubitInstance.volume()
+        bounding_volume = room_bounding_box.handle.volume()
+        union_volume = union_object.handle.volume()
 
         # cleanup
         room_bounding_box.destroy_cubit_instance()
@@ -388,7 +350,7 @@ class NeutronTestFacility(CreatedComponentAssembly):
         for surrounding_walls in self.get_components_of_class(SurroundingWallsComponent):
             if surrounding_walls.is_air():
                 for air in surrounding_walls.get_air_subcomponents():
-                    all_geometries_copy = all_geometries.copy_cubit_instance()
+                    all_geometries_copy = all_geometries.copy()
                     cmd(f'subtract {all_geometries_copy.geometry_type} {all_geometries_copy.cid} from {air.geometry_type} {air.cid}')
         # cleanup
         all_geometries.destroy_cubit_instance()
@@ -471,7 +433,7 @@ class ExternalComponentAssembly(GenericComponentAssembly):
         temp_group_id = cubit.get_id_from_name(temp_group_name)
 
         # convert everything to volumes
-        volumes_list = to_volumes(get_bodies_and_volumes_from_group(temp_group_id))
+        volumes_list = to_volumes([CubitInstance(cid, "body") for cid in get_entities_from_group(temp_group_id, "body")])
         for volume in volumes_list:
             cmd(f'group "{self.group}" add {volume.geometry_type} {volume.cid}')
         print(f"volumes imported in group {self.group}")
@@ -543,10 +505,10 @@ class PinAssembly(CreatedComponentAssembly):
         cladding = CladdingComponent(cladding_json)
         pressure_tube = PressureTubeComponent(self.__jsonify(pressure_tube_geometry, "pressure tube", 0))
         multiplier = MultiplierComponent(self.__jsonify(multiplier_geometry, "multiplier", 0))
-        breeder = BreederChamber(breeder_json)
+        breeder = PinBreeder(breeder_json)
         filter_disk = FilterDiskComponent(filter_disk_json)
         filter_lid = FilterLidComponent(filter_lid_json)
-        coolant = BreederUnitCoolant(coolant_json)
+        coolant = PinCoolant(coolant_json)
         purge_gas = PurgeGasComponent(purge_gas_json)
 
         self.components.extend([cladding, pressure_tube, multiplier, breeder, filter_disk, filter_lid, coolant, purge_gas])
@@ -1169,10 +1131,10 @@ def unionise(component_list: list):
     if len(instances_to_union) == 0:
         raise CubismError("Could not find any instances")
     elif len(instances_to_union) == 1:
-        return instances_to_union[0].copy_cubit_instance()
+        return instances_to_union[0].copy()
 
     # get cubit handles
-    instances_to_union = [i.cubitInstance for i in instances_to_union]
+    instances_to_union = [i.handle for i in instances_to_union]
 
     # need old and new volumes to check what the union creates
     old_volumes = cubit.get_entities("volume")

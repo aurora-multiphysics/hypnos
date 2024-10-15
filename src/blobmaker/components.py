@@ -1,6 +1,6 @@
 from blobmaker.constants import BLOB_CLASSES
 from blobmaker.generic_classes import CubismError, CubitInstance, cmd, cubit
-from blobmaker.cubit_functions import to_volumes, to_bodies, cmd_check, get_last_geometry, subtract
+from blobmaker.cubit_functions import to_volumes, to_bodies, get_last_geometry, subtract, cmd_geom
 from blobmaker.geometry import make_cylinder_along, Vertex, make_surface, hypotenuse, arctan, Line
 import numpy as np
 
@@ -143,7 +143,7 @@ class SimpleComponent:
     
     def volume_id_string(self):
         self.as_volumes()
-        return " ".join(str(subcomponent.cid) for subcomponent in self.get_subcomponents()) 
+        return " ".join([str(subcomponent.cid) for subcomponent in self.get_subcomponents()]) 
 
 
 class SurroundingWallsComponent(SimpleComponent):
@@ -412,12 +412,12 @@ class CladdingComponent(SimpleComponent):
         duct = get_last_geometry("volume")
 
         # realign with origin
-        cubit.move(cladding.cubitInstance, [inner_length, coolant_inlet_radius, 0])
-        cubit.move(duct.cubitInstance, [inner_length, coolant_inlet_radius, 0])
+        cubit.move(cladding.handle, [inner_length, coolant_inlet_radius, 0])
+        cubit.move(duct.handle, [inner_length, coolant_inlet_radius, 0])
         return [cladding, duct]
 
 
-class BreederUnitCoolant(SimpleComponent):
+class PinCoolant(SimpleComponent):
     def __init__(self, json_object: dict):
         super().__init__("coolant", json_object)
 
@@ -517,7 +517,7 @@ class BreederUnitCoolant(SimpleComponent):
         cmd(f"sweep surface {surface_to_sweep.cid} axis 0 0 0 1 0 0 angle 360")
         coolant = get_last_geometry("volume")
         # realign with origin
-        cubit.move(coolant.cubitInstance, [inner_length+pressure_tube_gap, 0, 0])
+        cubit.move(coolant.handle, [inner_length+pressure_tube_gap, 0, 0])
         return coolant
 
 
@@ -530,9 +530,9 @@ class PressureTubeComponent(SimpleComponent):
         outer_radius = self.geometry["outer radius"]
         thickness = self.geometry["thickness"]
 
-        subtract_vol = cmd_check(f"create cylinder height {length-thickness} radius {outer_radius-thickness}", "volume")
+        subtract_vol = cmd_geom(f"create cylinder height {length-thickness} radius {outer_radius-thickness}", "volume")
         cmd(f"volume {subtract_vol.cid} move 0 0 {-thickness/2}")
-        cylinder = cmd_check(f"create cylinder height {length} radius {outer_radius}", "volume")
+        cylinder = cmd_geom(f"create cylinder height {length} radius {outer_radius}", "volume")
 
         cmd(f"subtract volume {subtract_vol.cid} from volume {cylinder.cid}")
         tube = get_last_geometry("volume")
@@ -595,8 +595,8 @@ class FilterDiskComponent(SimpleComponent):
         outer_radius = self.geometry["outer radius"]
         thickness = self.geometry["thickness"]
 
-        subtract_vol = cmd_check(f"create cylinder height {length} radius {outer_radius-thickness}", "volume")
-        cylinder = cmd_check(f"create cylinder height {length} radius {outer_radius}", "volume")
+        subtract_vol = cmd_geom(f"create cylinder height {length} radius {outer_radius-thickness}", "volume")
+        cylinder = cmd_geom(f"create cylinder height {length} radius {outer_radius}", "volume")
 
         cmd(f"subtract volume {subtract_vol.cid} from volume {cylinder.cid}")
         tube = get_last_geometry("volume")
@@ -634,7 +634,7 @@ class MultiplierComponent(SimpleComponent):
         return multiplier
 
 
-class BreederChamber(SimpleComponent):
+class PinBreeder(SimpleComponent):
     def __init__(self, json_object):
         super().__init__("breeder", json_object)
 
@@ -697,7 +697,7 @@ class BreederChamber(SimpleComponent):
             surface_to_sweep = make_surface(breeder_vertices, [])
         cmd(f"sweep surface {surface_to_sweep.cid} axis 0 {-inner_radius} 0 1 0 0 angle 360")
         breeder = get_last_geometry("volume")
-        cubit.move(breeder.cubitInstance, [0, inner_radius, 0])
+        cubit.move(breeder.handle, [0, inner_radius, 0])
 
         return breeder
 
@@ -881,7 +881,7 @@ class Plate(SimpleComponent):
         for row in self.pin_pos:
             for position in row:
                 hole_position = Vertex(position.x, position.y, 0)
-                hole_to_be = cmd_check(f"create cylinder radius {hole_radius} height {plate_thickness*3}", "volume")
+                hole_to_be = cmd_geom(f"create cylinder radius {hole_radius} height {plate_thickness*3}", "volume")
                 cmd(f"{hole_to_be.geometry_type} {hole_to_be.cid} move {str(hole_position)}")
                 cmd(f"subtract {hole_to_be.geometry_type} {hole_to_be.cid} from {plate.geometry_type} {plate.cid}")
         return plate
@@ -952,7 +952,7 @@ class Rib(SimpleComponent):
         length = self.geometry["length"]
         thickness = self.geometry["thickness"]
 
-        structure = cmd_check(f"create brick x {thickness} y {height} z {length}", "body")
+        structure = cmd_geom(f"create brick x {thickness} y {height} z {length}", "body")
         cmd(f"{structure.geometry_type} {structure.cid} move 0 {height/2} {-length/2}")
 
         structure, number_of_channels = self.__make_side_channels(structure)
@@ -995,7 +995,7 @@ class Rib(SimpleComponent):
 
     def tile_channels_vertically(self, structure: CubitInstance, channel_dims: Vertex, number_of_channels: int, y_margin: int, z_offset: int, spacing: int):
         for i in range(number_of_channels):
-            hole_to_be = cmd_check(f"create brick x {channel_dims.x} y {channel_dims.y} z {channel_dims.z}", "volume")
+            hole_to_be = cmd_geom(f"create brick x {channel_dims.x} y {channel_dims.y} z {channel_dims.z}", "volume")
             hole_name = str(hole_to_be)
             cmd(f"{hole_name} move 0 {channel_dims.y/2} {-channel_dims.z/2}")
             cmd(f"{hole_name} move 0 {y_margin + i*spacing} {-z_offset}")

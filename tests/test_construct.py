@@ -1,0 +1,96 @@
+from blobmaker.default_params import FIRST_WALL, PIN, HCPB_BLANKET
+from blobmaker.cubit_functions import cmd, union
+from blobmaker.geometry_maker import GeometryMaker
+from blobmaker.generic_classes import CubitInstance
+import cubit
+import pytest
+
+FIRST_WALL_GOLD = "sample_first_wall.cub5"
+PIN_GOLD = "sample_pin.cub5"
+BLANKET_GOLD = "sample_blanket.cub5"
+
+
+@pytest.fixture(scope="function")
+def goldpath(pytestconfig):
+    cubit.reset()
+    return pytestconfig.rootpath / "tests" / "gold"
+
+
+@pytest.mark.slow
+def test_first_wall(goldpath):
+    first_wall_path = goldpath / FIRST_WALL_GOLD
+    gold_vol, maker_vol, net_vol = get_union_volumes(first_wall_path, FIRST_WALL)
+    assert gold_vol == maker_vol == net_vol
+
+
+@pytest.mark.slow
+def test_first_wall_diff(goldpath):
+    first_wall_path = goldpath / FIRST_WALL_GOLD
+    design_tree = FIRST_WALL.copy()
+    design_tree["geometry"]["length"] += 1
+
+    gold_vol, maker_vol, net_vol = get_union_volumes(first_wall_path, design_tree)
+
+    assert gold_vol != maker_vol
+    assert gold_vol != net_vol
+    assert net_vol != maker_vol
+
+
+@pytest.mark.slow
+def test_pin(goldpath):
+    pin_path = goldpath / PIN_GOLD
+    gold_vol, maker_vol, net_vol = get_union_volumes(pin_path, PIN)
+    appx = pytest.approx
+    assert gold_vol == appx(maker_vol) == appx(net_vol)
+
+
+@pytest.mark.slow
+def test_blanket(goldpath):
+    blanket_path = goldpath / BLANKET_GOLD
+    gold_vol, maker_vol, net_vol = get_union_volumes(blanket_path, HCPB_BLANKET)
+    appx = pytest.approx
+    assert gold_vol == appx(maker_vol) == appx(net_vol)
+
+
+def get_union_volumes(goldfile: str, maker_tree: dict):
+    '''Get the volumes of the gold file geometry, geometry from a design tree,
+    and their union
+
+    :param goldfile: gold filepath
+    :type goldfile: str
+    :param maker_tree: design tree
+    :type maker_tree: dict
+    :return: volume values
+    :rtype: tuple[int]
+    '''
+
+    # instantiate maker in case cubit.init() changes anything
+    maker = GeometryMaker()
+
+    # import gold file, get its volumes
+    stray_vol_ids = vols()
+    cmd(f'import cubit "{goldfile}"')
+    post_import_vol_ids = vols()
+    gold_vol_ids = post_import_vol_ids.difference(stray_vol_ids)
+
+    # make geometry, get its volumes
+    maker.design_tree = maker_tree
+    maker.make_geometry()
+    maker_vol_ids = vols().difference(post_import_vol_ids)
+
+    # union of all gold volumes, all maker volumes
+    gold_union = union([CubitInstance(vol_id, "volume") for vol_id in list(gold_vol_ids)])
+    maker_union = union([CubitInstance(vol_id, "volume") for vol_id in list(maker_vol_ids)])
+
+    gold_volume = sum([vol.handle.volume() for vol in gold_union])
+    maker_volume = sum([vol.handle.volume() for vol in maker_union])
+
+    # union of above 2 unions
+    net_union = union(gold_union + maker_union)
+    net_volume = sum([vol.handle.volume() for vol in net_union])
+
+    return gold_volume, maker_volume, net_volume
+
+
+def vols():
+    return set(cubit.get_entities("volume"))
