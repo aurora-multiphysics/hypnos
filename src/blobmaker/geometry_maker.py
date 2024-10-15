@@ -211,6 +211,26 @@ class GeometryMaker():
         self.materials_tracker.reset()
         self.component_tracker.reset_counter()
         self.constructed_geometry = []
+    
+    def file_to_merged_geometry(self, filename: str):
+        '''Parse json file, make geometry, imprint + merge it, track boundaries.
+
+        :param filename: Name of file to parse
+        :type filename: str
+        '''
+        self.parse_json(filename)
+        self.make_geometry()
+        self.imprint_and_merge()
+
+    def exp_scale(self, scaling: int):
+        '''Scale size of the geometry by 10^(scaling) to change what units cubit reports in.
+        The default parameters assume 1 cubit unit = 1mm so, for example, to get 1 cubit unit = 1cm
+        you would use scaling = -1.
+
+        :param scaling: Exponent to scale by
+        :type scaling: int
+        '''
+        cmd(f"volume all scale {10**scaling} about 0 0 0")
 
     def file_to_tracked_geometry(self, filename: str):
         '''Parse json file, make geometry, 
