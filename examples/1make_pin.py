@@ -6,13 +6,7 @@ def make_pin():
     maker.track_components = True
 
     # parses json file to a python dict in design_tree attribute
-    maker.parse_json("sample_pin.json")
-    
-    # constructs geometry from design_tree, class structure in constructed_geometry
-    maker.make_geometry()
-
-    # this also adds materials to blocks and material-material interfaces to sidesets
-    maker.imprint_and_merge()
+    maker.file_to_tracked_geometry("sample_pin.json")
 
     # replace the . with destination path
     maker.export("cubit", "pin")

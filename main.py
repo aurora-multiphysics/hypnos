@@ -119,7 +119,7 @@ elif __name__ == "__main__":
     if mesh_source:
         print(f"mesh export formats set to {', '.join(export_mesh)} from {mesh_source}")
     else:
-        print("No mesh will be exported"
+        print("No mesh will be exported")
     scaling = config_data["output scale exponent"] if "output scale exponent" in config_data.keys() else 0
     filepath = Path(destination, root_name)
     for export_type in export_geometries + export_mesh:
