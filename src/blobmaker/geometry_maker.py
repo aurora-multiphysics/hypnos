@@ -1,4 +1,4 @@
-from blobmaker.tracking import ComponentTracker, MaterialsTracker
+from blobmaker.tracking import Tracker
 from blobmaker.assemblies import construct
 from blobmaker.generic_classes import CubismError, cmd
 from blobmaker.cubit_functions import initialise_cubit, reset_cubit
@@ -22,8 +22,7 @@ class GeometryMaker():
     def __init__(self) -> None:
         initialise_cubit()
         self.parameter_filler = ParameterFiller()
-        self.materials_tracker = MaterialsTracker()
-        self.component_tracker = ComponentTracker()
+        self.tracker = Tracker()
         self.design_tree = {}
         self.constructed_geometry = []
         self.print_parameter_logs = False
@@ -133,10 +132,6 @@ class GeometryMaker():
         :rtype: Python class corresponding to top-level of design tree
         '''
         self.constructed_geometry = make_everything(self.design_tree)
-        if self.track_components:
-            for component in self.constructed_geometry:
-                self.component_tracker.track_component(component)
-                print(f"components being tracked in root {self.component_tracker.root_name}")
         return self.constructed_geometry
 
     def imprint_and_merge(self):
@@ -150,10 +145,10 @@ class GeometryMaker():
         Add materials and material-material interfaces to groups.
         '''
         for component in self.constructed_geometry:
-            self.component_tracker.give_identifiers(component)
-            self.materials_tracker.extract_components(component)
-        self.materials_tracker.track_boundaries()
-        self.materials_tracker.organise_into_groups()
+            self.tracker.give_identifiers(component)
+            self.tracker.extract_components(component)
+        self.tracker.track_boundaries()
+        self.tracker.organise_into_groups()
 
     def set_mesh_size(self, size: int):
         cmd(f'volume all size {size}')
@@ -208,10 +203,9 @@ class GeometryMaker():
     def reset_cubit(self):
         '''Reset cubit and corresponding internal states.'''
         reset_cubit()
-        self.materials_tracker.reset()
-        self.component_tracker.reset_counter()
+        self.tracker.reset()
         self.constructed_geometry = []
-    
+
     def file_to_merged_geometry(self, filename: str):
         '''Parse json file, make geometry, imprint + merge it, track boundaries.
 
@@ -222,19 +216,9 @@ class GeometryMaker():
         self.make_geometry()
         self.imprint_and_merge()
 
-    def exp_scale(self, scaling: int):
-        '''Scale size of the geometry by 10^(scaling) to change what units cubit reports in.
-        The default parameters assume 1 cubit unit = 1mm so, for example, to get 1 cubit unit = 1cm
-        you would use scaling = -1.
-
-        :param scaling: Exponent to scale by
-        :type scaling: int
-        '''
-        cmd(f"volume all scale {10**scaling} about 0 0 0")
-
     def file_to_tracked_geometry(self, filename: str):
-        '''Parse json file, make geometry, 
-        imprint + merge it, 
+        '''Parse json file, make geometry,
+        imprint + merge it,
         track boundaries.
 
         :param filename: Name of file to parse
