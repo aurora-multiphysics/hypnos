@@ -181,27 +181,6 @@ class Vertex():
         y = -self.y
         z = -self.z
         return Vertex(x, y, z)
-    
-    def __sub__(self, other):
-        if isinstance(other, Vertex):
-            x = self.x - other.x
-            y = self.y - other.y
-            z = self.z - other.z
-            return Vertex(x, y, z)
-        else:
-            return NotImplemented
-    
-    def __mul__(self, other):
-        if isinstance(other, Vertex):
-            return Vertex(self.x*other.x, self.y*other.y, self.z*other.z)
-        else:
-            return Vertex(self.x*other, self.y*other, self.z*other)
-    
-    def __rmul__(self, other):
-        if isinstance(other, Vertex):
-            return Vertex(self.x*other.x, self.y*other.y, self.z*other.z)
-        else:
-            return Vertex(self.x*other, self.y*other, self.z*other)
 
     def __sub__(self, other):
         if isinstance(other, Vertex):
@@ -270,54 +249,14 @@ class Vertex():
         :rtype: np.float64
         '''
         return np.sqrt(np.square(self.x)+np.square(self.y)+np.square(self.z))
-    
-    def unit(self):
-        x = self.x / self.distance()
-        y = self.y / self.distance()
-        z = self.z / self.distance()
-        return Vertex(x, y, z)
-    
-    def extend_to_y(self, y):
-        x = self.x * y / self.y
-        return Vertex(x, y)
-    
-    def extend_to_x(self, x):
-        y = self.y * x / self.x
-        return Vertex(x, y)
-
-class Line:
-    def __init__(self, slope: Vertex, const: Vertex = Vertex(0)) -> None:
-        self.const = const
-        self.slope = slope.unit()
-
-    def __mul__(self, other):
-        return other * self.slope
-
-    def __rmul__(self, other):
-        return other * self.slope
-
-    def vertex_at(self, x: float = None, y: float = None, z: float = None):
-        if x:
-            k = (x - self.const.x) / self.slope.x
-            return Vertex(x, self.const.y + k*self.slope.y, self.const.z + k*self.slope.z)
-        elif y:
-            k = (y - self.const.y) / self.slope.y
-            return Vertex(self.const.x + k*self.slope.x, y,  self.const.z + k*self.slope.z)
-        elif z:
-            k = (z - self.const.z) / self.slope.z
-            return Vertex(self.const.x + k*self.slope.x, self.const.y + k*self.slope.y, z)
-        else:
-            raise CubismError("At least one argument should be provided")
-    
-    def const(self, const: Vertex):
-        return Line(self.slope, const)
 
     def unit(self):
-        if self.distance() == 0:
+        dist = self.distance()
+        if dist == 0:
             return Vertex(0)
-        x = self.x / self.distance()
-        y = self.y / self.distance()
-        z = self.z / self.distance()
+        x = self.x / dist
+        y = self.y / dist
+        z = self.z / dist
         return Vertex(x, y, z)
 
     def extend_to_y(self, y):
@@ -345,6 +284,12 @@ class Line:
             return NotImplemented
         return self.const == other.const and self.slope == other.slope
 
+    def __mul__(self, other):
+        return other * self.slope
+
+    def __rmul__(self, other):
+        return other * self.slope
+
     def vertex_at(self, x: float = None, y: float = None, z: float = None):
         '''Find the vertex on this line with given x, y, or z coordinate
 
@@ -363,19 +308,34 @@ class Line:
             if slope.x == 0:
                 return None
             k = (x - self.const.x) / slope.x
-            return Vertex(x, self.const.y + k*slope.y, self.const.z + k*slope.z)
+            return Vertex(
+                x,
+                self.const.y + k*slope.y,
+                self.const.z + k*slope.z
+                )
         elif y is not None:
             if slope.y == 0:
                 return None
             k = (y - self.const.y) / slope.y
-            return Vertex(self.const.x + k*slope.x, y,  self.const.z + k*slope.z)
+            return Vertex(
+                self.const.x + k*slope.x,
+                y,
+                self.const.z + k*slope.z
+                )
         elif z is not None:
             if slope.z == 0:
                 return None
             k = (z - self.const.z) / slope.z
-            return Vertex(self.const.x + k*slope.x, self.const.y + k*slope.y, z)
+            return Vertex(
+                self.const.x + k*slope.x,
+                self.const.y + k*slope.y,
+                z
+                )
         else:
             raise CubismError("At least one argument should be provided")
+
+    def line_at(self, const: Vertex):
+        return Line(self.slope, const)
 
 
 def make_surface(vertices: list[Vertex], tangent_indices: list[int]):
