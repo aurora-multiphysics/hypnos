@@ -112,6 +112,7 @@ class Tracker:
             cmd(f'block {entity_id} name "{component.identifier}"')
             cmd(f'block {entity_id} add volume {component.volume_id_string()}')
             cmd(f'block {entity_id} material "{component.material}"')
+            add_to_new_entity("group", component.identifier, "volume", component.volume_id_string())
 
         # add groups for each material
         for material_name, vol_id_strings in material_to_volumes.items():
@@ -256,23 +257,11 @@ class Tracker:
         :param root_component: component to name
         :type root_component: GenericComponentAssembly | ComplexComponent
         '''
-        if root_component.classname == root_component.identifier:
-            groupname = self.__make_group_name(root_component.classname)
-            root_component.identifier = groupname
-
-    def __make_group_name(self, classname: str):
-        '''Construct unique group name
-
-        :param classname: Name of component class
-        :type classname: str
-        :return: Name of group
-        :rtype: str
-        '''
-        if classname in self.identifiers.keys():
-            self.identifiers[classname] += 1
-        else:
-            self.identifiers[classname] = 0
-        count = self.identifiers[classname]
-        groupname = f"{classname}{count}"
-        cmd(f'create group "{groupname}"')
-        return groupname
+        classname = root_component.classname
+        # by default the identifier attribute is set to the classname
+        if classname == root_component.identifier:
+            if classname in self.identifiers.keys():
+                self.identifiers[classname] += 1
+            else:
+                self.identifiers[classname] = 0
+            root_component.identifier = f"{classname}{self.identifiers[classname]}"
