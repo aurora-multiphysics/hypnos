@@ -1,4 +1,4 @@
-from blobmaker.tracking import MaterialsTracker
+from blobmaker.tracking import Tracker
 from blobmaker.assemblies import PinAssembly
 from blobmaker.default_params import PIN
 from blobmaker.geometry_maker import GeometryMaker
@@ -26,7 +26,7 @@ def tracker(maker):
 
 # MaterialsTracker tests
 def test_reset():
-    tracker = MaterialsTracker()
+    tracker = Tracker()
     tracker.components = ["test"]
     tracker.blocks = ["test"]
     tracker.sidesets = ["test"]
@@ -51,7 +51,7 @@ def test_reset():
 
 
 def test_extract_components():
-    tracker = MaterialsTracker()
+    tracker = Tracker()
     pin = PinAssembly(PIN)
     components = pin.get_all_components()
     tracker.extract_components(pin)
@@ -80,7 +80,7 @@ def test_track_boundaries(maker):
 
     # check whether sidesets are as expected
     sidesets = set(get_exo_names("sideset"))
-    assert sidesets == set(maker.materials_tracker.sidesets)
+    assert sidesets == set(maker.tracker.sidesets)
     assert sidesets == {
         'cladding0_filter_lid0',
         'cladding0_air',
@@ -102,7 +102,7 @@ def test_track_boundaries(maker):
 
     # check whether blocks are as expected
     blocks = set(get_exo_names("block"))
-    assert blocks == set(maker.materials_tracker.blocks)
+    assert blocks == set(maker.tracker.blocks)
     assert blocks == {
         'filter_lid0',
         'multiplier0',
@@ -116,7 +116,7 @@ def test_track_boundaries(maker):
 
 
 def test_make_boundary_name():
-    tracker = MaterialsTracker()
+    tracker = Tracker()
     int_sep = tracker.internal_separator
     ext_sep = tracker.external_separator
     boundary_name = tracker.make_boundary_name
@@ -142,7 +142,7 @@ def get_subgroup_names(grp_name: str) -> set:
 
 def test_organise_into_groups(maker):
     assert isinstance(maker, GeometryMaker)
-    tracker = maker.materials_tracker
+    tracker = maker.tracker
 
     groups = group_dict().keys()
     assert "materials" in groups
