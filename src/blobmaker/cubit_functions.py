@@ -1,8 +1,10 @@
+'''Wrappers for functions/ processes in cubit'''
+
 from blobmaker.generic_classes import CubismError, CubitInstance, cubit, cmd
 
 
 def initialise_cubit():
-    '''Wrapper for initialising cubit'''
+    '''Initialise an instance of cubit'''
     cubit.init(['cubit', '-nojournal'])
 
 
@@ -10,18 +12,45 @@ def reset_cubit():
     cmd("reset")
 
 
-def get_last_geometry(geometry_type: str):
+def get_last_geometry(geometry_type: str) -> CubitInstance:
     '''Get last created geometry of given type
 
-    :param geometry_type: type of geometry to search for.
-    :type geometry_type: str
-    :return: geometry
-    :rtype: CubitInstance
+    Parameters
+    ----------
+    geometry_type : str
+        Type of geometry
+
+    Returns
+    -------
+    CubitInstance
+        Last created geometry
     '''
     geom_id = cubit.get_last_id(geometry_type)
     return CubitInstance(geom_id, geometry_type)
 
-def cmd_geom(command: str, geom_type: str):
+
+def cmd_geom(command: str, geom_type: str) -> CubitInstance:
+    '''Create a geometry in cubit.
+    Raise an error if creation fails.
+
+    Parameters
+    ----------
+    command : str
+        Cubit command to create geoemtry
+    geom_type : str
+        Type of geometry intended to create
+
+    Returns
+    -------
+    CubitInstance
+        Created geometry
+
+    Raises
+    ------
+    CubismError
+        If geometry type is not recognised.
+        If specified geometry type is not created.
+    '''
     if geom_type not in ["vertex", "curve", "surface", "volume", "body"]:
         raise CubismError(f"Geometry type not recognised: {geom_type}")
     pre_id = cubit.get_last_id(geom_type)
@@ -31,30 +60,59 @@ def cmd_geom(command: str, geom_type: str):
         raise CubismError(f"no new {geom_type} created, last id created: {pre_id}")
     return CubitInstance(post_id, geom_type)
 
-def cmd_group(command: str):
+
+def cmd_group(command: str) -> int:
+    '''Create cubit group.
+    Return 0 if group already exists.
+
+    Parameters
+    ----------
+    command : str
+        Cubit command to create group
+
+    Returns
+    -------
+    int
+        ID of created group, or 0
+    '''
     pre_id = cubit.get_next_group_id() - 1
     cmd(command)
     post_id = cubit.get_next_group_id() - 1
-    if pre_id == post_id: return 0
+    if pre_id == post_id:
+        return 0
     return post_id
 
-def get_id_string(geometry_list: list[CubitInstance]):
-    '''Convert list of CubitInstances to a string of space-separated IDs.
 
-    :param geometry_list: list to convert
-    :type geometry_list: list[CubitInstance]
-    :return: string of IDs
-    :rtype: str
+def get_id_string(geometry_list: list[CubitInstance]) -> str:
+    '''Convert list of geometries to a string of space-separated IDs.
+
+    Parameters
+    ----------
+    geometry_list : list[CubitInstance]
+        Geometries
+
+    Returns
+    -------
+    str
+        String of space-separated IDs
     '''
     return " ".join([str(geometry.cid) for geometry in geometry_list])
 
-def to_owning_body(geometry: CubitInstance):
-    '''Convert entity reference to a reference to it's parent body
 
-    :param geometry: Physical entity to convert
-    :type component: CubitInstance
-    :return: Parent body entity
-    :rtype: CubitInstance
+def to_owning_body(geometry: CubitInstance) -> CubitInstance:
+    '''Convert geometry to a reference to it's parent body.
+    (All geometries like volumes, surfaces, etc. in cubit are
+    part of 'body' entities)
+
+    Parameters
+    ----------
+    geometry : CubitInstance
+        Geometry to convert
+
+    Returns
+    -------
+    CubitInstance
+        Parent body
     '''
     assert isinstance(geometry, CubitInstance)
     if geometry.geometry_type == "body":
@@ -62,13 +120,20 @@ def to_owning_body(geometry: CubitInstance):
     else:
         return CubitInstance(cubit.get_owning_body(geometry.geometry_type, geometry.cid), "body")
 
-def to_volumes(geometry_list: list) -> list[CubitInstance]:
-    '''Turns references to bodies into references to their children volumes.
 
-    :param component_list: List of geometries
-    :type component_list: list[CubitInstance]
-    :return: List of converted geometries
-    :rtype: list[CubitInstance]
+def to_volumes(geometry_list: list[CubitInstance]) -> list[CubitInstance]:
+    '''Turns bodies into references to their children volumes.
+    (All volumes in cubit are owned by 'body' entities)
+
+    Parameters
+    ----------
+    geometry_list : list[CubitInstance]
+        list of bodies
+
+    Returns
+    -------
+    list[CubitInstance]
+        list of children volumes
     '''
     all_volumes_that_exist = cubit.get_entities("volume")
     vol_ids = set([])
@@ -88,13 +153,19 @@ def to_volumes(geometry_list: list) -> list[CubitInstance]:
 
 
 def to_surfaces(component_list: list[CubitInstance]) -> list[CubitInstance]:
-    '''Turns geometries referencing bodies and volumes into
-     geometries referencing their children surfaces.
+    '''Turns bodies and volumes into geometries referencing
+    their children surfaces.
+    (All surfaces and volumes in cubit are owned by 'body' entities)
 
-    :param component_list: List of geometries
-    :type component_list: list[CubitInstance]
-    :return: List of converted geometries
-    :rtype: list[CubitInstance]
+    Parameters
+    ----------
+    component_list : list[CubitInstance]
+        list of bodies and/or volumes
+
+    Returns
+    -------
+    list[CubitInstance]
+        list of surfaces
     '''
     # convert any stray bodies to volumes
     volumes_list = to_volumes(component_list)
@@ -113,13 +184,19 @@ def to_surfaces(component_list: list[CubitInstance]) -> list[CubitInstance]:
     return return_list
 
 
-def to_bodies(component_list: list) -> list[CubitInstance]:
-    '''Turns references to entities into references to their parent bodies.
+def to_bodies(component_list: list[CubitInstance]) -> list[CubitInstance]:
+    '''Turns geometries (surfaces, volumes, etc.) into references
+    to their parent bodies.
 
-    :param component_list: List of geometries
-    :type component_list: list[CubitInstance]
-    :return: List of converted geometries
-    :rtype: list[CubitInstance]
+    Parameters
+    ----------
+    component_list : list[CubitInstance]
+        list of geometries
+
+    Returns
+    -------
+    list[CubitInstance]
+        list of parent bodies
     '''
     bodies_list = []
     for component in component_list:
@@ -135,14 +212,25 @@ def to_bodies(component_list: list) -> list[CubitInstance]:
 
 
 def get_entities_from_group(group_identifier: int | str, entity_type: str) -> list[int]:
-    '''Get specified cubit entity IDs from cubit group
+    '''Get cubit entity IDs from cubit group
 
-    :param group_identifier: ID or name of group
-    :type group_identifier: int | str
-    :param entity_type: Name of entity type
-    :type entity_type: str
-    :return: list of cubit IDs
-    :rtype: list[int]
+    Parameters
+    ----------
+    group_identifier : int | str
+        group ID or name
+    entity_type : str
+        group/ surface/ volume/ etc
+
+    Returns
+    -------
+    list[int]
+        list of IDs
+
+    Raises
+    ------
+    CubismError
+        Group ID/ name not recognised
+        Entity type not recognised
     '''
     if type(group_identifier) is str:
         group_identifier = cubit.get_id_from_name(group_identifier)
@@ -163,17 +251,21 @@ def get_entities_from_group(group_identifier: int | str, entity_type: str) -> li
     else:
         raise CubismError(f"Entity type {entity_type} not recognised")
 
-def add_to_new_entity(entity_type: str, name: str, thing_type: str, things_to_add):
-    '''Create a new group, block, or sideset. Add entities or groups to it.
 
-    :param entity_type: group | block | sideset
-    :type entity_type: str
-    :param name: Name to give group/ block/ sideset
-    :type name: str
-    :param thing_type: Type of entity to add
-    :type thing_type: str
-    :param things_to_add: List or string of corresponding IDs
-    :type things_to_add: list[int] | str
+def add_to_new_entity(entity_type: str, name: str, thing_type: str, things_to_add):
+    '''Create a new group, block, or sideset.
+    Add entities or groups to it.
+
+    Parameters
+    ----------
+    entity_type : str
+        group/ block/ sideset
+    name : str
+        Name of group/block/sideset
+    thing_type : str
+        What to add to entity
+    things_to_add : int/ list[int]
+        IDs of said thing
     '''
     if entity_type in ["block", "sideset"]:
         entity_id = cubit.get_next_block_id() if entity_type == "block" else cubit.get_next_sideset_id()
@@ -192,17 +284,22 @@ def add_to_new_entity(entity_type: str, name: str, thing_type: str, things_to_ad
     cmd(f"{entity_type} {entity_id} add {thing_type} {things_to_add}")
 
 
-def subtract(subtract_from: list[CubitInstance], subtract: list[CubitInstance], destroy=True):
+def subtract(subtract_from: list[CubitInstance], subtract: list[CubitInstance], destroy=True) -> list[CubitInstance]:
     '''Subtract some geometries from others.
 
-    :param subtract_from: geometries to subtract from
-    :type subtract_from: list[CubitInstance]
-    :param subtract: geometries to be subtracted
-    :type subtract: list[CubitInstance]
-    :param destroy: whether or not to destroy original geometries, defaults to True
-    :type destroy: bool
-    :return: geometries resulting from subtraction
-    :rtype: list[CubitInstance]
+    Parameters
+    ----------
+    subtract_from : list[CubitInstance]
+        Geometries to be subtracted from
+    subtract : list[CubitInstance]
+        Geometries to subtract
+    destroy : bool, optional
+        whether to destroy original geometries, by default True
+
+    Returns
+    -------
+    list[CubitInstance]
+        list of subtracted geometries
     '''
     from_ids = {body.cid for body in to_bodies(subtract_from)}
     subtract_from = [body.handle for body in to_bodies(subtract_from)]
@@ -223,15 +320,21 @@ def subtract(subtract_from: list[CubitInstance], subtract: list[CubitInstance], 
         subtract_ids = list(post_ids.difference(pre_ids))
     return [CubitInstance(sub_id, "body") for sub_id in subtract_ids]
 
+
 def union(geometries: list[CubitInstance], destroy=True):
     '''Take the union of a list of geometries
 
-    :param geometries: Geometries to unite
-    :type geometries: list[CubitInstance]
-    :param destroy: whether to destroy the original geometries , defaults to True
-    :type destroy: bool, optional
-    :return: list of volumes created in union
-    :rtype: list[CubitInstance]
+    Parameters
+    ----------
+    geometries : list[CubitInstance]
+        list of geometries to union
+    destroy : bool, optional
+        whether to destroy original , by default True
+
+    Returns
+    -------
+    list[CubitInstance]
+        list of union'd geometries
     '''
     as_vols = to_volumes(geometries)
     vol_ids = {vol.cid for vol in as_vols}
