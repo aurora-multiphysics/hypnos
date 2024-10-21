@@ -1,3 +1,6 @@
+'''Tracks blocks, sidesets, and groups for components and their boundaries
+'''
+
 from blobmaker.components import SimpleComponent
 from blobmaker.assemblies import GenericComponentAssembly
 from blobmaker.generic_classes import CubismError, cubit, cmd
@@ -28,8 +31,10 @@ class Tracker:
     def extract_components(self, root_component):
         '''Get all components stored in root and their materials.
 
-        :param root_component: component to track
-        :type root_component: SimpleComponent | GenericComponentAssembly
+        Parameters
+        ----------
+        root_component : SimpleComponent | GenericComponentAssembly
+            component to track
         '''
         if isinstance(root_component, SimpleComponent):
             self.components += [root_component]
@@ -41,8 +46,8 @@ class Tracker:
     def track_boundaries(self):
         '''Find boundaries between simple components.
         Make component-component and material-material groups.
-        Add simple components to blocks.
-        Add component interfaces to sidesets.
+        Add simple components to blocks and groups.
+        Add component interfaces to sidesets and groups.
         '''
         # surface ID : [index of component on either side of surface]
         surface_to_comp_id = {}
@@ -134,7 +139,21 @@ class Tracker:
         self.materials_to_sidesets = materials_to_sidesets
         self.types_to_sidesets = components_to_sidesets
 
-    def make_boundary_name(self, parts_of_name: list[str], internal=False):
+    def make_boundary_name(self, parts_of_name: list[str], internal=False) -> str:
+        '''Generate a standardised boundary name
+
+        Parameters
+        ----------
+        parts_of_name : list[str]
+            list of components or materials
+        internal : bool, optional
+            whether this name is only to be used internally, by default False
+
+        Returns
+        -------
+        str
+            standardised boundary name
+        '''
         separator = self.internal_separator if internal else self.external_separator
         if len(parts_of_name) == 1:
             return parts_of_name[0] + separator + "air"
@@ -144,7 +163,7 @@ class Tracker:
             return separator.join(p_o_n)
 
     def organise_into_groups(self):
-        '''Create groups for material, component, component boundary, 
+        '''Create groups for material, component, component boundary,
         and material boundary groups in cubit'''
 
         add_to_new_entity("group", "materials", "group", list(self.materials))
@@ -153,7 +172,7 @@ class Tracker:
         add_to_new_entity("group", "material_boundaries", "group", self.material_boundaries)
 
     def reset(self):
-        '''Reset internal states
+        '''Reset internal state
         '''
         self.components = []
         self.materials = set()
@@ -172,50 +191,64 @@ class Tracker:
         For example the block corresponding to coolant0 is
         named coolant0.
 
-        :return: list of names
-        :rtype: list[str]
+        Returns
+        -------
+        list[str]
+            list of block names
         '''
         return self.blocks
 
     def get_sidesets(self) -> list[str]:
-        '''Get names of created sidesets. 
+        '''Get names of created sidesets.
         Sidesets are named according to the names of the simple
         components on either side. For example the sideset between
-        coolant0 and cladding0 is coolant0_cladding0. Sidesets not 
+        coolant0 and cladding0 is coolant0_cladding0. Sidesets not
         at interfaces are named like <component_name>_air.
 
-        :return: list of names
-        :rtype: list[str]
+        Returns
+        -------
+        list[str]
+            list of sideset names
         '''
         return self.sidesets
 
     def get_blocks_of_material(self, material: str) -> list[str]:
         '''Get blocks of simple components made of specified material
 
-        :param material: name of material
-        :type material: str
-        :return: list of block names
-        :rtype: list[str]
+        Parameters
+        ----------
+        material : str
+            name of material
+
+        Returns
+        -------
+        list[str]
+            block names made of that material
         '''
         return [component.identifier for component in self.components if component.material == material]
 
-    def get_block_types(self):
+    def get_block_types(self) -> list[str]:
         '''Get block types. These are the same as the types of simple components.
         For example the type of coolant1 is coolant.
 
-        :return: list of names
-        :rtype: list[str]
+        Returns
+        -------
+        list[str]
+            list of block types
         '''
         return list({comp.classname for comp in self.components})
 
     def get_sidesets_between_components(self, *types: str) -> list[str]:
-        '''Get sidesets between specified simple component types. 
-        Providing only 1 type will assume the other side of the interface to be 'air'
+        '''Get sidesets between specified simple component types.
+        Providing only 1 type will assume that the other side of the
+        interface is 'air'
 
-        :return: list of sideset names
-        :rtype: list[str] | None
+        Returns
+        -------
+        list[str]
+            list of sidesets
         '''
-        if not 0 <len(types) <= 2:
+        if not 0 < len(types) <= 2:
             print("No boundaries can exist between provided number of types")
             return None
         type_ref = self.make_boundary_name(list(types), True)
@@ -225,6 +258,14 @@ class Tracker:
         return list(self.types_to_sidesets[type_ref])
 
     def get_sidesets_between_materials(self, *materials: str) -> list[str]:
+        '''Get all sidesets between components made of these materials.
+        Providing only 1 material will assume the other to be 'air'.
+
+        Returns
+        -------
+        list[str]
+            list of sidesets
+        '''
         if not 0 < len(materials) <= 2:
             print("No boundaries can exist between provided number of types")
             return None
@@ -235,10 +276,13 @@ class Tracker:
         return list(self.materials_to_sidesets[type_ref])
 
     def give_identifiers(self, root_component):
-        '''Give every component a unique identifier
+        '''Give every component a unique identifier recursively,
+        if it doesn't already have one
 
-        :param root_component: Component
-        :type root_component: GenericComponentAssembly | SimpleComponent
+        Parameters
+        ----------
+        root_component : GenericComponentAssembly
+            top-level component class
         '''
         # if this is a simple component, give it a unique identifier
         if isinstance(root_component, SimpleComponent):
@@ -251,17 +295,19 @@ class Tracker:
         else:
             raise CubismError(f'Component not recognised: {root_component}')
 
-    def __name_component(self, root_component: GenericComponentAssembly | SimpleComponent):
+    def __name_component(self, comp: GenericComponentAssembly | SimpleComponent):
         '''If component doesn't already have a unique identifier, give it one
 
-        :param root_component: component to name
-        :type root_component: GenericComponentAssembly | ComplexComponent
+        Parameters
+        ----------
+        root_component : GenericComponentAssembly | SimpleComponent
+            component_to_name
         '''
-        classname = root_component.classname
+        classname = comp.classname
         # by default the identifier attribute is set to the classname
-        if classname == root_component.identifier:
+        if classname == comp.identifier:
             if classname in self.identifiers.keys():
                 self.identifiers[classname] += 1
             else:
                 self.identifiers[classname] = 0
-            root_component.identifier = f"{classname}{self.identifiers[classname]}"
+            comp.identifier = f"{classname}{self.identifiers[classname]}"
