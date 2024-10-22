@@ -192,7 +192,7 @@ def arctan(opposite: float, adjacent: float):
 
 
 class Vertex():
-    '''Representation of a vertex'''
+    '''Representation of a vertex. Attributes are 3D coordinates.'''
     def __init__(self, x: int, y=0, z=0) -> None:
         self.x = x
         self.y = y
@@ -351,6 +351,13 @@ class Vertex():
 class Line:
     '''Helps with calculations involving points on a line
     defined by a point + slope
+
+    Attributes
+    ----------
+    const: Vertex
+        Point the line passes through
+    slope: Vertex
+        Direction the line points in
     '''
     def __init__(self, slope: Vertex, const: Vertex = Vertex(0)) -> None:
         self.const = const

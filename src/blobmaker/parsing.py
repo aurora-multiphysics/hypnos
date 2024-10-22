@@ -113,6 +113,7 @@ class ParameterFiller():
             print(message)
 
     def __prereq_check(self):
+        '''Ensure design tree has a class'''
         try:
             if type(self.design_tree["class"]) is not str:
                 raise CubismError("json object class must be a string")
@@ -120,6 +121,7 @@ class ParameterFiller():
             raise CubismError("All json objects need to have a class")
 
     def __get_config(self):
+        '''Fetch default config for given class if it exists'''
         for default_class in DEFAULTS:
             if default_class["class"].lower() == self.design_tree["class"].lower():
                 return copy.deepcopy(default_class)
@@ -127,6 +129,21 @@ class ParameterFiller():
         return False
 
     def __fill_params(self, design_tree: dict, config: dict):
+        '''Fill any missing parameters of given dict by
+        comparing it's keys to the default config's keys
+
+        Parameters
+        ----------
+        design_tree : dict
+            Dictionary to compare to default
+        config : dict
+            Default key-value pairs for the given class
+
+        Returns
+        -------
+        dict
+            Filled-out dict 
+        '''
         design_tree = self.__setup_tree(design_tree)
         # we look at every key-value pair in the default dictionary
         for key, default_value in config.items():
@@ -147,6 +164,7 @@ class ParameterFiller():
         return design_tree
 
     def __setup_tree(self, design_tree: dict):
+        '''Start logging a class and process any references to filenames'''
         if "class" in design_tree.keys():
             self.add_log(f"---------- Logging class: {design_tree['class']} ----------")
         if "components" in design_tree.keys():
@@ -154,6 +172,8 @@ class ParameterFiller():
         return design_tree
 
     def __cleanup_logs(self, design_tree: dict, config: dict):
+        '''Log if design_tree has any keys missing from the config,
+        Finish logging class'''
         for key in list(set(design_tree.keys()) - set(config.keys())):
             self.add_log(f"key {key} not in default config")
         if "class" in design_tree.keys():
