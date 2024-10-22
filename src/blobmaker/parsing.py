@@ -1,3 +1,6 @@
+'''Classes and functions to process json files describing the parameters
+'''
+
 import json
 import copy
 from blobmaker.default_params import DEFAULTS
@@ -5,6 +8,18 @@ from blobmaker.generic_classes import CubismError
 
 
 def extract_data(filename) -> dict:
+    '''Load dictionary from a json file
+
+    Parameters
+    ----------
+    filename : str
+        path to json file
+
+    Returns
+    -------
+    dict
+        data inside json file
+    '''
     with open(filename) as jsonFile:
         data = jsonFile.read()
         objects = json.loads(data)
@@ -12,12 +27,36 @@ def extract_data(filename) -> dict:
 
 
 def extract_if_string(possible_filename):
+    '''If the input is a string, try to use extract_data
+
+    Parameters
+    ----------
+    possible_filename : any
+        input to check
+
+    Returns
+    -------
+    any
+        if the input was a filename, this will be a dict
+    '''
     if type(possible_filename) is str:
         return extract_data(possible_filename)
     return possible_filename
 
 
 def delve(component_obj: list | dict):
+    '''Ensure any strings in lists or dictionary values are processed
+
+    Parameters
+    ----------
+    component_obj : list | dict
+        object to check for strings
+
+    Returns
+    -------
+    list | dict
+        appropriately processed json object
+    '''
     if type(component_obj) is dict:
         return {comp_key: extract_if_string(comp_value) for comp_key, comp_value in component_obj.items()}
     elif type(component_obj) is list:
@@ -28,15 +67,39 @@ def delve(component_obj: list | dict):
 
 
 class ParameterFiller():
+    '''Process json files. Fill in missed input parameters with defaults.
+
+    Attributes
+    ----------
+    log: list
+        stores info about the json processing step
+    design_tree: dict
+        stores the design tree for the geometry we want to construct
+    config: dict
+        stores the default configuration for our design tree (if any)
+    '''
     def __init__(self):
         self.log = []
         self.design_tree = {}
         self.config = {}
 
     def add_log(self, message: str):
+        '''Add message to log'''
         self.log.append(message)
 
-    def process_design_tree(self, design_tree: dict):
+    def process_design_tree(self, design_tree: dict) -> dict:
+        '''Fill in missing parameters of design tree with default config values
+
+        Parameters
+        ----------
+        design_tree : dict
+            Parametrical description of geometry
+
+        Returns
+        -------
+        dict
+            Filled design tree
+        '''
         self.design_tree = design_tree
         self.__prereq_check()
         self.config = self.__get_config()
@@ -45,6 +108,7 @@ class ParameterFiller():
         return self.design_tree
 
     def print_log(self):
+        '''Print messages in log'''
         for message in self.log:
             print(message)
 
@@ -95,7 +159,20 @@ class ParameterFiller():
         if "class" in design_tree.keys():
             self.add_log(f"---------- Finished logging class: {design_tree['class']} ----------")
 
-def get_format_extension(format_type: str):
+
+def get_format_extension(format_type: str) -> str:
+    '''Get the extension given a file format
+
+    Parameters
+    ----------
+    format_type : str
+        file format
+
+    Returns
+    -------
+    str
+        file extension
+    '''
     format_type = format_type.lower()
     if format_type == "cubit" or "cub5" in format_type:
         return ".cub5"
