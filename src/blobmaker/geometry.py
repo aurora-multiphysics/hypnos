@@ -1,4 +1,23 @@
-'''Functions and classes to help with geometrical calculations in cubit'''
+"""
+Functions and classes to help with geometrical calculations in cubit
+
+Functions
+---------
+create_2d_vertex: x-y plane vertex in 3D space
+connect_vertices_straight: connect with straight curve
+connect_vertices_tangentially: connect along tangent curves
+make_surface_from_curves: make surface from bounding curves
+make_cylinder_along: make cylinder along an cartesian axis
+make_loop: connect many vertices with curves
+hypotenuse: square of sum of roots
+arctan: arctan -> (0, pi)
+make_surface: make surface from bounding vertices
+
+Classes
+-------
+Vertex: Representation of a vertex in 3D space
+Line: Representation of a line in point-slope form
+"""
 
 
 from blobmaker.generic_classes import CubitInstance, CubismError, cmd
