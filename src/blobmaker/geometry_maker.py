@@ -90,7 +90,7 @@ class GeometryMaker():
         print(f"Delimiter changed to: {delimiter}")
 
     def change_params(self, updated_params: dict):
-        '''Change parameters in stored design tree.
+        r'''Change parameters in stored design tree.
         A parameter is referenced using it's path.
         This path is a string of the keys that are
         used to access that parameter in the json file.
@@ -120,7 +120,7 @@ class GeometryMaker():
             self.design_tree = self.__build_param_dict(key_route, self.design_tree, updated_value)
 
     def get_param(self, param_path: str):
-        '''Get parameter in stored design tree.
+        r'''Get parameter in stored design tree.
         A parameter is referenced using it's path.
 
         For example to get the value of the parameter 'pin spacing' here:

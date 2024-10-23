@@ -5,16 +5,13 @@ import cubit
 
 # every cubit CL command should use this
 def cmd(command: str):
-    '''Wrapper for cubit commands
-    '''
+    '''Wrapper for cubit commands'''
     cubit.silent_cmd(command)
 
 
 # everything in cubit will need to be referenced by a geometry type and id
 class CubitInstance:
-    '''
-    Wrapper for cubit geometry.
-    '''
+    '''Wrapper for cubit geometry.'''
     def __init__(self, cid: int, geometry_type: str) -> None:
         self.cid = cid
         self.geometry_type = geometry_type
@@ -77,17 +74,21 @@ class CubitInstance:
         self.handle = get_cubit_geometry(cid, geometry_type)
 
 
-# make finding instances less annoying - used by CubitInstance
+# make finding handles less annoying - used by CubitInstance
 def get_cubit_geometry(geometry_id: int, geometry_type: str):
     '''Returns cubit instance given id and geometry type
 
-    :param geometry_id: Cubit ID of geometry
-    :type geometry_id: int
-    :param geometry_type: Cubit geometry type
-    (body/volume/surface/curve/vertex)
-    :type geometry_type: str
-    :raises CubismError: If geometry type provided is not recognised
-    :return: Cubit handle of geometry
+    Parameters
+    ----------
+    geometry_id : int
+        cubit id of geometry
+    geometry_type : str
+        geometry type
+
+    Returns
+    -------
+    cubit.geom_entitiy
+        corresponding cubit handle for the geometry
     '''
     if geometry_type == "body":
         return cubit.body(geometry_id)

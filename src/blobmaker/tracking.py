@@ -295,7 +295,7 @@ class Tracker:
         else:
             raise CubismError(f'Component not recognised: {root_component}')
 
-    def __name_component(self, comp: GenericComponentAssembly | SimpleComponent):
+    def __name_component(self, comp):
         '''If component doesn't already have a unique identifier, give it one
 
         Parameters

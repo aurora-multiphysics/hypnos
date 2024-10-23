@@ -74,7 +74,7 @@ class SimpleComponent:
             raise TypeError("Origin should be represented using a Vertex")
         return json_object["geometry"], json_object["material"], origin
 
-    def add_to_subcomponents(self, subcomponents: CubitInstance | list[CubitInstance]):
+    def add_to_subcomponents(self, subcomponents: list[CubitInstance]):
         '''Add geometries to self.subcomponents
 
         Parameters
