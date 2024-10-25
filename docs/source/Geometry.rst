@@ -9,5 +9,18 @@ Geometry
 
 .. autofunction:: connect_curves_tangentially
 
-.. autoclass:: Vertex2D
-    :members:
+.. autofunction:: make_surface_from_curves
+
+.. autofunction:: make_cylinder_along
+
+.. autofunction:: make_loop
+
+.. autofunction:: hypotenuse
+
+.. autofunction:: arctan
+
+.. autofunction:: make_surface
+
+.. autoclass:: Vertex
+
+.. autoclass:: Line
