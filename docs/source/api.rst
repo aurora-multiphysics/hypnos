@@ -2,10 +2,10 @@ API
 ===
 
 .. toctree:: 
+    GeometryMaker
     Assemblies
     Components
     Cubit Functions
     Generic Classes
     Geometry
-    Materials
-    Misc
+    Tracking

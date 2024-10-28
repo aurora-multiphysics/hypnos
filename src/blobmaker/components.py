@@ -1,7 +1,24 @@
+'''Simple Components
+These are components that contain a volume/s made of a single material
+'''
+
 from blobmaker.constants import BLOB_CLASSES
 from blobmaker.generic_classes import CubismError, CubitInstance, cmd, cubit
-from blobmaker.cubit_functions import to_volumes, to_bodies, get_last_geometry, subtract, cmd_geom
-from blobmaker.geometry import make_cylinder_along, Vertex, make_surface, hypotenuse, arctan, Line
+from blobmaker.cubit_functions import (
+    to_volumes,
+    to_bodies,
+    get_last_geometry,
+    subtract,
+    cmd_geom
+    )
+from blobmaker.geometry import (
+    make_cylinder_along,
+    Vertex,
+    make_surface,
+    hypotenuse,
+    arctan,
+    Line
+    )
 import numpy as np
 
 
@@ -12,9 +29,9 @@ class ExternalComponent(CubitInstance):
 
 
 class SimpleComponent:
-    '''Base class for simple components. 
+    '''Base class for simple components.
     These are intended to be the smallest functional unit of a single material.
-    They may comprise of multiple volumes/ may not be 'simple' geometrically
+    They may comprise multiple volumes/ may not be 'simple' geometrically.
     '''
     def __init__(self, classname, json_object: dict):
         self.subcomponents = []
@@ -28,33 +45,42 @@ class SimpleComponent:
             self.move(self.origin)
 
     def __get_top_level_info(self, json_object: dict):
-        '''Get top-level information and ensure proper types
+        '''Get top-level information from parameter dict and
+        ensure proper datatypes
 
-        :param json_object: Input json-formatted info
-        :type json_object: dict
-        :return: Geometry, material, and origin
-        :rtype: dict, str, Vertex
+        Parameters
+        ----------
+        json_object : dict
+            parameters necessary to instantiate this component
+
+        Returns
+        -------
+        dict, str, Vertex
+            Unpacked parameterical information
         '''
         if "geometry" not in json_object.keys():
             raise CubismError(f"Component {self.classname} requires geometry")
         elif type(json_object["geometry"]) is not dict:
-            raise TypeError("Geometry info should be represented as a dictionary")
+            raise TypeError("Geometrical parameters should be given as a dictionary")
         elif "material" not in json_object.keys():
             raise CubismError(f"Component {self.classname} requires a material")
         elif type(json_object["material"]) is not str:
             raise TypeError("Material should be given as a string")
         origin = json_object["origin"] if "origin" in json_object.keys() else Vertex(0)
-        if type(origin) is list:
+        # acceptable but not preferred
+        if type(origin) is list and len(origin) == 3:
             origin = Vertex(origin[0], origin[1], origin[2])
         elif type(origin) is not Vertex:
             raise TypeError("Origin should be represented using a Vertex")
         return json_object["geometry"], json_object["material"], origin
 
-    def add_to_subcomponents(self, subcomponents: CubitInstance | list[CubitInstance]):
-        '''Add geometry/ies to subcomponents attribute
+    def add_to_subcomponents(self, subcomponents: list[CubitInstance]):
+        '''Add geometries to self.subcomponents
 
-        :param subcomponents: Geometry or geometries
-        :type subcomponents: CubitInstance | list[CubitInstance]
+        Parameters
+        ----------
+        subcomponents : CubitInstance | list[CubitInstance]
+            geometry/ies to add
         '''
         if isinstance(subcomponents, CubitInstance):
             self.subcomponents.append(subcomponents)
@@ -64,7 +90,8 @@ class SimpleComponent:
                     self.subcomponents.append(subcomponent)
 
     def make_geometry(self):
-        '''create geometry in cubit. if the class is a blob, make it.'''
+        '''create geometry in cubit.
+        if the class is a blob, make it.'''
         if self.classname in BLOB_CLASSES:
             return self.__create_cubit_blob(self.geometry)
         else:
@@ -103,7 +130,7 @@ class SimpleComponent:
         return CubitInstance(cid, "volume")
 
     def as_bodies(self):
-        '''Convert subcomponent references to references to their owning bodies'''
+        '''Convert subcomponents to references to their owning bodies'''
         self.subcomponents = to_bodies(self.subcomponents)
 
     def as_volumes(self):
@@ -112,17 +139,52 @@ class SimpleComponent:
         self.subcomponents = to_volumes(self.subcomponents)
 
     def get_subcomponents(self) -> list[CubitInstance]:
+        '''Get contained geometries'''
         return self.subcomponents
 
-    def get_parameters(self, parameters: list):
+    def get_parameters(self, parameters: list) -> list:
+        '''Get values of geometrical parameters
+
+        Parameters
+        ----------
+        parameters : list[str]
+            list of parameters
+
+        Returns
+        -------
+        list
+            list of corresponding values
+        '''
         return [self.geometry[parameter] for parameter in parameters]
 
     def move(self, vector: Vertex):
+        '''Move contained geometries
+
+        Parameters
+        ----------
+        vector : Vertex
+            Vector to translate by
+        '''
         for subcomponent in self.subcomponents:
             if isinstance(subcomponent, CubitInstance):
                 cmd(f"{str(subcomponent)} move {str(vector)}")
 
-    def extract_parameters(self, parameters):
+    def extract_parameters(self, parameters) -> dict:
+        '''Get values of geometrical parameters.
+
+        Parameters
+        ----------
+        parameters : list | dict
+            list - get corresponding values of parameters,
+            i.e. returned dict will look like {key : value}
+            dict - {search_key : output_key},
+            i.e. returned dict will look like {output_key : value}
+
+        Returns
+        -------
+        dict
+            key-value pairs as described above
+        '''
         out_dict = {}
         if type(parameters) is list:
             for parameter in parameters:
@@ -137,13 +199,27 @@ class SimpleComponent:
     def check_sanity(self):
         pass
 
-    def set_mesh_size(self, size: int):
+    def set_mesh_size(self, size: float):
+        '''Set approximate mesh size of geometries
+
+        Parameters
+        ----------
+        size : float
+            Approximate mesh size
+        '''
         for subcomponent in self.get_subcomponents():
             cmd(f"{subcomponent.geometry_type} {subcomponent.cid} size {size}")
-    
-    def volume_id_string(self):
+
+    def volume_id_string(self) -> str:
+        '''Space-separated string of volume IDs.
+
+        Returns
+        -------
+        str
+            volume ID string
+        '''
         self.as_volumes()
-        return " ".join([str(subcomponent.cid) for subcomponent in self.get_subcomponents()]) 
+        return " ".join([str(subcomponent.cid) for subcomponent in self.get_subcomponents()])
 
 
 class SurroundingWallsComponent(SimpleComponent):
@@ -196,6 +272,7 @@ class BreederComponent(SimpleComponent):
 class StructureComponent(SimpleComponent):
     def __init__(self, json_object):
         super().__init__("structure", json_object)
+
 
 class WallComponent(SimpleComponent):
     def __init__(self, json_object):
@@ -789,7 +866,7 @@ class FirstWallComponent(SimpleComponent):
 
         # cubit.move(first_wall.cubitInstance, [0,0,length])
         return first_wall
-    
+
     def make_channel_volume(self, vertices):
         geometry = self.geometry
         # get first wall params

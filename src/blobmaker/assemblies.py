@@ -1,27 +1,32 @@
+'''Assembly classes and construct function.
+Assembly classes organise the arrangement of their children component classes,
+for example a Pin would consist of Cladding, Breeder, Coolant, etc. components.
+'''
+
 from blobmaker.generic_classes import CubismError, CubitInstance, cmd, cubit
-from blobmaker.components import ( 
-    ExternalComponent, 
-    SimpleComponent, 
-    SurroundingWallsComponent, 
-    AirComponent, 
-    BreederComponent, 
-    StructureComponent, 
-    WallComponent, 
-    CladdingComponent, 
-    PinCoolant, 
-    PressureTubeComponent, 
-    FilterLidComponent, 
-    PurgeGasComponent, 
-    FilterDiskComponent, 
-    MultiplierComponent, 
-    PinBreeder, 
-    FirstWallComponent, 
-    BZBackplate, 
-    PurgeGasPlate, 
-    FrontRib, 
-    BackRib, 
-    CoolantOutletPlenum, 
-    SeparatorPlate, 
+from blobmaker.components import (
+    ExternalComponent,
+    SimpleComponent,
+    SurroundingWallsComponent,
+    AirComponent,
+    BreederComponent,
+    StructureComponent,
+    WallComponent,
+    CladdingComponent,
+    PinCoolant,
+    PressureTubeComponent,
+    FilterLidComponent,
+    PurgeGasComponent,
+    FilterDiskComponent,
+    MultiplierComponent,
+    PinBreeder,
+    FirstWallComponent,
+    BZBackplate,
+    PurgeGasPlate,
+    FrontRib,
+    BackRib,
+    CoolantOutletPlenum,
+    SeparatorPlate,
     FWBackplate
 )
 from blobmaker.cubit_functions import to_volumes, get_entities_from_group
@@ -49,13 +54,18 @@ class GenericComponentAssembly:
         self.components = []
 
     # 'geometries' refer to CubitInstance objects
-    def get_geometries_from(self, class_list: list) -> list[CubitInstance]:
-        '''Get list of geometries under given classnames
+    def get_geometries_from(self, class_list: list[str]) -> list[CubitInstance]:
+        '''Get list of geometries with given classnames
 
-        :param classname_list: list of classnames to search under
-        :type classname_list: list
-        :return: list of geometries
-        :rtype: list[CubitInstance]
+        Parameters
+        ----------
+        class_list : list[str]
+            list of classnames
+
+        Returns
+        -------
+        list[CubitInstance]
+            list of geometries
         '''
         component_list = []
         for component in self.get_components():
@@ -70,12 +80,18 @@ class GenericComponentAssembly:
         return component_list
 
     def find_parent_component(self, geometry: CubitInstance):
-        '''Get owning simple component of given geometry
+        '''If this assembly contains given geometry, return owning component.
+        Else return None.
 
-        :param geometry: Child geometry
-        :type geometry: CubitInstance
-        :return: Parent simple component or False if not found
-        :rtype: SimpleComponent | False
+        Parameters
+        ----------
+        geometry : CubitInstance
+            Child geometry
+
+        Returns
+        -------
+        SimpleComponent | None
+            Parent component | None
         '''
         for component in self.get_components():
             if isinstance(component, SimpleComponent):
@@ -87,13 +103,15 @@ class GenericComponentAssembly:
                 found_component = component.find_parent_component(geometry)
                 if found_component:
                     return found_component
-        return False
+        return None
 
     def get_all_geometries(self) -> list[CubitInstance]:
         '''Get every geometry stored in this assembly instance recursively
 
-        :return: list of GenericCubitInstances
-        :rtype: list
+        Returns
+        -------
+        list[CubitInstance]
+            list of geometries
         '''
         instances_list = []
         for component in self.get_components():
@@ -110,53 +128,78 @@ class GenericComponentAssembly:
         return [volume.cid for volume in volumes_list]
 
     def get_components(self) -> list:
-        '''Return all components stored in this assembly at the top-level
+        '''Return components stored in this assembly at the top-level,
+        i.e. SimpleComponents and GenericComponentAssemblys, if any.
 
-        :return: List of components
-        :rtype: list
+        Returns
+        -------
+        list
+            list of components
         '''
         return self.components
-    
+
     def get_all_components(self) -> list[SimpleComponent]:
         '''Return all simple components stored in this assembly recursively
 
-        :return: List of components
-        :rtype: list[SimpleComponent]
+        Returns
+        -------
+        list[SimpleComponent]
+            list of simple components
         '''
         instances_list = []
         for component in self.get_components():
-            if isinstance(component,SimpleComponent):
+            if isinstance(component, SimpleComponent):
                 instances_list.append(component)
             elif isinstance(component, GenericComponentAssembly):
                 instances_list.extend(component.get_all_components())
-            else:
-                raise CubismError(f"Assembly {self.identifier} not trackable")
         return instances_list
 
-    def get_components_of_class(self, class_list: list) -> list:
-        '''Find components of given classes recursively
+    def get_components_of_class(self, classes: list) -> list:
+        '''Find components of with given classnames.
+        Searches through assemblies recursively.
 
-        :param class_list: List of classes to search for
-        :type class_list: list
-        :return: List of components
-        :rtype: list
+        Parameters
+        ----------
+        classes : list
+            list of component classes
+
+        Returns
+        -------
+        list
+            list of components
         '''
         component_list = []
-        if type(class_list) is not list:
-            class_list = [class_list]
+        if type(classes) is not list:
+            classes = [classes]
         for component in self.get_components():
-            for component_class in class_list:
+            for component_class in classes:
                 if isinstance(component, component_class):
                     component_list.append(component)
-                if isinstance(component, GenericComponentAssembly):
-                    component_list += component.get_components_of_class(class_list)
+                elif isinstance(component, GenericComponentAssembly):
+                    component_list += component.get_components_of_class(classes)
         return component_list
 
     def move(self, vector: Vertex):
-        for component in self.get_components():
+        '''Translate all children components by given vector in cubit
+
+        Parameters
+        ----------
+        vector : Vertex
+            vector to translate by
+        '''
+        for component in self.get_all_components():
             component.move(vector)
 
-    def set_mesh_size(self, component_classes: list, size: int):
+    def set_mesh_size(self, component_classes: list[str], size: float):
+        '''Set approximate mesh size of components with specified classnames
+
+        Parameters
+        ----------
+        component_classes : list[str]
+            components to set mesh size for
+        size : float
+            approximate mesh size
+        '''
         component_classes = [globals()[CLASS_MAPPING[classname]] for classname in component_classes]
         components = self.get_components_of_class(component_classes)
         for component in components:
@@ -168,7 +211,8 @@ class GenericComponentAssembly:
 
 class CreatedComponentAssembly(GenericComponentAssembly):
     '''
-    Assembly to handle components created natively. Takes a list of required classnames to set up a specific assembly. 
+    Assembly to handle components created natively.
+    Takes a list of required classnames to set up a specific assembly.
     Instantiating will fail without at least one component of the given classnames.
     '''
     def __init__(self, classname, required_classnames: list, json_object: dict):
@@ -187,9 +231,7 @@ class CreatedComponentAssembly(GenericComponentAssembly):
         self.move(self.origin)
 
     def check_for_overlaps(self):
-        '''Blanket check for overlaps
-
-        :raises CubismError: Raises if overlaps are detected
+        '''Raise an error if any overlaps exist between children volumes
         '''
         volume_ids_list = [i.cid for i in to_volumes(self.get_all_geometries())]
         overlaps = cubit.get_overlapping_volumes(volume_ids_list)
@@ -198,7 +240,8 @@ class CreatedComponentAssembly(GenericComponentAssembly):
             raise CubismError(f"The following components have overlaps: {overlapping_components}")
 
     def enforce_structure(self):
-        '''Make sure an instance of this class contains the required components. This looks at the classnames specified in the json file'''
+        '''Make sure an instance of this class contains the required
+        components. This looks at the classnames specified in the json file'''
         class_list = [i["class"] for i in self.component_list]
         for classes_required in self.required_classnames:
             if classes_required not in class_list:
@@ -206,19 +249,21 @@ class CreatedComponentAssembly(GenericComponentAssembly):
                 raise CubismError(f"This assembly must contain: {self.required_classnames}. Currently contains: {class_list}")
 
     def setup_assembly(self):
-        '''Add components to attributes according to their class'''
+        '''Instantiate components in cubit'''
         for component_json_dict in self.component_list:
             self.components.append(construct(component_json_dict))
 
-    def rotate(self, angle, origin: Vertex, axis=Vertex(0, 0, 1)):
-        '''Rotate about a point+axis (IN DEGREES)
+    def rotate(self, angle: float, origin: Vertex = Vertex(0, 0, 0), axis: Vertex = Vertex(0, 0, 1)):
+        '''Rotate geometries about a given axis
 
-        :param angle: Angle to rotate by in degrees
-        :type angle: int
-        :param origin: centre of rotation
-        :type origin: Vertex
-        :param axis: axis to rotate about, defaults to Vertex(0,0,1)
-        :type axis: Vertex, optional
+        Parameters
+        ----------
+        angle : float
+            Angle to rotate by IN DEGREES
+        origin : Vertex
+            Point to rotate about, by default 0, 0, 0
+        axis : Vertex, optional
+            axis to rotate about, by default z-axis
         '''
         if origin == "origin":
             origin = self.origin
@@ -231,6 +276,9 @@ class CreatedComponentAssembly(GenericComponentAssembly):
                     cmd(f"rotate {subcomponent.geometry_type} {subcomponent.cid} about origin {str(origin)} direction {str(axis)} angle {angle}")
 
     def check_sanity(self):
+        '''Check whether geometrical parameters are physical on the
+        assembly level.
+        '''
         pass
 
 
@@ -266,7 +314,7 @@ class NeutronTestFacility(CreatedComponentAssembly):
 
         if self.morphology not in FACILITY_MORPHOLOGIES:
             raise CubismError(f"Morphology not supported by this facility: {self.morphology}")
-        
+
         # Get the net source, blanket, and the union of both
         source_object = unionise(self.get_components_of_class(SourceAssembly))
         blanket_components = []
@@ -296,7 +344,8 @@ class NeutronTestFacility(CreatedComponentAssembly):
             print(f"{self.morphology} morphology enforced")
 
     def apply_facility_morphology(self):
-        '''If the morphology is inclusive/overlap, remove the parts of the blanket inside the neutron source'''
+        '''If the morphology is inclusive/overlap,
+        remove the parts of the blanket inside the neutron source'''
         if self.morphology in ["inclusive", "overlap"]:
             # convert everything to volumes in case of stray bodies
             source_volumes = to_volumes(self.get_geometries_from([SourceAssembly, ExternalComponent]))
@@ -327,7 +376,8 @@ class NeutronTestFacility(CreatedComponentAssembly):
             for walls in room.get_components_of_class(WallComponent):
                 room_bounding_boxes += walls.get_subcomponents()
 
-        # get a union defining the 'bounding boxes' for all rooms, and a union of every geometry in the facility.
+        # get a union defining the 'bounding boxes' for all rooms,
+        # and a union of every geometry in the facility.
         # as well as the union of those two unions
         room_bounding_box = unionise(room_bounding_boxes)
         all_geometries = unionise(self.get_all_geometries())
@@ -341,7 +391,8 @@ class NeutronTestFacility(CreatedComponentAssembly):
         room_bounding_box.destroy_cubit_instance()
         union_object.destroy_cubit_instance()
 
-        # if any part of the geometries are sticking out of a room, the volume of their union with the room will be greater than the volume of the room
+        # if any part of the geometries are sticking out of a room,
+        # the volume of their union with the room will be greater than the volume of the room
         if union_volume > bounding_volume:
             raise CubismError("Everything not inside a room!")
 
@@ -364,14 +415,14 @@ class NeutronTestFacility(CreatedComponentAssembly):
 
 # replace this at some point
 class BlanketAssembly(CreatedComponentAssembly):
-    '''Assembly class that requires at least one breeder and structure. 
+    '''Assembly class that requires at least one breeder and structure.
     Additionally stores coolants separately'''
     def __init__(self, json_object: dict):
         super().__init__("Blanket", BLANKET_REQUIREMENTS, json_object)
 
 
 class RoomAssembly(CreatedComponentAssembly):
-    '''Assembly class that requires surrounding walls and a blanket. 
+    '''Assembly class that requires surrounding walls and a blanket.
     Fills with air. Can add walls.'''
     def __init__(self, json_object):
         component_list = list(json_object["components"].values())
@@ -449,7 +500,8 @@ class ExternalComponentAssembly(GenericComponentAssembly):
         raise CubismError("Can't find group ID?????")
 
     def add_volumes_and_bodies(self):
-        '''Add volumes and bodies in group to this assembly as ExternalComponent objects'''
+        '''Add volumes and bodies in group to this assembly as
+        ExternalComponent objects'''
         source_volume_ids = cubit.get_group_volumes(self.group_id)
         for volume_id in source_volume_ids:
             self.components.append(ExternalComponent(volume_id, "volume"))
@@ -460,15 +512,17 @@ class ExternalComponentAssembly(GenericComponentAssembly):
 
 # in case we need to do source-specific actions
 class SourceAssembly(ExternalComponentAssembly):
-    '''Assembly of external components, created when a json object has class= source'''
+    '''Assembly of external components,
+    created when a json object has class= source'''
     def __init__(self, json_object: dict):
         super().__init__(json_object)
 
 
 # more detailed components
 class PinAssembly(CreatedComponentAssembly):
-    '''Cladding filled with breeder capped by a filter disc. 
-    Enclosed in a pressure tube surrounded by a hexagonal prism of multiplier'''
+    '''Cladding filled with breeder capped by a filter disc.
+    Enclosed in a pressure tube surrounded by a hexagonal prism of multiplier
+    '''
     def __init__(self, json_object: dict):
         self.components = []
         self.classname = "pin"
@@ -1109,7 +1163,7 @@ def get_all_geometries_from_components(component_list) -> list[CubitInstance]:
     return instances
 
 
-# wrapper for cubit.union
+# DO NOT USE - legacy, there is a new union function in cubit_functions.py
 def unionise(component_list: list):
     '''Create a union of all instances in given components.
 
@@ -1151,12 +1205,17 @@ def unionise(component_list: list):
 
 
 def construct(json_object: dict, *args):
-    '''Return python class corresponding to given json object
+    '''Instantiate component in python and cubit
 
-    :param json_object: Dictionary describing parametric geometry
-    :type json_object: dict
-    :return: Corresponding component class
-    :rtype: SimpleComponent | GenericComponentAssembly
+    Parameters
+    ----------
+    json_object : dict
+        json input for component
+
+    Returns
+    -------
+    SimpleComponent | GenericComponentAssembly
+        Instantiated python class
     '''
     constructor = globals()[CLASS_MAPPING[json_object["class"]]]
     return constructor(json_object, *args)

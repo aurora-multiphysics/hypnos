@@ -8,8 +8,14 @@ from blobmaker.parsing import extract_data, ParameterFiller
 def make_everything(json_object):
     '''Construct all specified components
 
-    :return: list of all top-level components
-    :rtype: list
+    Parameters
+    ----------
+    json_object : dict or list
+        Description of geometry(ies) to construct in cubit
+
+    Returns
+    -------
+    Class corresponding to constructed geometry
     '''
     if type(json_object) is list:
         return [construct(json_component) for json_component in json_object]
@@ -19,6 +25,17 @@ def make_everything(json_object):
 
 
 class GeometryMaker():
+    '''Access Hypnos functionality
+
+    Attributes
+    ----------
+    parameter_filler: Handles processing of json files
+    tracker: handles tracking groups, blocks, and sidesets in cubit
+    design_tree (dict): Parameters for constructing geometry
+    constructed_geometry (list): Python classes corresponding to
+        constructed geometry
+    key_route_delimiter (str): delimiter for parameter paths
+    '''
     def __init__(self) -> None:
         initialise_cubit()
         self.parameter_filler = ParameterFiller()
@@ -30,10 +47,12 @@ class GeometryMaker():
         self.key_route_delimiter = '/'
 
     def fill_design_tree(self):
-        '''Manually activate ParameterFiller to fill design tree parameters.
+        '''Process design_tree manually
 
-        :return: Filled design tree
-        :rtype: dict
+        Returns
+        -------
+        dict
+            Processed design tree
         '''
         self.design_tree = self.parameter_filler.process_design_tree(self.design_tree)
         if self.print_parameter_logs:
@@ -41,33 +60,43 @@ class GeometryMaker():
         return self.design_tree
 
     def parse_json(self, filename: str):
-        '''Parse a json file and add corresponding design tree to design_tree attribute
+        '''Parse a json file and add corresponding design tree
+        to design_tree attribute
 
-        :param filename: name of json file to parse
-        :type filename: str
-        :return: design tree corresponding to given json file
-        :rtype: dict
+        Parameters
+        ----------
+        filename : str
+            Name of json file
+
+        Returns
+        -------
+        dict
+            Design tree corresponding to parsed json file
         '''
         self.design_tree = extract_data(filename)
         return self.fill_design_tree()
 
     def change_delimiter(self, delimiter: str):
-        '''Change the delimiter to use in key paths 
+        '''Change the delimiter to use in key paths
         for the change_params and get_param methods.
         By default the delimiter is '/'.
 
-        :param delimiter: New delimiter
-        :type delimiter: str
+        Parameters
+        ----------
+        delimiter : str
+            New delimiter
         '''
         self.key_route_delimiter = delimiter
         print(f"Delimiter changed to: {delimiter}")
 
     def change_params(self, updated_params: dict):
-        '''Change parameters in stored design tree.
+        r'''Change parameters in stored design tree.
         A parameter is referenced using it's path.
-        This path is a string of the keys that are used to access that parameter in the json file.
+        This path is a string of the keys that are
+        used to access that parameter in the json file.
 
-        For example to change the value of the parameter 'pin spacing' to 135 here:
+        For example to change the value of the parameter
+        'pin spacing' to 135 here:
         {
             "class": "hcpb_blanket",
             "geometry": {
@@ -75,11 +104,14 @@ class GeometryMaker():
             }
         }
 
-        The argument provided here would have to be {"geometry/pin spacing": 135}
+        The argument provided here would have to be
+        {"geometry/pin spacing": 135}
         with '/' being the default delimiter.
 
-        :param updated_params: {path : updated value} pairs
-        :type updated_params: dict
+        Parameters
+        ----------
+        updated_params : dict
+            dictionary of the form {path to parameter : updated value}
         '''
         for param_path, updated_value in updated_params.items():
             if type(param_path) is not str:
@@ -88,7 +120,7 @@ class GeometryMaker():
             self.design_tree = self.__build_param_dict(key_route, self.design_tree, updated_value)
 
     def get_param(self, param_path: str):
-        '''Get parameter in stored design tree.
+        r'''Get parameter in stored design tree.
         A parameter is referenced using it's path.
 
         For example to get the value of the parameter 'pin spacing' here:
@@ -102,10 +134,15 @@ class GeometryMaker():
         The argument provided here would have to be "geometry/pin spacing"
         with '/' being the default delimiter.
 
-        :param param_path: path to parameter
-        :type param_path: str
-        :return: Value of parameter
-        :rtype: any
+        Parameters
+        ----------
+        param_path : str
+            Path to parameter
+
+        Returns
+        -------
+        any
+            value of parameter
         '''
         key_route = param_path.split(self.key_route_delimiter)
         return self.__follow_key_route(key_route, self.design_tree)
@@ -128,20 +165,22 @@ class GeometryMaker():
     def make_geometry(self):
         '''Build geometry corresponding to design tree in cubit
 
-        :return: Constructed geometry
-        :rtype: Python class corresponding to top-level of design tree
+        Returns
+        -------
+        Class corresponding to the constructed cubit geometry
         '''
         self.constructed_geometry = make_everything(self.design_tree)
         return self.constructed_geometry
 
     def imprint_and_merge(self):
-        '''Imprint and merge geometry in cubit. 
+        '''Imprint and merge geometry in cubit.
         '''
         cmd("imprint volume all")
         cmd("merge volume all")
 
     def track_components_and_materials(self):
-        '''Add components to blocks and component-component interfaces to sidesets.
+        '''
+        Add components to blocks and component-component interfaces to sidesets
         Add materials and material-material interfaces to groups.
         '''
         for component in self.constructed_geometry:
@@ -151,6 +190,13 @@ class GeometryMaker():
         self.tracker.organise_into_groups()
 
     def set_mesh_size(self, size: int):
+        '''Set approximate mesh size in cubit
+
+        Parameters
+        ----------
+        size : int
+            Mesh size in cubit units
+        '''
         cmd(f'volume all size {size}')
 
     def tetmesh(self):
@@ -187,11 +233,14 @@ class GeometryMaker():
     def export_exodus(self, rootname: str = "geometry", large_exodus=False, HDF5=False):
         '''Export as exodus II file.
 
-        :param rootname: Name to give output file including path, defaults to "geometry"
+        :param rootname: Name to give output file including path,
+        defaults to "geometry"
         :type rootname: str, optional
-        :param large_exodus: Create a large model that can store individual datasets > 2GB, defaults to False
+        :param large_exodus: Create a large model that can store individual
+        datasets > 2GB, defaults to False
         :type large_exodus: bool, optional
-        :param HDF5: Create a model that can store even larger files, defaults to False
+        :param HDF5: Create a model that can store even larger files,
+        defaults to False
         :type HDF5: bool, optional
         '''
         if large_exodus:
@@ -207,10 +256,13 @@ class GeometryMaker():
         self.constructed_geometry = []
 
     def file_to_merged_geometry(self, filename: str):
-        '''Parse json file, make geometry, imprint + merge it, track boundaries.
+        '''Parse json file, make geometry,
+        imprint + merge it, track boundaries.
 
-        :param filename: Name of file to parse
-        :type filename: str
+        Parameters
+        ----------
+        filename : str
+            name of json file
         '''
         self.parse_json(filename)
         self.make_geometry()
@@ -221,8 +273,10 @@ class GeometryMaker():
         imprint + merge it,
         track boundaries.
 
-        :param filename: Name of file to parse
-        :type filename: str
+        Parameters
+        ----------
+        filename : str
+            name of json file
         '''
         self.parse_json(filename)
         self.make_geometry()
@@ -237,11 +291,14 @@ class GeometryMaker():
         self.track_components_and_materials()
 
     def exp_scale(self, scaling: int):
-        '''Scale size of the geometry by 10^(scaling) to change what units cubit reports in.
-        The default parameters assume 1 cubit unit = 1mm so, for example, to get 1 cubit unit = 1cm
-        you would use scaling = -1.
+        '''Scale size of the geometry by 10^(scaling) to change what units
+        cubit reports in.
+        The default parameters assume 1 cubit unit = 1mm.
+        So, for example, to get 1 cubit unit = 1cm you would use scaling = -1.
 
-        :param scaling: Exponent to scale by
-        :type scaling: int
+        Parameters
+        ----------
+        scaling : int
+            Exponent to scale by
         '''
         cmd(f"volume all scale {10**scaling} about 0 0 0")

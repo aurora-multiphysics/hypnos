@@ -1,32 +1,63 @@
+"""
+Functions and classes to help with geometrical calculations in cubit
+
+Functions
+---------
+create_2d_vertex: x-y plane vertex in 3D space
+connect_vertices_straight: connect with straight curve
+connect_vertices_tangentially: connect along tangent curves
+make_surface_from_curves: make surface from bounding curves
+make_cylinder_along: make cylinder along an cartesian axis
+make_loop: connect many vertices with curves
+hypotenuse: square of sum of roots
+arctan: arctan -> (0, pi)
+make_surface: make surface from bounding vertices
+
+Classes
+-------
+Vertex: Representation of a vertex in 3D space
+Line: Representation of a line in point-slope form
+"""
+
+
 from blobmaker.generic_classes import CubitInstance, CubismError, cmd
 from blobmaker.cubit_functions import get_id_string, cmd_geom
 import numpy as np
 
 
-def create_2d_vertex(x, y):
+def create_2d_vertex(x: float, y: float):
     '''Create a vertex in the x-y plane
 
-    :param x: x-coordinate of vertex
-    :type x: int
-    :param y: y-coordinate of vertex
-    :type y: int
-    :raises CubismError: If unable to create vertex
-    :return: created vertex
-    :rtype: CubitInstance
+    Parameters
+    ----------
+    x : float
+        x-coordinate
+    y : float
+        y-coordinate
+
+    Returns
+    -------
+    CubitInstance
+        created vertex
     '''
     vertex = cmd_geom(f"create vertex {x} {y} 0", "vertex")
     return vertex
 
 
-def connect_vertices_straight(vertex1: CubitInstance, vertex2: CubitInstance):
+def connect_vertices_straight(vertex1: CubitInstance, vertex2: CubitInstance) -> CubitInstance:
     '''Connect 2 vertices with a straight curve
 
-    :param vertex1: Vertex to connect
-    :type vertex1: CubitInstance
-    :param vertex2: Vertex to connect
-    :type vertex2: CubitInstance
-    :return: Connection curve or False if connection fails
-    :rtype: CubitInstance/ bool
+    Parameters
+    ----------
+    vertex1 : CubitInstance
+        vertex to connect
+    vertex2 : CubitInstance
+        vertex to connect
+
+    Returns
+    -------
+    CubitInstance
+        Connection curve
     '''
     if vertex1.geometry_type == "vertex" and vertex2.geometry_type == "vertex":
         connection = cmd_geom(
@@ -37,16 +68,21 @@ def connect_vertices_straight(vertex1: CubitInstance, vertex2: CubitInstance):
     return connection
 
 
-def connect_curves_tangentially(vertex1: CubitInstance, vertex2: CubitInstance):
+def connect_curves_tangentially(vertex1: CubitInstance, vertex2: CubitInstance) -> CubitInstance:
     '''Connect 2 curves at the given vertices,
     with the connection tangent to both curves.
 
-    :param vertex1: Vertex to connect
-    :type vertex1: CubitInstance
-    :param vertex2: Vertex to connect
-    :type vertex2: CubitInstance
-    :return: Connection curve
-    :rtype: CubitInstance
+    Parameters
+    ----------
+    vertex1 : CubitInstance
+        vertex to connect from
+    vertex2 : CubitInstance
+        vertex to connect to
+
+    Returns
+    -------
+    CubitInstance
+        Connection curve
     '''
     if vertex1.geometry_type == "vertex" and vertex2.geometry_type == "vertex":
         connection = cmd_geom(
@@ -58,30 +94,38 @@ def connect_curves_tangentially(vertex1: CubitInstance, vertex2: CubitInstance):
     return connection
 
 
-def make_surface_from_curves(curves_list: list[CubitInstance]):
+def make_surface_from_curves(curves_list: list[CubitInstance]) -> CubitInstance:
     '''Make surface from bounding curves
 
-    :param curves_list: List of bounding curves
-    :type curves_list: list[CubitInstance]
-    :return: surface geometry
-    :rtype: CubitInstance
+    Parameters
+    ----------
+    curves_list : list[CubitInstance]
+        list of bounding curves
+
+    Returns
+    -------
+    CubitInstance
+        Created surface
     '''
     curve_id_string = get_id_string(curves_list)
     surface = cmd_geom(f"create surface curve {curve_id_string}", "surface")
     return surface
 
 
-def make_cylinder_along(radius: int, length: int, axis: str = "z"):
-    '''Make a cylinder along one of the cartesian axes
+def make_cylinder_along(radius: float, length: float, axis: str = "z") -> CubitInstance:
+    '''Make a cylinder along a cartesian axis
 
-    :param radius: radius of cylinder
-    :type radius: int
-    :param length: length of cylinder
-    :type length: int
-    :param axis: axes to create cylinder along: x, y, or z
-    :type axis: str
-    :return: cylinder geometry
-    :rtype: CubitInstance
+    Parameters
+    ----------
+    radius : float
+    length : float
+    axis : str, optional
+        cartesian axis along which to make cylinder, by default "z"
+
+    Returns
+    -------
+    CubitInstance
+        created cylinder
     '''
     axis = axis.lower()
     cylinder = cmd_geom(
@@ -101,12 +145,19 @@ def make_loop(vertices: list[CubitInstance], tangent_indices: list[int]) -> list
     '''Connect vertices with straight curves.
     For specified indices connect with curves tangential to adjacent curves.
 
-    :param vertices: Vertices to connect
-    :type vertices: list[CubitInstance]
-    :param tangent_indices: Vertices to start tangent curves from
-    :type tangent_indices: list[int]
-    :return: curve geometries
-    :rtype: list[CubitInstance]
+    Parameters
+    ----------
+    vertices : list[CubitInstance]
+        vertices to connect
+    tangent_indices : list[int]
+        indices of vertices to start a tangent-connection from,
+        for example to connect the 2nd and 3rd vertices tangentially
+        this would be [1]
+
+    Returns
+    -------
+    list[CubitInstance]
+        Curves making up the connected vertices
     '''
     curves = list(np.zeros(len(vertices)))
     for i in range(len(vertices)-1):
@@ -123,25 +174,32 @@ def make_loop(vertices: list[CubitInstance], tangent_indices: list[int]) -> list
     return curves
 
 
-def hypotenuse(*sides: int):
+def hypotenuse(*sides: float):
     '''Take root of sum of squares
 
-    :return: hypotenuse
-    :rtype: float
+    Returns
+    -------
+    np.float64 (probably)
+        hypotenuse
     '''
     squared = [np.square(side) for side in sides]
     return np.sqrt(np.sum(squared))
 
 
-def arctan(opposite: int, adjacent: int):
+def arctan(opposite: float, adjacent: float):
     '''Arctan with range 0, 2pi. Takes triangle side lengths.
 
-    :param opposite: 'Opposite' side of a right-angled triangle
-    :type opposite: int
-    :param adjacent: 'Adjacent' side of a right-angled triangle
-    :type adjacent: int
-    :return: arctan(opposite/ adjacent)
-    :rtype: int
+    Parameters
+    ----------
+    opposite : float
+        'opposite' side of a right-angled triangle
+    adjacent : float
+        'adjacent' side of a right-angled triangle
+
+    Returns
+    -------
+    float
+        arctan(opposite/adjacent)
     '''
     if adjacent == 0:
         arctan_angle = np.pi/2
@@ -153,7 +211,7 @@ def arctan(opposite: int, adjacent: int):
 
 
 class Vertex():
-    '''Representation of a vertex'''
+    '''Representation of a vertex. Attributes are 3D coordinates.'''
     def __init__(self, x: int, y=0, z=0) -> None:
         self.x = x
         self.y = y
@@ -216,26 +274,34 @@ class Vertex():
     def __str__(self) -> str:
         return f"{self.x} {self.y} {self.z}"
 
-    def create(self):
+    def create(self) -> CubitInstance:
         '''Create this vertex in cubit.
 
-        :return: created vertex
-        :rtype: CubitInstance
+        Returns
+        -------
+        CubitInstance
+            created vertex
         '''
         vertex = cmd_geom(f"create vertex {str(self)}", "vertex")
         return vertex
 
-    def rotate(self, z: int, y=0, x=0):
-        '''Rotate about z, then y, and then x axes.
+    def rotate(self, z: float, y=0, x=0) -> 'Vertex':
+        '''Rotate about z, then y, and then x axes in 3D space.
+        IN RADIANS.
 
-        :param z: Angle to rotate about the z axis
-        :type z: int
-        :param y: Angle to rotate about the y axis, defaults to 0
-        :type y: int, optional
-        :param x: Angle to rotate about the x axis, defaults to 0
-        :type x: int, optional
-        :return: Rotated vertex
-        :rtype: Vertex
+        Parameters
+        ----------
+        z : float
+            angle to rotate about z-axis
+        y : float, optional
+            angle to rotate about y-axis, by default 0
+        x : float, optional
+            angle to rotate about x-axis, by default 0
+
+        Returns
+        -------
+        Vertex
+            rotated vertex
         '''
         x_rotated = (self.x*np.cos(z)*np.cos(y)) + (self.y*(np.cos(z)*np.sin(y)*np.sin(x) - np.sin(z)*np.cos(x))) + (self.z*(np.cos(z)*np.sin(y)*np.cos(x) + np.sin(z)*np.sin(x)))
         y_rotated = (self.x*np.sin(z)*np.cos(y)) + (self.y*(np.sin(z)*np.sin(y)*np.sin(x) + np.cos(z)*np.cos(x))) + (self.z*(np.sin(z)*np.sin(y)*np.cos(x) - np.cos(z)*np.sin(x)))
@@ -243,14 +309,23 @@ class Vertex():
         return Vertex(x_rotated, y_rotated, z_rotated)
 
     def distance(self):
-        '''Return distance from (0, 0, 0)
+        '''Return distance of vertex from (0, 0, 0)
 
-        :return: Distance
-        :rtype: np.float64
+        Returns
+        -------
+        np.float64
+            distance
         '''
         return np.sqrt(np.square(self.x)+np.square(self.y)+np.square(self.z))
 
-    def unit(self):
+    def unit(self) -> 'Vertex':
+        '''Return a vertex in the same direction with length 1 unit
+
+        Returns
+        -------
+        Vertex
+            unit vector
+        '''
         dist = self.distance()
         if dist == 0:
             return Vertex(0)
@@ -259,18 +334,49 @@ class Vertex():
         z = self.z / dist
         return Vertex(x, y, z)
 
-    def extend_to_y(self, y):
+    def extend_to_y(self, y: float) -> 'Vertex':
+        '''Extend vertex from (0, 0, 0) up to y-coord
+
+        Parameters
+        ----------
+        y : float
+            y-coordinate of point to extend to
+
+        Returns
+        -------
+        Vertex
+            extended point
+        '''
         x = self.x * y / self.y
         return Vertex(x, y)
 
     def extend_to_x(self, x):
+        '''Extend vertex from (0, 0, 0) up to x-coord
+
+        Parameters
+        ----------
+        x : float
+            x-coordinate of point to extend to
+
+        Returns
+        -------
+        Vertex
+            extended point
+        '''
         y = self.y * x / self.x
         return Vertex(x, y)
 
 
 class Line:
-    '''This helps with calculations involving points on a line
+    '''Helps with calculations involving points on a line
     defined by a point + slope
+
+    Attributes
+    ----------
+    const: Vertex
+        Point the line passes through
+    slope: Vertex
+        Direction the line points in
     '''
     def __init__(self, slope: Vertex, const: Vertex = Vertex(0)) -> None:
         self.const = const
@@ -290,18 +396,22 @@ class Line:
     def __rmul__(self, other):
         return other * self.slope
 
-    def vertex_at(self, x: float = None, y: float = None, z: float = None):
-        '''Find the vertex on this line with given x, y, or z coordinate
+    def vertex_at(self, x: float = None, y: float = None, z: float = None) -> Vertex | None:
+        '''Find the point on this line with given x, y, or z coordinate
 
-        :param x: x-coordinate, defaults to None
-        :type x: float, optional
-        :param y: y-coordinate, defaults to None
-        :type y: float, optional
-        :param z: z-coordinate, defaults to None
-        :type z: float, optional
-        :return: vertex on the line, if there is no point/
-        every point has the given x/y/z coordinate then None
-        :rtype: Vertex | None
+        Parameters
+        ----------
+        x : float, optional
+            x-coordinate, by default None
+        y : float, optional
+            y-coordinate, by default None
+        z : float, optional
+            z-coordinate, by default None
+
+        Returns
+        -------
+        Vertex | None
+            Point on line | None
         '''
         slope = self.slope.unit()
         if x is not None:
@@ -338,17 +448,22 @@ class Line:
         return Line(self.slope, const)
 
 
-def make_surface(vertices: list[Vertex], tangent_indices: list[int]):
+def make_surface(vertices: list[Vertex], tangent_indices: list[int]) -> CubitInstance:
     '''Make surface from vertices.
-    Curves between chosen vertices will be tangential to
+    Curves between specified vertices will be tangential to
     straight lines at either vertex.
 
-    :param vertices: Vertices
-    :type vertices: list[Vertex]
-    :param tangent_indices: Indices of vertices to start a curved line from
-    :type tangent_indices: list[int]
-    :return: Surface
-    :rtype: CubitInstance
+    Parameters
+    ----------
+    vertices : list[Vertex]
+        list of vertices to connect into bounding curves
+    tangent_indices : list[int]
+        indices of vertices to begin a tangent-connection from
+
+    Returns
+    -------
+    CubitInstance
+        Connected and bound surface
     '''
     created_vertices = [vertex.create() for vertex in vertices]
     loop = make_loop(created_vertices, tangent_indices)
