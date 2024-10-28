@@ -26,18 +26,35 @@ class ExternalComponent(CubitInstance):
         super().__init__(cid, geometry_type)
 
 
-class SimpleComponent(ABC):
-    '''Base class for simple components. 
+class Settings(ABC):
+    '''Common settings for Components and Assemblies'''
+    def __init__(self, classname, params: dict):
+        self.classname = classname
+        self.identifier = classname
+        self.geometry = params["geometry"] if "geometry" in params.keys() else None
+        self.material = params["material"] if "material" in params.keys() else None
+        self.origin = Vertex(0)
+        if "origin" in params.keys():
+            origin = params["origin"]
+            if isinstance(origin, Vertex):
+                self.origin = origin
+            elif type(origin) is list:
+                self.origin = Vertex(*origin)
+        self.check_sanity()
+
+    @abstractmethod
+    def check_sanity():
+        pass
+
+
+class SimpleComponent(Settings):
+    '''Base class for simple components.
     These are intended to be the smallest functional unit of a single material.
     They may comprise of multiple volumes/ may not be 'simple' geometrically
     '''
-    def __init__(self, classname, json_object: dict):
+    def __init__(self, classname, json_object):
+        super().__init__(classname, json_object)
         self.subcomponents = []
-        self.classname = classname
-        self.identifier = classname
-        self.geometry, self.material, self.origin = self.__get_top_level_info(json_object)
-        self.check_sanity()
-
         self.add_to_subcomponents(self.make_geometry())
         if not self.origin == Vertex(0):
             self.move(self.origin)

@@ -1,5 +1,6 @@
 from blobmaker.generic_classes import CubismError, CubitInstance, cmd, cubit
 from blobmaker.components import (
+    Settings,
     ExternalComponent,
     SimpleComponent,
     SurroundingWallsComponent,
@@ -40,13 +41,12 @@ from blobmaker.constants import (
 import numpy as np
 
 
-class GenericComponentAssembly:
+class GenericComponentAssembly(Settings):
     '''
     Generic assembly to store components
     '''
-    def __init__(self, classname):
-        self.classname = classname
-        self.identifier = classname
+    def __init__(self, classname, json_object):
+        super().__init__(classname, json_object)
         self.components = []
 
     # 'geometries' refer to CubitInstance objects
@@ -173,20 +173,16 @@ class CreatedComponentAssembly(GenericComponentAssembly):
     required classnames to set up a specific assembly. Instantiating
     will fail without at least one component of the given classnames.
     '''
-    def __init__(self, classname, required_classnames: list, json_object: dict):
-        self.classname = classname
-        self.origin = json_object["origin"] if "origin" in json_object.keys() else Vertex(0)
-        self.geometry = json_object["geometry"] if "geometry" in json_object.keys() else None
-        self.materials = json_object["materials"] if "materials" in json_object.keys() else None
-        # this defines what components to require in every instance
-        self.required_classnames = required_classnames
-        self.components = []
-        self.component_list = json_object["components"].values() if type(json_object["components"]) is dict else json_object["components"]
 
+    def __init__(self, classname, required_classnames: list, json_object: dict):
+        self.required_classnames = required_classnames
+        if type(json_object["components"]) is dict:
+            self.component_list = json_object["components"].values()
+        else:
+            self.component_list = json_object["components"]
+        super().__init__(classname, json_object)
         # enforce given component_list based on required_classnames
         self.enforce_structure()
-        self.check_sanity()
-        # store instances
         self.setup_assembly()
         self.move(self.origin)
 
@@ -742,9 +738,7 @@ class HCPBBlanket(CreatedComponentAssembly):
     '''Mockup of a HCPB-style breeder blanket
     '''
     def __init__(self, json_object: dict):
-        self.geometry = json_object["geometry"]
         super().__init__("HCPB_blanket", HCPB_BLANKET_REQUIREMENTS, json_object)
-        self.identifier = self.classname
         # self.check_for_overlaps()
 
     def check_sanity(self):
