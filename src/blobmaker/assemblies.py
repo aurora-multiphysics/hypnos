@@ -1,39 +1,40 @@
 from blobmaker.generic_classes import CubismError, CubitInstance, cmd, cubit
-from blobmaker.components import ( 
-    ExternalComponent, 
-    SimpleComponent, 
-    SurroundingWallsComponent, 
-    AirComponent, 
-    BreederComponent, 
-    StructureComponent, 
-    WallComponent, 
-    CladdingComponent, 
-    PinCoolant, 
-    PressureTubeComponent, 
-    FilterLidComponent, 
-    PurgeGasComponent, 
-    FilterDiskComponent, 
-    MultiplierComponent, 
-    PinBreeder, 
-    FirstWallComponent, 
-    BZBackplate, 
-    PurgeGasPlate, 
-    FrontRib, 
-    BackRib, 
-    CoolantOutletPlenum, 
-    SeparatorPlate, 
+from blobmaker.components import (
+    ExternalComponent,
+    SimpleComponent,
+    SurroundingWallsComponent,
+    BrickComponent,
+    AirComponent,
+    BreederComponent,
+    StructureComponent,
+    WallComponent,
+    CladdingComponent,
+    PinCoolant,
+    PressureTubeComponent,
+    FilterLidComponent,
+    PurgeGasComponent,
+    FilterDiskComponent,
+    MultiplierComponent,
+    PinBreeder,
+    FirstWallComponent,
+    BZBackplate,
+    PurgeGasPlate,
+    FrontRib,
+    BackRib,
+    CoolantOutletPlenum,
+    SeparatorPlate,
     FWBackplate
 )
 from blobmaker.cubit_functions import to_volumes, get_entities_from_group
 from blobmaker.geometry import Vertex, arctan
 from blobmaker.cubit_functions import to_bodies
 from blobmaker.constants import (
-    CLASS_MAPPING, 
-    NEUTRON_TEST_FACILITY_REQUIREMENTS, 
-    ROOM_REQUIREMENTS, 
-    BLANKET_REQUIREMENTS, 
-    BLANKET_SHELL_REQUIREMENTS, 
-    FACILITY_MORPHOLOGIES, 
+    CLASS_MAPPING,
+    NEUTRON_TEST_FACILITY_REQUIREMENTS,
+    ROOM_REQUIREMENTS,
+    BLANKET_REQUIREMENTS,
+    BLANKET_SHELL_REQUIREMENTS,
+    FACILITY_MORPHOLOGIES,
     HCPB_BLANKET_REQUIREMENTS
 )
 import numpy as np
@@ -116,7 +117,7 @@ class GenericComponentAssembly:
         :rtype: list
         '''
         return self.components
-    
+
     def get_all_components(self) -> list[SimpleComponent]:
         '''Return all simple components stored in this assembly recursively
 
@@ -168,12 +169,15 @@ class GenericComponentAssembly:
 
 class CreatedComponentAssembly(GenericComponentAssembly):
     '''
-    Assembly to handle components created natively. Takes a list of required classnames to set up a specific assembly. 
-    Instantiating will fail without at least one component of the given classnames.
+    Assembly to handle components created natively. Takes a list of
+    required classnames to set up a specific assembly. Instantiating
+    will fail without at least one component of the given classnames.
     '''
     def __init__(self, classname, required_classnames: list, json_object: dict):
         self.classname = classname
         self.origin = json_object["origin"] if "origin" in json_object.keys() else Vertex(0)
+        self.geometry = json_object["geometry"] if "geometry" in json_object.keys() else None
+        self.materials = json_object["materials"] if "materials" in json_object.keys() else None
         # this defines what components to require in every instance
         self.required_classnames = required_classnames
         self.components = []
@@ -198,7 +202,8 @@ class CreatedComponentAssembly(GenericComponentAssembly):
             raise CubismError(f"The following components have overlaps: {overlapping_components}")
 
     def enforce_structure(self):
-        '''Make sure an instance of this class contains the required components. This looks at the classnames specified in the json file'''
+        '''Make sure an instance of this class contains the required components.
+        This looks at the classnames specified in the json file'''
         class_list = [i["class"] for i in self.component_list]
         for classes_required in self.required_classnames:
             if classes_required not in class_list:
@@ -260,13 +265,14 @@ class NeutronTestFacility(CreatedComponentAssembly):
 
     def enforce_facility_morphology(self):
         '''
-        Make sure the specified morphology is followed. 
-        This works by comparing the volumes of the source and blanket to the volume of their union
+        Make sure the specified morphology is followed.
+        This works by comparing the volumes of the source and blanket to the
+        volume of their union
         '''
 
         if self.morphology not in FACILITY_MORPHOLOGIES:
             raise CubismError(f"Morphology not supported by this facility: {self.morphology}")
-        
+
         # Get the net source, blanket, and the union of both
         source_object = unionise(self.get_components_of_class(SourceAssembly))
         blanket_components = []
@@ -341,12 +347,15 @@ class NeutronTestFacility(CreatedComponentAssembly):
         room_bounding_box.destroy_cubit_instance()
         union_object.destroy_cubit_instance()
 
-        # if any part of the geometries are sticking out of a room, the volume of their union with the room will be greater than the volume of the room
+        # if any part of the geometries are sticking out of a room,
+        # the volume of their union with the room will be greater
+        # than the volume of the room
         if union_volume > bounding_volume:
             raise CubismError("Everything not inside a room!")
 
         # there is probably a better way of doing this
-        # if a room is filled with air, subtract the union of all non-air geometries from it
+        # if a room is filled with air, subtract the union of all
+        # non-air geometries from it
         for surrounding_walls in self.get_components_of_class(SurroundingWallsComponent):
             if surrounding_walls.is_air():
                 for air in surrounding_walls.get_air_subcomponents():
@@ -364,14 +373,14 @@ class NeutronTestFacility(CreatedComponentAssembly):
 
 # replace this at some point
 class BlanketAssembly(CreatedComponentAssembly):
-    '''Assembly class that requires at least one breeder and structure. 
+    '''Assembly class that requires at least one breeder and structure.
     Additionally stores coolants separately'''
     def __init__(self, json_object: dict):
         super().__init__("Blanket", BLANKET_REQUIREMENTS, json_object)
 
 
 class RoomAssembly(CreatedComponentAssembly):
-    '''Assembly class that requires surrounding walls and a blanket. 
+    '''Assembly class that requires surrounding walls and a blanket.
     Fills with air. Can add walls.'''
     def __init__(self, json_object):
         component_list = list(json_object["components"].values())
