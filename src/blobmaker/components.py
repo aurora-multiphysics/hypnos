@@ -59,29 +59,6 @@ class SimpleComponent(Settings):
         if not self.origin == Vertex(0):
             self.move(self.origin)
 
-    def __get_top_level_info(self, json_object: dict):
-        '''Get top-level information and ensure proper types
-
-        :param json_object: Input json-formatted info
-        :type json_object: dict
-        :return: Geometry, material, and origin
-        :rtype: dict, str, Vertex
-        '''
-        if "geometry" not in json_object.keys():
-            raise CubismError(f"Component {self.classname} requires geometry")
-        elif type(json_object["geometry"]) is not dict:
-            raise TypeError("Geometry info should be represented as a dictionary")
-        elif "material" not in json_object.keys():
-            raise CubismError(f"Component {self.classname} requires a material")
-        elif type(json_object["material"]) is not str:
-            raise TypeError("Material should be given as a string")
-        origin = json_object["origin"] if "origin" in json_object.keys() else Vertex(0)
-        if type(origin) is list:
-            origin = Vertex(origin[0], origin[1], origin[2])
-        elif type(origin) is not Vertex:
-            raise TypeError("Origin should be represented using a Vertex")
-        return json_object["geometry"], json_object["material"], origin
-
     def add_to_subcomponents(self, subcomponents: CubitInstance | list[CubitInstance]):
         '''Add geometry/ies to subcomponents attribute
 
