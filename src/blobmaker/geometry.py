@@ -354,3 +354,57 @@ def make_surface(vertices: list[Vertex], tangent_indices: list[int]):
     loop = make_loop(created_vertices, tangent_indices)
     surface = make_surface_from_curves(loop)
     return surface
+
+
+def convert_to_3d_vector(dimlike: float | list) -> list[float]:
+    '''convert to a list of length 3 representing dimensions
+
+    Parameters
+    ----------
+    vectorlike : float | list
+        cube side length (float or list with length 1) or cuboid (list of length 3)
+
+    Returns
+    -------
+    list[float]
+        list of length 3
+    '''
+    if type(dimlike) is int:
+        return_vector = [dimlike for i in range(3)]
+    elif len(dimlike) == 1:
+        return_vector = [dimlike[0] for i in range(3)]
+    elif len(dimlike) == 3:
+        return_vector = dimlike
+    else:
+        raise CubismError("thickness should be either a 1D or 3D vector (or scalar)")
+    return return_vector
+
+
+def create_brick(geometry: dict) -> CubitInstance:
+    '''create cube (if scalar/1D) or cuboid (if 3D) with dimensions.
+    Rotate it about the y-axis, x-axis, y-axis if euler_angles are specified.
+
+    Parameters
+    ----------
+    geometry : dict
+        a dict with keys:
+            - dimensions
+            - rotations to perform in a sequence about the x-, y-, and x-axes
+
+    Returns
+    -------
+    CubitInstance
+        created brick
+    '''
+    # setup variables
+    dims = convert_to_3d_vector(geometry["dimensions"])
+    euler_angles = geometry["euler_angles"] if "euler_angles" in geometry.keys() else [0, 0, 0]
+    # create a cube or cuboid.
+    brick = cmd_geom(f"create brick x {dims[0]} y {dims[1]} z {dims[2]}", "volume")
+    # orientate according to euler angles
+    axis_list = ['y', 'x', 'y']
+    for i in range(3):
+        if not euler_angles[i] == 0:
+            cmd(f'rotate volume {brick.cid} angle {euler_angles[i]} about {axis_list[i]}')
+    # return instance for further manipulation
+    return brick

@@ -1,8 +1,23 @@
-from blobmaker.constants import BLOB_CLASSES
 from blobmaker.generic_classes import CubismError, CubitInstance, cmd, cubit
-from blobmaker.cubit_functions import to_volumes, to_bodies, get_last_geometry, subtract, cmd_geom
-from blobmaker.geometry import make_cylinder_along, Vertex, make_surface, hypotenuse, arctan, Line
+from blobmaker.cubit_functions import (
+    to_volumes,
+    to_bodies,
+    get_last_geometry,
+    subtract,
+    cmd_geom
+    )
+from blobmaker.geometry import (
+    make_cylinder_along,
+    Vertex,
+    make_surface,
+    hypotenuse,
+    arctan,
+    Line,
+    convert_to_3d_vector,
+    create_brick
+    )
 import numpy as np
+from abc import ABC, abstractmethod
 
 
 class ExternalComponent(CubitInstance):
@@ -11,7 +26,7 @@ class ExternalComponent(CubitInstance):
         super().__init__(cid, geometry_type)
 
 
-class SimpleComponent:
+class SimpleComponent(ABC):
     '''Base class for simple components. 
     These are intended to be the smallest functional unit of a single material.
     They may comprise of multiple volumes/ may not be 'simple' geometrically
@@ -63,44 +78,10 @@ class SimpleComponent:
                 if isinstance(subcomponent, CubitInstance):
                     self.subcomponents.append(subcomponent)
 
+    @abstractmethod
     def make_geometry(self):
-        '''create geometry in cubit. if the class is a blob, make it.'''
-        if self.classname in BLOB_CLASSES:
-            return self.__create_cubit_blob(self.geometry)
-        else:
-            raise CubismError("Wrong class name somewhere?: " + self.classname)
-
-    def convert_to_3d_vector(self, dim):
-        if type(dim) is int:
-            return_vector = [dim for i in range(3)]
-        elif len(dim) == 1:
-            return_vector = [dim[0] for i in range(3)]
-        elif len(dim) == 3:
-            return_vector = dim
-        else:
-            raise CubismError("thickness should be either a 1D or 3D vector (or scalar)")
-        return return_vector
-
-    def __create_cubit_blob(self, geometry: dict):
-        '''create cube (if scalar/1D) or cuboid (if 3D) with dimensions.
-        Rotate it about the y-axis, x-axis, y-axis if euler_angles are specified.
-        Move it to position if specified'''
-        # setup variables
-        dims = self.convert_to_3d_vector(geometry["dimensions"])
-        pos = geometry["position"] if "position" in geometry.keys() else [0, 0, 0]
-        euler_angles = geometry["euler_angles"] if "euler_angles" in geometry.keys() else [0, 0, 0]
-        # create a cube or cuboid.
-        blob = cubit.brick(dims[0], dims[1], dims[2])
-        cid = cubit.get_last_id("volume")
-        # orientate according to euler angles
-        axis_list = ['y', 'x', 'y']
-        for i in range(3):  # hard-coding in 3D?
-            if not euler_angles[i] == 0:
-                cmd(f'rotate volume {cid} angle {euler_angles[i]} about {axis_list[i]}')
-        # move to specified position
-        cubit.move(blob, pos)
-        # return instance for further manipulation
-        return CubitInstance(cid, "volume")
+        '''create geometry in cubit'''
+        pass
 
     def as_bodies(self):
         '''Convert subcomponent references to references to their owning bodies'''
@@ -140,10 +121,10 @@ class SimpleComponent:
     def set_mesh_size(self, size: int):
         for subcomponent in self.get_subcomponents():
             cmd(f"{subcomponent.geometry_type} {subcomponent.cid} size {size}")
-    
+
     def volume_id_string(self):
         self.as_volumes()
-        return " ".join([str(subcomponent.cid) for subcomponent in self.get_subcomponents()]) 
+        return " ".join([str(cmp.cid) for cmp in self.get_subcomponents()])
 
 
 class SurroundingWallsComponent(SimpleComponent):
@@ -170,14 +151,23 @@ class SurroundingWallsComponent(SimpleComponent):
     def make_geometry(self):
         '''create 3d room with outer dimensions dimensions (int or list) and thickness (int or list)'''
         # get variables
-        outer_dims = self.convert_to_3d_vector(self.geometry["dimensions"])
-        thickness = self.convert_to_3d_vector(self.geometry["thickness"])
+        outer_dims = convert_to_3d_vector(self.geometry["dimensions"])
+        thickness = convert_to_3d_vector(self.geometry["thickness"])
         # create room
         subtract_vol = cubit.brick(outer_dims[0]-2*thickness[0], outer_dims[1]-2*thickness[1], outer_dims[2]-2*thickness[2])
         block = cubit.brick(outer_dims[0], outer_dims[1], outer_dims[2])
         cubit.subtract([subtract_vol], [block])
         room_id = cubit.get_last_id("volume")
         return CubitInstance(room_id, "volume")
+
+
+class BrickComponent(SimpleComponent):
+    '''This class exists for testing purposes'''
+    def __init__(self, json_object):
+        super().__init__("brick", json_object)
+
+    def make_geometry(self):
+        return create_brick(self.geometry)
 
 
 class AirComponent(SimpleComponent):
@@ -187,15 +177,25 @@ class AirComponent(SimpleComponent):
         # cubit subtract only keeps body ID invariant, so i will store air as a body
         self.as_bodies()
 
+    def make_geometry(self):
+        return create_brick(self.geometry)
+
 
 class BreederComponent(SimpleComponent):
     def __init__(self, json_object):
         super().__init__("breeder", json_object)
 
+    def make_geometry(self):
+        return create_brick(self.geometry)
+
 
 class StructureComponent(SimpleComponent):
     def __init__(self, json_object):
         super().__init__("structure", json_object)
+
+    def make_geometry(self):
+        return create_brick(self.geometry)
+
 
 class WallComponent(SimpleComponent):
     def __init__(self, json_object):
@@ -204,23 +204,24 @@ class WallComponent(SimpleComponent):
     def make_geometry(self):
         # get variables
         # wall
-        geometry = self.geometry
-        thickness = geometry["wall thickness"]
-        plane = geometry["wall plane"] if "wall plane" in geometry.keys() else "x"
-        pos = geometry["wall position"] if "wall position" in geometry.keys() else 0
+        geom = self.geometry
+        thickness = geom["wall thickness"]
+        plane = geom["wall plane"] if "wall plane" in geom.keys() else "x"
+        pos = geom["wall position"] if "wall position" in geom.keys() else 0
         # hole
-        hole_pos = geometry["wall hole position"] if "wall hole position" in geometry.keys() else [0, 0]
-        hole_radius = geometry["wall hole radius"]
+        hole_pos = geom["wall hole position"] if "wall hole position" in geom.keys() else [0, 0]
+        hole_radius = geom["wall hole radius"]
         # wall fills room
-        room_dims = self.convert_to_3d_vector(geometry["dimensions"])
-        room_thickness = self.convert_to_3d_vector(geometry["thickness"])
+        room_dims = convert_to_3d_vector(geom["dimensions"])
+        room_thickness = convert_to_3d_vector(geom["thickness"])
         wall_dims = [room_dims[i]-2*room_thickness[i] for i in range(3)]
 
         # volume to subtract to create a hole
         cmd(f"create cylinder height {thickness} radius {hole_radius}")
         subtract_vol = CubitInstance(cubit.get_last_id("volume"), "volume")
 
-        # depending on what plane the wall needs to be in, create wall + make hole at right place
+        # depending on what plane the wall needs to be in,
+        # create wall + make hole at right place
         if plane == "x":
             cubit.brick(thickness, wall_dims[1], wall_dims[2])
             wall = CubitInstance(cubit.get_last_id("volume"), "volume")
@@ -294,7 +295,7 @@ class CladdingComponent(SimpleComponent):
         net_thickness = inner_cladding + breeder_chamber_thickness + outer_cladding
         slope_angle = arctan(net_thickness, offset)
 
-        
+
         if inner_bluntness != 0 and outer_bluntness != 0:
             cladding_vertices = list(np.zeros(14))
 
@@ -789,7 +790,7 @@ class FirstWallComponent(SimpleComponent):
 
         # cubit.move(first_wall.cubitInstance, [0,0,length])
         return first_wall
-    
+
     def make_channel_volume(self, vertices):
         geometry = self.geometry
         # get first wall params

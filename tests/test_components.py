@@ -1,4 +1,4 @@
-from blobmaker.components import SimpleComponent
+from blobmaker.components import SimpleComponent, BrickComponent
 from blobmaker.generic_classes import CubitInstance, CubismError
 import cubit
 import pytest
@@ -18,7 +18,7 @@ def geometry_json():
 @pytest.fixture(scope="function")
 def simple_component(geometry_json):
     cubit.reset()
-    return SimpleComponent("air", geometry_json)
+    return BrickComponent(geometry_json)
 
 
 # tests for SimpleComponent
