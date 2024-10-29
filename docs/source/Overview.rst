@@ -9,8 +9,7 @@ Hypnos's goal is to construct a geometry from the parameters you give it. The wo
 
 This can be achieved either through running main.py, or in your own python script using the GeometryMaker class.
 
-main.py
-=======
+.. rubric:: main.py
 
 To use blobmaker, run main.py, passing the name of the json file to a -f flag (default: examples/sample_pin.json)::
     
@@ -27,8 +26,7 @@ The following flags are also available:
 
 The names given to flags -f, -o, and -d will be preferred over their equivalent options in the config file (file, root name, destination)
 
-GeometryMaker
-=============
+.. rubric:: GeometryMaker
 
 The GeometryMaker class may be imported from the Hypnos module in order to proceed through the workflow. The following methods are available:
 * parse_json: Read in parameters from a json file

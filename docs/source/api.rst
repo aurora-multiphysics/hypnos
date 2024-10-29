@@ -1,7 +1,8 @@
 API
 ===
 
-.. toctree:: 
+.. toctree::
+    Overview
     GeometryMaker
     Assemblies
     Components
