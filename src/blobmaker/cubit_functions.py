@@ -360,17 +360,20 @@ def union(geometries: list[CubitInstance], destroy=True):
     as_vols = to_volumes(geometries)
     vol_ids = {vol.cid for vol in as_vols}
     vol_id_string = " ".join(str(vol_id) for vol_id in list(vol_ids))
+    pre_vols = set(cubit.get_entities("volume"))
     if destroy:
         cmd(f"unite volume {vol_id_string}")
-        all_vols = set(cubit.get_entities("volume"))
-        # the created union can have a volume ID(s) from the set of all volumes union'd
-        created_vol = list(vol_ids.intersection(all_vols))
+        # the created union may have a volume ID(s) from the set of
+        # all volumes union'd
+        post_vols = set(cubit.get_entities("volume"))
+        extra_vol = list(vol_ids.intersection(post_vols))
     else:
-        pre_vols = set(cubit.get_entities("volume"))
         cmd(f"unite volume {vol_id_string} keep")
         post_vols = set(cubit.get_entities("volume"))
-        # the created union will have a new volume ID(s)
-        created_vol = list(post_vols.difference(pre_vols))
+        # since we keep all old volumes no extras here
+        extra_vol = []
+    # the created union may have a new volume ID(s)
+    created_vol = list(post_vols.difference(pre_vols)) + extra_vol
     return [CubitInstance(vol, "volume") for vol in created_vol]
 
 # unionise is in Assemblies.py as it needs to know about the
