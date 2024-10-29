@@ -1,5 +1,11 @@
-'''Simple Components
+'''
+components.py
+author(s): Sid Mungale
+
+Simple Components
 These are components that contain a volume/s made of a single material
+
+(c) Copyright UKAEA 2024
 '''
 
 from blobmaker.constants import BLOB_CLASSES

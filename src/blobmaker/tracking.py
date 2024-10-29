@@ -1,4 +1,10 @@
-'''Tracks blocks, sidesets, and groups for components and their boundaries
+'''
+tracking.py
+author(s): Sid Mungale
+
+Tracks blocks, sidesets, and groups for components and their boundaries
+
+(c) Copyright UKAEA 2024
 '''
 
 from blobmaker.components import SimpleComponent

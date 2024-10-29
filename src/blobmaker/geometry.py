@@ -1,4 +1,7 @@
-"""
+'''
+geometry.py
+author(s): Sid Mungale
+
 Functions and classes to help with geometrical calculations in cubit
 
 Functions
@@ -17,7 +20,9 @@ Classes
 -------
 Vertex: Representation of a vertex in 3D space
 Line: Representation of a line in point-slope form
-"""
+
+(c) Copyright UKAEA 2024
+'''
 
 
 from blobmaker.generic_classes import CubitInstance, CubismError, cmd

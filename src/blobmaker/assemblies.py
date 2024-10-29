@@ -1,6 +1,12 @@
-'''Assembly classes and construct function.
+'''
+assemblies.py
+author(s): Sid Mungale
+
+Assembly classes and construct function.
 Assembly classes organise the arrangement of their children component classes,
 for example a Pin would consist of Cladding, Breeder, Coolant, etc. components.
+
+(c) Copyright UKAEA 2024
 '''
 
 from blobmaker.generic_classes import CubismError, CubitInstance, cmd, cubit

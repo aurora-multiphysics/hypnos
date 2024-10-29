@@ -1,4 +1,11 @@
-'''Global constants'''
+'''
+constants.py
+author(s): Sid Mungale
+
+Global constants
+
+(c) Copyright UKAEA 2024
+'''
 
 # required components for assemblies to be generated
 NEUTRON_TEST_FACILITY_REQUIREMENTS = ["room", "source"]

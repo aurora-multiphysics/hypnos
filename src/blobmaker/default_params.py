@@ -1,3 +1,12 @@
+'''
+default_params.py
+author(s): Sid Mungale
+
+default parameter dictionaries
+
+(c) Copyright UKAEA 2024
+'''
+
 PIN = {
     "class": "pin",
     "materials": {
