@@ -1,4 +1,8 @@
-'''Wrappers for functions/ processes in cubit
+'''
+cubit_functions.py
+author(s): Sid Mungale
+
+Wrappers for functions/ processes in cubit
 
 Functions
 ---------
@@ -14,6 +18,8 @@ get_entities_from_group: Get geometries belonging to a group
 add_to_new_entity: Create group/ block/ sideset and add entities
 subtract: subtract a set of geometries from another
 union: take the union of a set of geometries
+
+(c) Copyright UKAEA 2024
 '''
 
 from blobmaker.generic_classes import (

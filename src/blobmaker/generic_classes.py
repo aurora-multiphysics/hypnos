@@ -1,4 +1,11 @@
-'''Lowest level objects'''
+'''
+generic_classes.py
+author(s): Sid Mungale
+
+Lowest level objects
+
+(c) Copyright UKAEA 2024
+'''
 
 import cubit
 

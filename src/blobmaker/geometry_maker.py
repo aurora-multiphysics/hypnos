@@ -1,3 +1,12 @@
+'''
+geometry_maker.py
+author(s): Sid Mungale
+
+Python interface to access program functionality
+
+(c) Copyright UKAEA 2024
+'''
+
 from blobmaker.tracking import Tracker
 from blobmaker.assemblies import construct
 from blobmaker.generic_classes import CubismError, cmd

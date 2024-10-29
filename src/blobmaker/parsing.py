@@ -1,4 +1,10 @@
-'''Classes and functions to process json files describing the parameters
+'''
+parsing.py
+author(s): Sid Mungale
+
+Classes and functions to process json files describing the parameters
+
+(c) Copyright UKAEA 2024
 '''
 
 import json
