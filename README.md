@@ -30,3 +30,7 @@ The following flags are also available:
 + -m : Names of formats to export mesh to (optional)
 
 The names given to flags -f, -o, and -d will be preferred over their equivalent options in the config file (file, root name, destination)
+
+## References
+The HCPB geometry parametrised in this code was based off of a design for the DEMO reactor from the following paper:
+Zhou, G.; Hernández, F.A.; Pereslavtsev, P.; Kiss, B.; Retheesh, A.; Maqueda, L.; Park, J.H. The European DEMO Helium Cooled Pebble Bed Breeding Blanket: Design Status at the Conclusion of the Pre-Concept Design Phase. Energies 2023, 16, 5377. https://doi.org/10.3390/en16145377
