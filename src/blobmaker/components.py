@@ -198,7 +198,7 @@ class CuboidLayerComponent(SimpleComponent):
         # Make geometry.
         positive_volume = make_cuboid(outer_width, outer_length, outer_height)
         negative_volume = make_cuboid(inner_width, inner_length, inner_height)
-        volume = subtract(positive_volume, negative_volume)
+        volume = subtract([positive_volume], [negative_volume])[0]
 
         return volume
 
@@ -306,7 +306,7 @@ class CylindricalLayerComponent(SimpleComponent):
         inner_radius = self.geometry["inner_radius"]
         thickness = self.geometry["face_thickness"]
         outer_radius = inner_radius + thickness
-        inner_length = self.geometry["length"]
+        inner_length = self.geometry["inner_length"]
         face_thickness = self.geometry["face_thickness"]
         if not face_thickness:
             face_thickness = thickness
@@ -316,7 +316,7 @@ class CylindricalLayerComponent(SimpleComponent):
         # Make geometry.
         positive_volume = make_cylinder_along(outer_radius, outer_length, axis)
         negative_volume = make_cylinder_along(inner_radius, inner_length, axis)
-        volume = subtract(positive_volume, negative_volume)
+        volume = subtract([positive_volume], [negative_volume])[0]
 
         return volume
 
