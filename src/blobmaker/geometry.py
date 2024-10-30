@@ -66,6 +66,13 @@ def make_surface_from_curves(curves_list: list[CubitInstance]):
     return surface
 
 
+def make_cuboid(x: float, y: float, z: float):
+    """Make a cuboid."""
+    cuboid = cmd_geom(f"create brick x {x} y {y} z {z}", "volume")
+
+    return cuboid
+
+
 def make_cylinder_along(radius: int, length: int, axis: str = "z"):
     '''Make a cylinder along one of the cartesian axes
 
