@@ -1,8 +1,8 @@
-from blobmaker.geometry_maker import GeometryMaker, make_everything
-from blobmaker.default_params import PIN
-from blobmaker.generic_classes import CubismError
-from blobmaker.assemblies import PinAssembly
-from blobmaker.components import (
+from hypnos.geometry_maker import GeometryMaker, make_everything
+from hypnos.default_params import PIN
+from hypnos.generic_classes import CubismError
+from hypnos.assemblies import PinAssembly
+from hypnos.components import (
     MultiplierComponent,
     PressureTubeComponent,
     CladdingComponent,

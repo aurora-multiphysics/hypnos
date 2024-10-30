@@ -1,4 +1,4 @@
-.. blobmaker documentation master file, created by
+.. hypnos documentation master file, created by
    sphinx-quickstart on Tue Nov 21 13:39:48 2023.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.

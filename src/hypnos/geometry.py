@@ -25,8 +25,8 @@ Line: Representation of a line in point-slope form
 '''
 
 
-from blobmaker.generic_classes import CubitInstance, CubismError, cmd
-from blobmaker.cubit_functions import get_id_string, cmd_geom
+from hypnos.generic_classes import CubitInstance, CubismError, cmd
+from hypnos.cubit_functions import get_id_string, cmd_geom
 import numpy as np
 
 

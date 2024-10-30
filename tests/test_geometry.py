@@ -1,4 +1,4 @@
-from blobmaker.geometry import (
+from hypnos.geometry import (
     create_2d_vertex,
     connect_vertices_straight,
     connect_curves_tangentially,
@@ -15,7 +15,7 @@ from blobmaker.geometry import (
     unroll,
     blunt_corners
 )
-from blobmaker.generic_classes import (
+from hypnos.generic_classes import (
     CubitInstance,
     CubismError
 )

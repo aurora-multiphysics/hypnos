@@ -22,7 +22,7 @@ union: take the union of a set of geometries
 (c) Copyright UKAEA 2024
 '''
 
-from blobmaker.generic_classes import (
+from hypnos.generic_classes import (
     CubismError,
     CubitInstance,
     cubit,

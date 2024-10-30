@@ -1,5 +1,6 @@
-from blobmaker.default_params import FIRST_WALL, PIN, HCPB_BLANKET
+
 from funcs_for_tests import get_union_volumes
+from hypnos.default_params import FIRST_WALL, PIN, HCPB_BLANKET
 import cubit
 import pytest
 

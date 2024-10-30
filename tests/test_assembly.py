@@ -1,5 +1,5 @@
 import pytest
-from blobmaker.assemblies import GenericComponentAssembly
-from blobmaker.components import SimpleComponent
+from hypnos.assemblies import GenericComponentAssembly
+from hypnos.components import SimpleComponent
 
 

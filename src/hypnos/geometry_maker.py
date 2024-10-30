@@ -7,11 +7,11 @@ Python interface to access program functionality
 (c) Copyright UKAEA 2024
 '''
 
-from blobmaker.tracking import Tracker
-from blobmaker.assemblies import construct
-from blobmaker.generic_classes import CubismError, cmd
-from blobmaker.cubit_functions import initialise_cubit, reset_cubit
-from blobmaker.parsing import extract_data, ParameterFiller, get_format_extension
+from hypnos.tracking import Tracker
+from hypnos.assemblies import construct
+from hypnos.generic_classes import CubismError, cmd
+from hypnos.cubit_functions import initialise_cubit, reset_cubit
+from hypnos.parsing import extract_data, ParameterFiller, get_format_extension
 import functools
 
 

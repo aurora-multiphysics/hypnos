@@ -1,8 +1,8 @@
-from blobmaker.generic_classes import CubismError
-from blobmaker.cubit_functions import reset_cubit
-from blobmaker.parsing import extract_data, get_format_extension
-from blobmaker.default_params import DEFAULTS
-from blobmaker.geometry_maker import make_everything, GeometryMaker
+from hypnos.generic_classes import CubismError
+from hypnos.cubit_functions import reset_cubit
+from hypnos.parsing import extract_data, get_format_extension
+from hypnos.default_params import DEFAULTS
+from hypnos.geometry_maker import make_everything, GeometryMaker
 import pprint, argparse
 from os.path import isfile
 from pathlib import Path
