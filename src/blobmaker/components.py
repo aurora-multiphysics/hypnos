@@ -160,9 +160,9 @@ class CylindricalComponent(SimpleComponent):
         material : str
             The cylinder's material, expressed as a string.
         radius : float
-            The cylinder's radius in metres.
+            The cylinder's radius in millimetres.
         length : float
-            The cylinder's length in metres.
+            The cylinder's length in millimetres.
         axis : str, optional
             The orientation axis of the cylinder (the dimension to which its
             length is parallel). Expressed as "x", "y", "z", by default "z".
@@ -212,13 +212,13 @@ class CylindricalLayerComponent(SimpleComponent):
         material : str
             The cylindrical layer's material.
         inner_radius : float
-            The cylindrical layer's inner radius in metres.
+            The cylindrical layer's inner radius in millimetres.
         thickness : float
-            The cylindrical layer's thickness in metres.
+            The cylindrical layer's thickness in millimetres.
         inner_length : float
-            The cylindrical layer's inner length in metres.
+            The cylindrical layer's inner length in millimetres.
         face_thickness : float | None, optional
-            The cylindrical layer's face thickness in metres. If None, the
+            The cylindrical layer's face thickness in millimetres. If None, the
             thickness is used, by default None.
         axis : str, optional
             The orientation axis of the cylindrical layer (the dimension to
@@ -280,9 +280,9 @@ class PolygonalPrismComponent(SimpleComponent):
         polygon_sides : int
             The prism's number of sides, e.g. 6 for a hexagonal prism.
         radius : float
-            The prism's radius in metres.
+            The prism's radius in millimetres.
         length : float
-            The prism's length in metres.
+            The prism's length in millimetres.
         axis : str
             The orientation axis of the prism (the dimension to which its
             length is parallel). Can be either "x", "y", "z", by default "z".
@@ -336,11 +336,11 @@ class PolygonalPrismLayerComponent(SimpleComponent):
         polygon_sides : int
             The prism layer's number of sides, e.g. 6 for a hexagonal prism.
         inner_radius : float
-            The prism layer's inner radius in metres.
+            The prism layer's inner radius in millimetres.
         radial_thickness : float
-            The prism layer's thickness in metres.
+            The prism layer's thickness in millimetres.
         length : float
-            The prism layer's length in metres.
+            The prism layer's length in millimetres.
         axis : str
             The orientation axis of the prism (the dimension to which its
             length is parallel). Can be either "x", "y", "z", by default "z".
