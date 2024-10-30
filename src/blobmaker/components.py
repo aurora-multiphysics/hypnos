@@ -201,7 +201,8 @@ class CylindricalLayerComponent(SimpleComponent):
     surrounding a central void.
     """
     def __init__(self, classname: str, material: str, inner_radius: float,
-                 thickness: float, length: float, axis: str):
+                 thickness: float, inner_length: float,
+                 face_thickness: float | None = None, axis: str = "z"):
         """Initialise a class instance.
 
         Parameters
@@ -214,18 +215,23 @@ class CylindricalLayerComponent(SimpleComponent):
             The cylindrical layer's inner radius in metres.
         thickness : float
             The cylindrical layer's thickness in metres.
-        length : float
-            The cylindrical layer's length in metres.
-        axis : str
+        inner_length : float
+            The cylindrical layer's inner length in metres.
+        face_thickness : float | None, optional
+            The cylindrical layer's face thickness in metres. If None, the
+            thickness is used, by default None.
+        axis : str, optional
             The orientation axis of the cylindrical layer (the dimension to
-            which its length is parallel). Can be either "x", "y", "z".
+            which its length is parallel). Can be either "x", "y", "z", by
+            default "z".
         """
         parameter_dict = {
             "material": material,
             "geometry": {
                 "inner_radius": inner_radius,
                 "thickness": thickness,
-                "length": length,
+                "inner_length": inner_length,
+                "face_thickness": face_thickness,
                 "axis": axis,
             },
         }
@@ -241,14 +247,18 @@ class CylindricalLayerComponent(SimpleComponent):
         """
         # Get parameters.
         inner_radius = self.geometry["inner_radius"]
-        thickness = self.geometry["thickness"]
+        thickness = self.geometry["face_thickness"]
         outer_radius = inner_radius + thickness
-        length = self.geometry["length"]
+        inner_length = self.geometry["length"]
+        face_thickness = self.geometry["face_thickness"]
+        if not face_thickness:
+            face_thickness = thickness
+        outer_length = inner_length + face_thickness
         axis = self.geometry["axis"]
 
         # Make geometry.
-        positive_volume = make_cylinder_along(outer_radius, length, axis)
-        negative_volume = make_cylinder_along(inner_radius, length, axis)
+        positive_volume = make_cylinder_along(outer_radius, outer_length, axis)
+        negative_volume = make_cylinder_along(inner_radius, inner_length, axis)
         volume = subtract(positive_volume, negative_volume)
 
         return volume
