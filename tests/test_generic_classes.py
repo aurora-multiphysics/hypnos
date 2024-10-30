@@ -1,7 +1,7 @@
 import cubit
 import pytest
 import numpy as np
-from blobmaker.generic_classes import (
+from hypnos.generic_classes import (
     CubitInstance,
     get_cubit_geometry,
     cmd,

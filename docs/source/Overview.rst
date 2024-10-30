@@ -11,7 +11,7 @@ This can be achieved either through running main.py, or in your own python scrip
 
 .. rubric:: main.py
 
-To use blobmaker, run main.py, passing the name of the json file to a -f flag (default: examples/sample_pin.json)::
+To use hypnos, run main.py, passing the name of the json file to a -f flag (default: examples/sample_pin.json)::
     
     python main.py -f examples/sample_pin.json
 

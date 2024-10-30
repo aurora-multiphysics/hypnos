@@ -7,10 +7,10 @@ Tracks blocks, sidesets, and groups for components and their boundaries
 (c) Copyright UKAEA 2024
 '''
 
-from blobmaker.components import SimpleComponent
-from blobmaker.assemblies import GenericComponentAssembly
-from blobmaker.generic_classes import CubismError, cubit, cmd
-from blobmaker.cubit_functions import to_surfaces, add_to_new_entity
+from hypnos.components import SimpleComponent
+from hypnos.assemblies import GenericComponentAssembly
+from hypnos.generic_classes import CubismError, cubit, cmd
+from hypnos.cubit_functions import to_surfaces, add_to_new_entity
 
 
 class Tracker:

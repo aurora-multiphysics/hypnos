@@ -8,16 +8,16 @@ These are components that contain a volume/s made of a single material
 (c) Copyright UKAEA 2024
 '''
 
-from blobmaker.constants import BLOB_CLASSES
-from blobmaker.generic_classes import CubismError, CubitInstance, cmd, cubit
-from blobmaker.cubit_functions import (
+from hypnos.constants import BLOB_CLASSES
+from hypnos.generic_classes import CubismError, CubitInstance, cmd, cubit
+from hypnos.cubit_functions import (
     to_volumes,
     to_bodies,
     get_last_geometry,
     subtract,
     cmd_geom
     )
-from blobmaker.geometry import (
+from hypnos.geometry import (
     make_cylinder_along,
     Vertex,
     make_surface,

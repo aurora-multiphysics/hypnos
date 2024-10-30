@@ -1,7 +1,7 @@
-from blobmaker.default_params import FIRST_WALL, PIN, HCPB_BLANKET
-from blobmaker.cubit_functions import cmd, union
-from blobmaker.geometry_maker import GeometryMaker
-from blobmaker.generic_classes import CubitInstance
+from hypnos.default_params import FIRST_WALL, PIN, HCPB_BLANKET
+from hypnos.cubit_functions import cmd, union
+from hypnos.geometry_maker import GeometryMaker
+from hypnos.generic_classes import CubitInstance
 import cubit
 import pytest
 

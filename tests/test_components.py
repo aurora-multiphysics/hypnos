@@ -1,5 +1,5 @@
-from blobmaker.components import SimpleComponent
-from blobmaker.generic_classes import CubitInstance, CubismError
+from hypnos.components import SimpleComponent
+from hypnos.generic_classes import CubitInstance, CubismError
 import cubit
 import pytest
 

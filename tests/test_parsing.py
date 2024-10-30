@@ -1,12 +1,12 @@
-from blobmaker.parsing import (
+from hypnos.parsing import (
     extract_data,
     extract_if_string,
     delve,
     ParameterFiller,
     get_format_extension
 )
-from blobmaker.default_params import HCPB_BLANKET
-from blobmaker.generic_classes import CubismError
+from hypnos.default_params import HCPB_BLANKET
+from hypnos.generic_classes import CubismError
 import pytest
 import pathlib
 

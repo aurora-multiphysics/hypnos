@@ -9,8 +9,8 @@ for example a Pin would consist of Cladding, Breeder, Coolant, etc. components.
 (c) Copyright UKAEA 2024
 '''
 
-from blobmaker.generic_classes import CubismError, CubitInstance, cmd, cubit
-from blobmaker.components import (
+from hypnos.generic_classes import CubismError, CubitInstance, cmd, cubit
+from hypnos.components import (
     ExternalComponent,
     SimpleComponent,
     SurroundingWallsComponent,
@@ -35,10 +35,10 @@ from blobmaker.components import (
     SeparatorPlate,
     FWBackplate
 )
-from blobmaker.cubit_functions import to_volumes, get_entities_from_group
-from blobmaker.geometry import Vertex, arctan
-from blobmaker.cubit_functions import to_bodies
-from blobmaker.constants import (
+from hypnos.cubit_functions import to_volumes, get_entities_from_group
+from hypnos.geometry import Vertex, arctan
+from hypnos.cubit_functions import to_bodies
+from hypnos.constants import (
     CLASS_MAPPING, 
     NEUTRON_TEST_FACILITY_REQUIREMENTS, 
     ROOM_REQUIREMENTS, 
