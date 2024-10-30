@@ -9,7 +9,8 @@ from blobmaker.geometry import (
     arctan,
     Vertex,
     make_surface,
-    Line
+    Line,
+    blunt_corner
 )
 from blobmaker.generic_classes import (
     CubitInstance,
@@ -246,6 +247,18 @@ def test_line_vertex_at(line: Line):
         line.vertex_at()
 
 
+def test_line_vertex_from_dist():
+    line = Line(Vertex(0.03, 0.04), Vertex(3))
+    assert line.vertex_from_dist(5) == Vertex(6, 4)
+    assert line.vertex_from_dist(0) == Vertex(3)
+    assert line.vertex_from_dist(-5) == Vertex(0, -4)
+
+
+def test_line_from_vertices():
+    assert Line.from_vertices(Vertex(1, 1, 1), Vertex(3, 3, 3)) == Line(Vertex(2, 2, 2), Vertex(1, 1, 1))
+    assert Line.from_vertices(Vertex(2, 0, 1), Vertex(3, -3, 3)) == Line(Vertex(1, -3, 2), Vertex(2, 0, 1))
+
+
 def test_make_surface():
     vertices = [Vertex(5, 5), Vertex(5, -5), Vertex(-5, -5), Vertex(-5, 5)]
     surf = make_surface(vertices, []).handle
@@ -254,3 +267,10 @@ def test_make_surface():
         surf.normal_at((0, 0, 0)) == (0, 0, 1) or
         surf.normal_at((0, 0, 0)) == (0, 0, -1)
         )
+
+
+def test_blunt_corner():
+    outline = [Vertex(1), Vertex(0), Vertex(0, 1)]
+
+    blunted_outline1 = blunt_corner(outline, 1, 0.1)
+    assert blunted_outline1 == [Vertex(1), Vertex(0.1), Vertex(0, 0.1), Vertex(0, 1)]
