@@ -1,7 +1,7 @@
 from blobmaker.constants import BLOB_CLASSES
 from blobmaker.generic_classes import CubismError, CubitInstance, cmd, cubit
 from blobmaker.cubit_functions import to_volumes, to_bodies, get_last_geometry, subtract, cmd_geom
-from blobmaker.geometry import make_cylinder_along, make_prism_along, Vertex, make_surface, hypotenuse, arctan, Line
+from blobmaker.geometry import make_cuboid, make_cylinder_along, make_prism_along, Vertex, make_surface, hypotenuse, arctan, Line
 import numpy as np
 
 
@@ -144,6 +144,63 @@ class SimpleComponent:
     def volume_id_string(self):
         self.as_volumes()
         return " ".join([str(subcomponent.cid) for subcomponent in self.get_subcomponents()]) 
+
+
+class CuboidLayerComponent(SimpleComponent):
+    """A generic cuboid layer component comprised of a single material
+    surrounding a central void.
+    """
+    def __init__(self, classname: str, material: str, inner_width: float,
+                 inner_length: float, inner_height: float, thickness: float):
+        """Initialise a class instance.
+
+        Parameters
+        ----------
+        classname : str
+            Name to be used to label the component.
+        material : str
+            The cuboid layer's material, expressed as a string.
+        inner_width : float
+            The inner cuboid's width (x-dimension) in millimetres.
+        inner_length : float
+            The inner cuboid's length (y-dimension) in millimetres.
+        inner_height : float
+            The inner cuboid's height (z-dimension) in millimetres.
+        """
+        parameter_dict = {
+            "material": material,
+            "geometry": {
+                "inner_width": inner_width,
+                "inner_length": inner_length,
+                "inner_height": inner_height,
+                "thickness": thickness,
+            },
+        }
+        super().__init__(classname, parameter_dict)
+
+    def make_geometry(self):
+        """Generate the component geometry.
+
+        Returns
+        -------
+        volume : CubitInstance
+            The constructed component geometry.
+        """
+        # Get parameters.
+        thickness = self.geometry["thickness"]
+        inner_width = self.geometry["inner_width"]
+        outer_width = inner_width + thickness
+        inner_length = self.geometry["inner_length"]
+        outer_length = inner_length + thickness
+        inner_height = self.geometry["inner_height"]
+        outer_height = inner_height + thickness
+
+        # Make geometry.
+        positive_volume = make_cuboid(outer_width, outer_length, outer_height)
+        negative_volume = make_cuboid(inner_width, inner_length, inner_height)
+        volume = subtract(positive_volume, negative_volume)
+
+        return volume
 
 
 class CylindricalComponent(SimpleComponent):
