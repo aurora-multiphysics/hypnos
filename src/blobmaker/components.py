@@ -150,7 +150,7 @@ class CylindricalComponent(SimpleComponent):
     """A generic cylindrical component of a single material.
     """
     def __init__(self, classname: str, material: str, radius: float,
-                 length: float, axis: str):
+                 length: float, axis: str = "z"):
         """Initialise a class instance.
 
         Parameters
@@ -163,9 +163,9 @@ class CylindricalComponent(SimpleComponent):
             The cylinder's radius in metres.
         length : float
             The cylinder's length in metres.
-        axis : str
+        axis : str, optional
             The orientation axis of the cylinder (the dimension to which its
-            length is parallel). Expressed as "x", "y", "z".
+            length is parallel). Expressed as "x", "y", "z", by default "z".
         """
         parameter_dict = {
             "material": material,
@@ -268,7 +268,7 @@ class PolygonalPrismComponent(SimpleComponent):
     """A generic polygonal prism component of a single material.
     """
     def __init__(self, classname: str, material: str, polygon_sides: int,
-                 radius: float, length: float, axis: str):
+                 radius: float, length: float, axis: str = "z"):
         """Initialise a class instance.
 
         Parameters
@@ -285,7 +285,7 @@ class PolygonalPrismComponent(SimpleComponent):
             The prism's length in metres.
         axis : str
             The orientation axis of the prism (the dimension to which its
-            length is parallel). Can be either "x", "y", "z".
+            length is parallel). Can be either "x", "y", "z", by default "z".
         """
         parameter_dict = {
             "material": material,
@@ -324,7 +324,7 @@ class PolygonalPrismLayerComponent(SimpleComponent):
     """
     def __init__(self, classname: str, material: str, polygon_sides: int,
                  inner_radius: float, radial_thickness: float, length: float,
-                 axis: str):
+                 axis: str = "z"):
         """Initialise a class instance.
 
         Parameters
@@ -343,7 +343,7 @@ class PolygonalPrismLayerComponent(SimpleComponent):
             The prism layer's length in metres.
         axis : str
             The orientation axis of the prism (the dimension to which its
-            length is parallel). Can be either "x", "y", "z".
+            length is parallel). Can be either "x", "y", "z", by default "z".
         """
         parameter_dict = {
             "material": material,
