@@ -194,8 +194,9 @@ class CreatedComponentAssembly(GenericComponentAssembly):
         volume_ids_list = [i.cid for i in to_volumes(self.get_all_geometries())]
         overlaps = cubit.get_overlapping_volumes(volume_ids_list)
         if overlaps != ():
-            overlapping_components = {self.find_parent_component(CubitInstance(overlap_vol_id, "volume")).classname for overlap_vol_id in overlaps}
-            raise CubismError(f"The following components have overlaps: {overlapping_components}")
+            overlapping_components = [self.find_parent_component(CubitInstance(overlap_vol_id, "volume")) for overlap_vol_id in overlaps]
+            overlapping_components = {comp.classname for comp in overlapping_components if comp}
+            raise CubismError(f"The following volumes have overlaps: {overlaps}. These components have overlaps: {overlapping_components}")
 
     def enforce_structure(self):
         '''Make sure an instance of this class contains the required components. This looks at the classnames specified in the json file'''
