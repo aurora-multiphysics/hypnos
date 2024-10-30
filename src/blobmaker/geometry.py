@@ -28,6 +28,7 @@ Line: Representation of a line in point-slope form
 from blobmaker.generic_classes import CubitInstance, CubismError, cmd
 from blobmaker.cubit_functions import get_id_string, cmd_geom
 import numpy as np
+import copy
 
 
 def create_2d_vertex(x: float, y: float):
@@ -449,8 +450,57 @@ class Line:
         else:
             raise CubismError("At least one argument should be provided")
 
-    def line_at(self, const: Vertex):
+    def line_at(self, const: Vertex) -> 'Line':
+        '''Return a line with the same slope but new const
+
+        Parameters
+        ----------
+        const : Vertex
+            vertex the new line passes through
+
+        Returns
+        -------
+        Line
+            line with same slope
+        '''
         return Line(self.slope, const)
+
+    def vertex_from_dist(self, distance: float) -> Vertex:
+        '''Get the vertex on this line at specified distance from const
+
+        Parameters
+        ----------
+        distance : float
+            distance along line to find vertex
+
+        Returns
+        -------
+        Vertex
+            vertex on line at specified distance
+        '''
+        unit_slope = self.slope.unit()
+        vert = self.const + (distance * unit_slope)
+        return vert
+
+    @classmethod
+    def from_vertices(cls, from_vert: Vertex, to_vert: Vertex) -> 'Line':
+        '''create a line passing through the given two vertices
+
+        Parameters
+        ----------
+        from_vert : Vertex
+            describes const of new line
+        to_vert : Vertex
+            describes slope along with from_vert
+
+        Returns
+        -------
+        Line
+            line passing through given vertices
+        '''
+        slope = to_vert - from_vert
+        point = from_vert
+        return Line(slope, point)
 
 
 def make_surface(vertices: list[Vertex], tangent_indices: list[int]) -> CubitInstance:
@@ -474,3 +524,40 @@ def make_surface(vertices: list[Vertex], tangent_indices: list[int]) -> CubitIns
     loop = make_loop(created_vertices, tangent_indices)
     surface = make_surface_from_curves(loop)
     return surface
+
+
+def blunt_corner(vertices: list[Vertex], idx: int, bluntness: float) -> list[Vertex]:
+    '''Blunt a corner in a list of vertices. The provided list of vertices
+    describe the outline of some geometry bounded by straight lines connecting
+    the points. This function will look at vertex at the provided index, and
+    'blunt' the corner it represents by splitting it into 2 vertices, each a
+    distance <bluntness> away from the original.
+
+    Parameters
+    ----------
+    vertices : list[Vertex]
+        vertices describing the outline of a geometry
+    idx : int
+        index of corner to be blunted
+    bluntness : float
+        distance to blunt vertex by
+
+    Returns
+    -------
+    list[Vertex]
+        list of vertices with vertices[idx] replaced by 2 'blunted' vertices
+    '''
+    if bluntness == 0:
+        return vertices
+    vertices = copy.deepcopy(vertices)
+
+    dir1 = Line.from_vertices(vertices[idx], vertices[idx+1])
+    dir2 = Line.from_vertices(vertices[idx-1], vertices[idx])
+
+    split1 = dir1.vertex_from_dist(bluntness)
+    split2 = dir2.vertex_from_dist(bluntness)
+
+    vertices[idx] = split2
+    vertices.insert(idx, split1)
+
+    return vertices
