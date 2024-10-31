@@ -19,6 +19,7 @@ from blobmaker.generic_classes import (
 import pytest
 import cubit
 import numpy as np
+from funcs_for_tests import verts_approx_equal
 
 cubism_err = pytest.raises(CubismError)
 type_err = pytest.raises(TypeError)
@@ -249,9 +250,9 @@ def test_line_vertex_at(line: Line):
 
 def test_line_vertex_from_dist():
     line = Line(Vertex(0.03, 0.04), Vertex(3))
-    assert line.vertex_from_dist(5) == Vertex(6, 4)
-    assert line.vertex_from_dist(0) == Vertex(3)
-    assert line.vertex_from_dist(-5) == Vertex(0, -4)
+    assert verts_approx_equal(line.vertex_from_dist(5), Vertex(6, 4))
+    assert verts_approx_equal(line.vertex_from_dist(0), Vertex(3))
+    assert verts_approx_equal(line.vertex_from_dist(-5), Vertex(0, -4))
 
 
 def test_line_from_vertices():
@@ -272,5 +273,10 @@ def test_make_surface():
 def test_blunt_corner():
     outline = [Vertex(1), Vertex(0), Vertex(0, 1)]
 
+    # bluntness == 0.1 should split (0, 0) along x and y axes
     blunted_outline1 = blunt_corner(outline, 1, 0.1)
     assert blunted_outline1 == [Vertex(1), Vertex(0.1), Vertex(0, 0.1), Vertex(0, 1)]
+
+    # bluntness == 0 should leave vertices unchanged
+    blunted_outline2 = blunt_corner(outline, 1, 0)
+    assert blunted_outline2 == [Vertex(1), Vertex(0), Vertex(0, 1)]
