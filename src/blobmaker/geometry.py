@@ -551,8 +551,8 @@ def blunt_corner(vertices: list[Vertex], idx: int, bluntness: float) -> list[Ver
         return vertices
     vertices = copy.deepcopy(vertices)
 
-    dir1 = Line.from_vertices(vertices[idx], vertices[idx+1])
-    dir2 = Line.from_vertices(vertices[idx-1], vertices[idx])
+    dir1 = Line.from_vertices(vertices[idx], vertices[idx-1])
+    dir2 = Line.from_vertices(vertices[idx], vertices[idx+1])
 
     split1 = dir1.vertex_from_dist(bluntness)
     split2 = dir2.vertex_from_dist(bluntness)
