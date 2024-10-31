@@ -28,7 +28,6 @@ Line: Representation of a line in point-slope form
 from blobmaker.generic_classes import CubitInstance, CubismError, cmd
 from blobmaker.cubit_functions import get_id_string, cmd_geom
 import numpy as np
-import copy
 
 
 def create_2d_vertex(x: float, y: float):
@@ -545,11 +544,10 @@ def blunt_corner(vertices: list[Vertex], idx: int, bluntness: float) -> list[Ver
     Returns
     -------
     list[Vertex]
-        list of vertices with vertices[idx] replaced by 2 'blunted' vertices
+        list of 'blunted' vertices
     '''
     if bluntness == 0:
-        return vertices
-    vertices = copy.deepcopy(vertices)
+        return [vertices[idx]]
 
     dir1 = Line.from_vertices(vertices[idx], vertices[idx-1])
     dir2 = Line.from_vertices(vertices[idx], vertices[idx+1])
@@ -557,7 +555,4 @@ def blunt_corner(vertices: list[Vertex], idx: int, bluntness: float) -> list[Ver
     split1 = dir1.vertex_from_dist(bluntness)
     split2 = dir2.vertex_from_dist(bluntness)
 
-    vertices[idx] = split2
-    vertices.insert(idx, split1)
-
-    return vertices
+    return [split1, split2]

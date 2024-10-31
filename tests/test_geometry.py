@@ -274,9 +274,9 @@ def test_blunt_corner():
     outline = [Vertex(1), Vertex(0), Vertex(0, 1)]
 
     # bluntness == 0.1 should split (0, 0) along x and y axes
-    blunted_outline1 = blunt_corner(outline, 1, 0.1)
-    assert blunted_outline1 == [Vertex(1), Vertex(0.1), Vertex(0, 0.1), Vertex(0, 1)]
+    blunted1 = blunt_corner(outline, 1, 0.1)
+    assert blunted1 == [Vertex(0.1), Vertex(0, 0.1)]
 
     # bluntness == 0 should leave vertices unchanged
-    blunted_outline2 = blunt_corner(outline, 1, 0)
-    assert blunted_outline2 == [Vertex(1), Vertex(0), Vertex(0, 1)]
+    blunted2 = blunt_corner(outline, 1, 0)
+    assert blunted2 == [Vertex(0)]
