@@ -189,11 +189,11 @@ class CuboidLayerComponent(SimpleComponent):
         # Get parameters.
         thickness = self.geometry["thickness"]
         inner_width = self.geometry["inner_width"]
-        outer_width = inner_width + thickness
+        outer_width = inner_width + 2*thickness
         inner_length = self.geometry["inner_length"]
-        outer_length = inner_length + thickness
+        outer_length = inner_length + 2*thickness
         inner_height = self.geometry["inner_height"]
-        outer_height = inner_height + thickness
+        outer_height = inner_height + 2*thickness
 
         # Make geometry.
         positive_volume = make_cuboid(outer_width, outer_length, outer_height)
