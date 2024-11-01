@@ -10,7 +10,10 @@ from blobmaker.geometry import (
     Vertex,
     make_surface,
     Line,
-    blunt_corner
+    blunt_corner,
+    fetch,
+    unroll,
+    blunt_corners
 )
 from blobmaker.generic_classes import (
     CubitInstance,
@@ -256,8 +259,10 @@ def test_line_vertex_from_dist():
 
 
 def test_line_from_vertices():
-    assert Line.from_vertices(Vertex(1, 1, 1), Vertex(3, 3, 3)) == Line(Vertex(2, 2, 2), Vertex(1, 1, 1))
-    assert Line.from_vertices(Vertex(2, 0, 1), Vertex(3, -3, 3)) == Line(Vertex(1, -3, 2), Vertex(2, 0, 1))
+    line1 = Line.from_vertices(Vertex(1, 1, 1), Vertex(3, 3, 3))
+    assert line1 == Line(Vertex(2, 2, 2), Vertex(1, 1, 1))
+    line2 = Line.from_vertices(Vertex(2, 0, 1), Vertex(3, -3, 3))
+    assert line2 == Line(Vertex(1, -3, 2), Vertex(2, 0, 1))
 
 
 def test_make_surface():
@@ -280,3 +285,26 @@ def test_blunt_corner():
     # bluntness == 0 should leave vertices unchanged
     blunted2 = blunt_corner(outline, 1, 0)
     assert blunted2 == [Vertex(0)]
+
+
+def test_fetch():
+    assert fetch([[1, 2], 3, [4, 5]]) == [2, 3, 4]
+    assert fetch([[1, 2], 3, 4]) == [2, 3, 4]
+    assert fetch([2, 3, [4, 5]]) == [2, 3, 4]
+    assert fetch([2, 3, 4]) == [2, 3, 4]
+
+
+def test_unroll():
+    tangled1 = [[0, 1, 2], 3, 4, [5, 6], 7]
+    tangled2 = [0, [1, 2], 3, 4, 5, 6, 7]
+    assert unroll(tangled1) == unroll(tangled2) == list(range(8))
+
+
+def test_blunt_corners():
+    verts = [Vertex(1), Vertex(0), Vertex(0, 1), Vertex(1, 1)]
+    blunted1 = blunt_corners(verts, [1, 2], [0.1, 0.1])
+    assert blunted1 == [Vertex(1), Vertex(0.1), Vertex(0, 0.1), Vertex(0, 0.9), Vertex(0.1, 1), Vertex(1, 1)]
+
+    verts = [Vertex(1), Vertex(0), Vertex(0, 1), Vertex(1, 1)]
+    blunted2 = blunt_corners(verts, [1], [0.1])
+    assert blunted2 == [Vertex(1), Vertex(0.1), Vertex(0, 0.1), Vertex(0, 1), Vertex(1, 1)]

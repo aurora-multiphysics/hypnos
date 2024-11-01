@@ -556,3 +556,75 @@ def blunt_corner(vertices: list[Vertex], idx: int, bluntness: float) -> list[Ver
     split2 = dir2.vertex_from_dist(bluntness)
 
     return [split1, split2]
+
+
+def fetch(unwrap: list) -> list:
+    '''
+    "unwrap" a list locally and return items.
+    [[A, B], C, [D, E]] -> [B, C, D]
+    [B, C, [D, E]]      -> [B, C, D]
+    [[A, B], C, D]      -> [B, C, D]
+    [B, C, D]           -> [B, C, D]
+
+    Parameters
+    ----------
+    verts : list
+        list
+
+    Returns
+    -------
+    list
+        "unwrapped" list
+    '''
+    return_list = [0, unwrap[1], 0]
+    if len(unwrap) != 3:
+        raise CubismError('expected list of length 3')
+    return_list[0] = unwrap[0][1] if type(unwrap[0]) is list else unwrap[0]
+    return_list[2] = unwrap[2][0] if type(unwrap[2]) is list else unwrap[2]
+    return return_list
+
+
+def unroll(listlike: list) -> list:
+    '''Unroll lists inside lists
+
+    Parameters
+    ----------
+    listlike : list
+        A list that may have other lists inside it
+
+    Returns
+    -------
+    list
+        "unrolled" list
+    '''
+    return_list = []
+    for item in listlike:
+        if type(item) is list:
+            return_list.extend(item)
+        else:
+            return_list.append(item)
+    return return_list
+
+
+def blunt_corners(vertices: list[Vertex], ids: list[int], bluntnesses: list[int]) -> list:
+    '''Blunt many corners as in blunt_corner simultaneously
+
+    Parameters
+    ----------
+    vertices : list[Vertex]
+        vertices describing a geometrical outline
+    ids : list[int]
+        indices of vertices to blunt
+    bluntnesses : list[int]
+    corresponding amounts to blunt by
+
+    Returns
+    -------
+    list
+        list of blunted vertices
+    '''
+    if len(bluntnesses) != len(ids):
+        raise CubismError('length of bluntnesses should be the same as ids')
+    for i, bluntness in zip(ids, bluntnesses):
+        vertices[i] = blunt_corner(fetch(vertices[i-1:i+2]), 1, bluntness)
+    return unroll(vertices)
