@@ -19,7 +19,6 @@ from blobmaker.generic_classes import (
     cmd
 )
 from funcs_for_tests import vols
-# to make testing edge cases easier
 from blobmaker.geometry import make_cylinder_along
 
 import pytest
@@ -196,6 +195,10 @@ def test_union(brick):
 
 def test_union_edge_case():
     '''
+    Tests an edge case where cubit creates a volume with a new ID after
+    performing unite with keep=False, instead of assigning it one of the
+    old IDs.
+
     Usually when cubit is told to unite volumes (with keep=false),
     it will give the new volume an ID from the old ones. I.e. if you unite
     volumes 2, 4, and 5, you will be left with volume 2 after the command.
