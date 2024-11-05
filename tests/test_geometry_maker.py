@@ -70,14 +70,15 @@ def compare_stp(filepath1: str, filepath2: str):
     file1.close()
     file2.close()
 
+    diff_lines = []
     for line in difflib.ndiff(text1, text2):
         if not (line.startswith("  ") or line.startswith("?")):
             header = re.match(r'^[\+\-] FILE_NAME(.*);$', line)
-            if isinstance(header, re.Match):
-                pass
-            else:
-                print(line)
-                return False
+            if not isinstance(header, re.Match):
+                diff_lines.append(line)
+    if diff_lines:
+        [print(line) for line in diff_lines]
+        return False
     return True
 
 

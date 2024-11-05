@@ -302,9 +302,11 @@ def test_unroll():
 
 def test_blunt_corners():
     verts = [Vertex(1), Vertex(0), Vertex(0, 1), Vertex(1, 1)]
-    blunted1 = blunt_corners(verts, [1, 2], [0.1, 0.1])
+    blunted1, verts1 = blunt_corners(verts, [1, 2], [0.1, 0.1])
     assert blunted1 == [Vertex(1), Vertex(0.1), Vertex(0, 0.1), Vertex(0, 0.9), Vertex(0.1, 1), Vertex(1, 1)]
+    assert verts1 == [1, 3]
 
     verts = [Vertex(1), Vertex(0), Vertex(0, 1), Vertex(1, 1)]
-    blunted2 = blunt_corners(verts, [1], [0.1])
+    blunted2, verts2 = blunt_corners(verts, [1], [0.1])
     assert blunted2 == [Vertex(1), Vertex(0.1), Vertex(0, 0.1), Vertex(0, 1), Vertex(1, 1)]
+    assert verts2 == [1]
