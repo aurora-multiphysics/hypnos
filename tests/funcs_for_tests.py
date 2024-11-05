@@ -6,8 +6,6 @@ from blobmaker.generic_classes import (
 from blobmaker.cubit_functions import union
 import cubit
 
-# do i need tests for these?
-
 
 def get_union_volumes(goldfile: str, maker_tree: dict):
     '''Get the volumes of the gold file geometry, geometry from a design tree,
@@ -49,5 +47,12 @@ def get_union_volumes(goldfile: str, maker_tree: dict):
     return gold_volume, maker_volume, net_volume
 
 
-def vols():
+def vols() -> set:
+    '''Get all IDs for volumes that currently exist in cubit.
+
+    Returns
+    -------
+    set
+        volume IDs
+    '''
     return set(cubit.get_entities("volume"))
