@@ -607,7 +607,8 @@ def unroll(listlike: list) -> list:
 
 
 def blunt_corners(vertices: list[Vertex], ids: list[int], bluntnesses: list[int]) -> list:
-    '''Blunt many corners as in blunt_corner simultaneously
+    '''Blunt many corners as in blunt_corner simultaneously.
+    Return indices of vertices that have been blunted.
 
     Parameters
     ----------
@@ -620,11 +621,23 @@ def blunt_corners(vertices: list[Vertex], ids: list[int], bluntnesses: list[int]
 
     Returns
     -------
-    list
+    list[Vertex]
         list of blunted vertices
+    list[int]
+        list of indices of blunted vertices
     '''
     if len(bluntnesses) != len(ids):
         raise CubismError('length of bluntnesses should be the same as ids')
+    return_verts = []
     for i, bluntness in zip(ids, bluntnesses):
-        vertices[i] = blunt_corner(fetch(vertices[i-1:i+2]), 1, bluntness)
-    return unroll(vertices)
+        blunted_vert = blunt_corner(fetch(vertices[i-1:i+2]), 1, bluntness)
+        if len(blunted_vert) > 1:
+            return_verts.append(i)
+        vertices[i] = blunted_vert
+
+    # each blunted vertex gets split into two. we account for this by
+    # adding n-1 to the index of the nth blunted vertex
+    return_verts.sort()
+    return_verts = [vert+i for i, vert in enumerate(return_verts)]
+
+    return unroll(vertices), return_verts
