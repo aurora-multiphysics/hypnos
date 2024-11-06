@@ -1,3 +1,7 @@
+'''
+Functions used in tests
+'''
+
 from blobmaker.geometry_maker import GeometryMaker
 from blobmaker.generic_classes import (
     cmd,
