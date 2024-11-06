@@ -26,6 +26,8 @@ class ExternalComponent(CubitInstance):
         super().__init__(cid, geometry_type)
 
 
+# this is the common ancestor of SimpleComponent and GenericComponentAssembly
+# maybe needs a better name?
 class Settings(ABC):
     '''Common settings for Components and Assemblies'''
     def __init__(self, classname, params: dict):
@@ -42,9 +44,29 @@ class Settings(ABC):
                 self.origin = Vertex(*origin)
         self.check_sanity()
 
-    @abstractmethod
-    def check_sanity():
+    def check_sanity(self):
+        '''Check whether the parameters supplied to this instance are physical
+        '''
         pass
+
+    @abstractmethod
+    def get_geometries(self) -> list[CubitInstance]:
+        '''Get contained geometries
+
+        Returns
+        -------
+        list[CubitInstance]
+            list of geometries
+        '''
+        pass
+
+    def move(self, vector: Vertex):
+        for geom in self.get_geometries():
+            cmd(f"{str(geom)} move {str(vector)}")
+
+    def set_mesh_size(self, size: int):
+        for geom in self.get_geometries():
+            cmd(f"{str(geom)} size {size}")
 
 
 class SimpleComponent(Settings):
@@ -59,6 +81,17 @@ class SimpleComponent(Settings):
         if not self.origin == Vertex(0):
             self.move(self.origin)
 
+    @abstractmethod
+    def make_geometry(self) -> list[CubitInstance]:
+        '''Make this instance in cubit
+
+        Returns
+        -------
+        list[CubitInstance]
+            list of created geometries
+        '''
+        pass
+
     def add_to_subcomponents(self, subcomponents: CubitInstance | list[CubitInstance]):
         '''Add geometry/ies to subcomponents attribute
 
@@ -72,13 +105,8 @@ class SimpleComponent(Settings):
                 if isinstance(subcomponent, CubitInstance):
                     self.subcomponents.append(subcomponent)
 
-    @abstractmethod
-    def make_geometry(self):
-        '''create geometry in cubit'''
-        pass
-
     def as_bodies(self):
-        '''Convert subcomponent references to references to their owning bodies'''
+        '''Convert geometries to references to their owning bodies'''
         self.subcomponents = to_bodies(self.subcomponents)
 
     def as_volumes(self):
@@ -86,16 +114,8 @@ class SimpleComponent(Settings):
         to references to their composing volumes'''
         self.subcomponents = to_volumes(self.subcomponents)
 
-    def get_subcomponents(self) -> list[CubitInstance]:
+    def get_geometries(self) -> list[CubitInstance]:
         return self.subcomponents
-
-    def get_parameters(self, parameters: list):
-        return [self.geometry[parameter] for parameter in parameters]
-
-    def move(self, vector: Vertex):
-        for subcomponent in self.subcomponents:
-            if isinstance(subcomponent, CubitInstance):
-                cmd(f"{str(subcomponent)} move {str(vector)}")
 
     def extract_parameters(self, parameters):
         out_dict = {}
@@ -109,16 +129,9 @@ class SimpleComponent(Settings):
             raise CubismError(f"parameters type not recognised: {type(parameters)}")
         return out_dict
 
-    def check_sanity(self):
-        pass
-
-    def set_mesh_size(self, size: int):
-        for subcomponent in self.get_subcomponents():
-            cmd(f"{subcomponent.geometry_type} {subcomponent.cid} size {size}")
-
     def volume_id_string(self):
         self.as_volumes()
-        return " ".join([str(cmp.cid) for cmp in self.get_subcomponents()])
+        return " ".join([str(cmp.cid) for cmp in self.get_geometries()])
 
 
 class SurroundingWallsComponent(SimpleComponent):
@@ -140,7 +153,7 @@ class SurroundingWallsComponent(SimpleComponent):
             self.air.as_volumes()
 
     def get_air_subcomponents(self):
-        return self.air.get_subcomponents()
+        return self.air.get_geometries()
 
     def make_geometry(self):
         '''create 3d room with outer dimensions dimensions (int or list) and thickness (int or list)'''
@@ -899,14 +912,14 @@ class PurgeGasPlate(SimpleComponent):
         plates = []
 
         left_plate_json = self.__make_side_plate_json(0)
-        plates.extend(Plate(self.classname+"_left", left_plate_json, "left", self.hole_pos[0]).get_subcomponents())
+        plates.extend(Plate(self.classname+"_left", left_plate_json, "left", self.hole_pos[0]).get_geometries())
 
         for i in range(len(self.rib_pos)-1):
             mid_plate_json = self.__make_mid_plate_json(i)
-            plates.extend(Plate(self.classname+"_mid", mid_plate_json, "mid", self.hole_pos[i+1]).get_subcomponents())
+            plates.extend(Plate(self.classname+"_mid", mid_plate_json, "mid", self.hole_pos[i+1]).get_geometries())
 
         right_plate_json = self.__make_side_plate_json(-1)
-        plates.extend(Plate(self.classname+"_right", right_plate_json, "right", self.hole_pos[-1]).get_subcomponents())
+        plates.extend(Plate(self.classname+"_right", right_plate_json, "right", self.hole_pos[-1]).get_geometries())
 
         return plates
 

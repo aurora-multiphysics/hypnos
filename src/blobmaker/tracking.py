@@ -60,7 +60,7 @@ class Tracker:
             # add volumes to corresponding materials
             material_to_volumes[component.material].append(component.volume_id_string())
 
-            for surf_id in [surface.cid for surface in to_surfaces(component.get_subcomponents())]:
+            for surf_id in [surface.cid for surface in to_surfaces(component.get_geometries())]:
                 # initialise
                 if surf_id not in surface_to_comp_id:
                     surface_to_comp_id[surf_id] = []

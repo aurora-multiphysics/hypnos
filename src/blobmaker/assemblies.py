@@ -80,7 +80,7 @@ class GenericComponentAssembly(Settings):
         '''
         for component in self.get_components():
             if isinstance(component, SimpleComponent):
-                for component_geometry in component.get_subcomponents():
+                for component_geometry in component.get_geometries():
                     if isinstance(component_geometry, CubitInstance):
                         if str(geometry) == str(component_geometry):
                             return component
@@ -90,20 +90,15 @@ class GenericComponentAssembly(Settings):
                     return found_component
         return False
 
-    def get_all_geometries(self) -> list[CubitInstance]:
-        '''Get every geometry stored in this assembly instance recursively
-
-        :return: list of GenericCubitInstances
-        :rtype: list
-        '''
+    def get_geometries(self):
         instances_list = []
         for component in self.get_components():
             if isinstance(component, CubitInstance):
                 instances_list.append(component)
-            elif isinstance(component,SimpleComponent):
-                instances_list.extend(component.get_subcomponents())
+            elif isinstance(component, SimpleComponent):
+                instances_list.extend(component.get_geometries())
             elif isinstance(component, GenericComponentAssembly):
-                instances_list.extend(component.get_all_geometries())
+                instances_list.extend(component.get_geometries())
         return instances_list
 
     def get_volumes_list(self) -> list[int]:
@@ -152,10 +147,6 @@ class GenericComponentAssembly(Settings):
                 if isinstance(component, GenericComponentAssembly):
                     component_list += component.get_components_of_class(class_list)
         return component_list
-
-    def move(self, vector: Vertex):
-        for component in self.get_components():
-            component.move(vector)
 
     def set_mesh_size(self, component_classes: list, size: int):
         component_classes = [globals()[CLASS_MAPPING[classname]] for classname in component_classes]
@@ -228,7 +219,7 @@ class CreatedComponentAssembly(GenericComponentAssembly):
             if isinstance(component, CreatedComponentAssembly):
                 component.rotate(angle, origin, axis)
             elif isinstance(component, SimpleComponent):
-                for subcomponent in component.get_subcomponents():
+                for subcomponent in component.get_geometries():
                     cmd(f"rotate {subcomponent.geometry_type} {subcomponent.cid} about origin {str(origin)} direction {str(axis)} angle {angle}")
 
     def check_sanity(self):
@@ -327,7 +318,7 @@ class NeutronTestFacility(CreatedComponentAssembly):
                 room_bounding_boxes += surrounding_walls.get_air_subcomponents()
             # walls are set up to be subtracted from air on creation so need to add them in manually
             for walls in room.get_components_of_class(WallComponent):
-                room_bounding_boxes += walls.get_subcomponents()
+                room_bounding_boxes += walls.get_geometries()
 
         # get a union defining the 'bounding boxes' for all rooms, and a union of every geometry in the facility.
         # as well as the union of those two unions
@@ -406,7 +397,7 @@ class RoomAssembly(CreatedComponentAssembly):
                 # remove air
                 for air in surrounding_walls.get_air_subcomponents():
                     temp_wall = WallComponent({"geometry": wall_geometry, "material": wall_material})
-                    for t_w in temp_wall.get_subcomponents():
+                    for t_w in temp_wall.get_geometries():
                         cmd(f"subtract {t_w.geometry_type} {t_w.cid} from {air.geometry_type} {air.cid}")
 
 

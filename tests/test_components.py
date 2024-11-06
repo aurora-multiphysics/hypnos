@@ -24,11 +24,11 @@ def simple_component(geometry_json):
 # tests for SimpleComponent
 def test_get_subcomponents(simple_component):
     assert isinstance(simple_component, SimpleComponent)
-    assert 1 == simple_component.get_subcomponents()[0].cid
+    assert 1 == simple_component.get_geometries()[0].cid
 
 
 def test_origin(simple_component: SimpleComponent):
-    vol = simple_component.get_subcomponents()[0].handle
+    vol = simple_component.get_geometries()[0].handle
     assert vol.centroid() == (10, 0, 0)
 
 
@@ -36,27 +36,21 @@ def test_add_to_subcomponents(simple_component: SimpleComponent):
     cubit.brick(1, 1, 1)
     brick = CubitInstance(2, "volume")
     simple_component.add_to_subcomponents(brick)
-    vols = [vol.cid for vol in simple_component.get_subcomponents()]
+    vols = [vol.cid for vol in simple_component.get_geometries()]
     assert vols == [1, 2]
 
 
 def test_as_bodies(simple_component: SimpleComponent):
     simple_component.as_bodies()
-    subcmps = simple_component.get_subcomponents()
+    subcmps = simple_component.get_geometries()
     assert [1] == [body.cid for body in subcmps if body.geometry_type == "body"]
 
 
 def test_as_volumes(simple_component: SimpleComponent):
     simple_component.subcomponents = [CubitInstance(1, "body")]
     simple_component.as_volumes()
-    subcmps = simple_component.get_subcomponents()
+    subcmps = simple_component.get_geometries()
     assert [1] == [vol.cid for vol in subcmps if vol.geometry_type == "volume"]
-
-
-def test_get_parameters(simple_component: SimpleComponent):
-    assert simple_component.get_parameters(["dimensions"])[0] == 5
-    with pytest.raises(KeyError):
-        simple_component.get_parameters(["parameter not real"])
 
 
 def test_extract_parameters(simple_component: SimpleComponent):
