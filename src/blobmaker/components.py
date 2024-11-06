@@ -31,7 +31,7 @@ class ExternalComponent(CubitInstance):
 class Settings(ABC):
     '''Common settings for Components and Assemblies'''
     def __init__(self, classname, params: dict):
-        self.classname = classname
+        self._classname = classname
         self.identifier = classname
         self.geometry = params["geometry"] if "geometry" in params.keys() else None
         self.material = params["material"] if "material" in params.keys() else None
@@ -43,6 +43,28 @@ class Settings(ABC):
             elif type(origin) is list:
                 self.origin = Vertex(*origin)
         self.check_sanity()
+
+    @property
+    def classname(self):
+        return self._classname
+
+    @classname.setter
+    def classname(self, new_classname):
+        if type(new_classname) is str:
+            return new_classname
+        else:
+            print("classname must be a string")
+
+    @classname.deleter
+    def classname(self):
+        del self._classname
+
+    @classmethod
+    def from_classname(cls, classname, params):
+        for toplvl in cls.__subclasses__():
+            for construct_lvl in toplvl.__subclasses__():
+                if construct_lvl.classname == classname:
+                    return construct_lvl(params)
 
     def check_sanity(self):
         '''Check whether the parameters supplied to this instance are physical
@@ -81,6 +103,9 @@ class SimpleComponent(Settings):
         if not self.origin == Vertex(0):
             self.move(self.origin)
 
+    def get_geometries(self) -> list[CubitInstance]:
+        return self.subcomponents
+
     @abstractmethod
     def make_geometry(self) -> list[CubitInstance]:
         '''Make this instance in cubit
@@ -114,9 +139,6 @@ class SimpleComponent(Settings):
         to references to their composing volumes'''
         self.subcomponents = to_volumes(self.subcomponents)
 
-    def get_geometries(self) -> list[CubitInstance]:
-        return self.subcomponents
-
     def extract_parameters(self, parameters):
         out_dict = {}
         if type(parameters) is list:
@@ -131,7 +153,7 @@ class SimpleComponent(Settings):
 
     def volume_id_string(self):
         self.as_volumes()
-        return " ".join([str(cmp.cid) for cmp in self.get_geometries()])
+        return " ".join([str(cmp.cid) for cmp in self.get_geometries() if cmp.geometry_type == "volume"])
 
 
 class SurroundingWallsComponent(SimpleComponent):
