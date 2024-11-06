@@ -18,6 +18,8 @@ from blobmaker.generic_classes import (
     CubismError,
     cmd
 )
+from funcs_for_tests import vols
+from blobmaker.geometry import make_cylinder_along
 
 import pytest
 import cubit
@@ -189,3 +191,36 @@ def test_union(brick):
     assert len(added2) == 2
     assert added2[0].handle.volume() == 1
     assert added2[1].handle.volume() == 1
+
+
+def test_union_edge_case():
+    '''
+    Tests an edge case where cubit creates a volume with a new ID after
+    performing unite with keep=False, instead of assigning it one of the
+    old IDs.
+
+    Usually when cubit is told to unite volumes (with keep=false),
+    it will give the new volume an ID from the old ones. I.e. if you unite
+    volumes 2, 4, and 5, you will be left with volume 2 after the command.
+    However, sometimes cubit will leave you with volume 6. I haven't figured
+    out why but the union function should be able to handle this behaviour.
+    '''
+    # bug was reportedly due to an overlapping volume, so this is added
+    make_cylinder_along(5, 20)
+    piece1 = make_cylinder_along(1, 5)
+    piece2 = make_cylinder_along(0.5, 10)
+    hollow_cylinder = subtract([piece1], [piece2])
+
+    top_cap = make_cylinder_along(1, 1)
+    top_cap.move((0, 0, 3))
+    bot_cap = make_cylinder_along(1, 1)
+    bot_cap.move((0, 0, -3))
+
+    # vol 3 was destroyed in the subtract function
+    assert vols() == {1, 2, 4, 5}
+
+    # this union creates a vol 6 instead of vol 2
+    capped_cylinder = union(hollow_cylinder + [top_cap, bot_cap])
+
+    assert vols() == {1, 6}
+    assert capped_cylinder == [CubitInstance(6, "volume")]
