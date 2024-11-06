@@ -167,10 +167,13 @@ class CreatedComponentAssembly(GenericComponentAssembly):
 
     def __init__(self, classname, required_classnames: list, json_object: dict):
         self.required_classnames = required_classnames
-        if type(json_object["components"]) is dict:
-            self.component_list = json_object["components"].values()
+        if "components" in json_object.keys():
+            if type(json_object["components"]) is dict:
+                self.component_list = json_object["components"].values()
+            else:
+                self.component_list = json_object["components"]
         else:
-            self.component_list = json_object["components"]
+            self.component_list = []
         super().__init__(classname, json_object)
         # enforce given component_list based on required_classnames
         self.enforce_structure()
@@ -463,17 +466,11 @@ class SourceAssembly(ExternalComponentAssembly):
 
 # more detailed components
 class PinAssembly(CreatedComponentAssembly):
-    '''Cladding filled with breeder capped by a filter disc. 
+    '''Cladding filled with breeder capped by a filter disc.
     Enclosed in a pressure tube surrounded by a hexagonal prism of multiplier'''
-    def __init__(self, json_object: dict):
+    def __init__(self, json_object):
         self.components = []
-        self.classname = "pin"
-        self.identifier = self.classname
-        self.materials = json_object["materials"]
-        self.geometry = json_object["geometry"]
-        self.origin = json_object["origin"] if "origin" in json_object.keys() else Vertex(0)
-        self.setup_assembly()
-        self.move(self.origin)
+        super().__init__("pin", [], json_object)
 
     def check_sanity(self):
         cladding_radius = self.geometry["coolant inlet radius"] + self.geometry["inner cladding"] + self.geometry["breeder chamber thickness"] + self.geometry["outer cladding"]
@@ -618,7 +615,7 @@ class PinAssembly(CreatedComponentAssembly):
         :rtype: dict
         '''
         try:
-            material_obj = self.materials[material.lower()]
+            material_obj = self.material[material.lower()]
         except KeyError:
             raise CubismError(f"Component {self.classname} should contain material of {material}")
         return {"geometry": geometry, "material": material_obj, "origin": Vertex(start_x)}
@@ -636,7 +633,7 @@ class BlanketShellAssembly(CreatedComponentAssembly):
                 first_wall_object = component
                 first_wall_geometry = first_wall_object["geometry"]
             elif component["class"] == "pin":
-                breeder_materials = component["materials"]
+                breeder_materials = component["material"]
                 breeder_geometry = component["geometry"]
                 multiplier_side = breeder_geometry["multiplier side"]
 
@@ -668,7 +665,7 @@ class BlanketShellAssembly(CreatedComponentAssembly):
             for i in range(row_pins):
                 # stop tiling if we overshoot the number of column pins (each column index corresponds to 2 column pins)
                 if (j*2)+1 + (i%2) <= distinct_pin_heights:
-                    self.components.append(PinAssembly({"materials":breeder_materials, "geometry":breeder_geometry, "origin":pin_pos}))
+                    self.components.append(PinAssembly({"material":breeder_materials, "geometry":breeder_geometry, "origin":pin_pos}))
                 pin_pos = pin_pos + Vertex(pin_spacing).rotate(((-1)**(i+1))*np.pi/6)
 
         self.components.append(FirstWallComponent(first_wall_object))
@@ -840,7 +837,7 @@ class HCPBBlanket(CreatedComponentAssembly):
                 self.first_wall_geometry = component["geometry"]
                 self.first_wall_material = component["material"]
             elif component["class"] == "pin":
-                self.breeder_materials = component["materials"]
+                self.breeder_materials = component["material"]
                 self.breeder_geometry = component["geometry"]
             elif component["class"] == "front_rib":
                 self.front_ribs_geometry = component["geometry"]
@@ -910,7 +907,7 @@ class HCPBBlanket(CreatedComponentAssembly):
                 # stop tiling if we overshoot the number of column pins (each column index corresponds to 2 column pins)
                 if (j*2)+1 + (i%2) <= distinct_pin_heights:
                     pin_positions[j].append(pin_pos)
-                    self.components.append(PinAssembly({"materials":self.breeder_materials, "geometry":self.breeder_geometry, "origin":pin_pos}))
+                    self.components.append(PinAssembly({"material":self.breeder_materials, "geometry":self.breeder_geometry, "origin":pin_pos}))
                 else:
                     pin_positions[j].append(False)
                 pin_pos = pin_pos + Vertex(pin_spacing).rotate(((-1)**(i+1))*np.pi/6)

@@ -1,6 +1,6 @@
 PIN = {
     "class": "pin",
-    "materials": {
+    "material": {
         "cladding": "EUROFER",
         "pressure tube": "EUROFER",
         "multiplier": "Beryllium",
@@ -96,7 +96,7 @@ BLANKET_RING = {
                 },
                 "pin": {
                     "class": "pin",
-                    "materials": {
+                    "material": {
                             "cladding": "EUROFER",
                             "pressure tube": "EUROFER",
                             "multiplier": "Beryllium",
@@ -153,7 +153,7 @@ HCPB_BLANKET = {
     "components": {
         "pin": {
             "class": "pin",
-            "materials": {
+            "material": {
                 "cladding": "EUROFER",
                 "pressure tube": "EUROFER",
                 "multiplier": "Beryllium",

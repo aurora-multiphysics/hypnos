@@ -20,7 +20,7 @@
         },
         "pin": {
             "class": "pin",
-            "materials": {
+            "material": {
                 "cladding": "Steel",
                 "pressure tube": "Steel",
                 "multiplier": "Beryllium",
