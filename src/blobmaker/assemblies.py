@@ -4,7 +4,6 @@ from blobmaker.components import (
     ExternalComponent,
     SimpleComponent,
     SurroundingWallsComponent,
-    BrickComponent,
     AirComponent,
     BreederComponent,
     StructureComponent,

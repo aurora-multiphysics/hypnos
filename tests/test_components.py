@@ -25,7 +25,6 @@ class BrickComponent(SimpleComponent):
         return create_brick(self.geometry)
 
 
-
 @pytest.fixture(scope="function")
 def simple_component(geometry_json):
     cubit.reset()
