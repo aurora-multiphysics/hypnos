@@ -11,6 +11,7 @@ for example a Pin would consist of Cladding, Breeder, Coolant, etc. components.
 
 from blobmaker.generic_classes import CubismError, CubitInstance, cmd, cubit
 from blobmaker.components import (
+    ComponentBase,
     ExternalComponent,
     SimpleComponent,
     SurroundingWallsComponent,
@@ -39,24 +40,23 @@ from blobmaker.cubit_functions import to_volumes, get_entities_from_group
 from blobmaker.geometry import Vertex, arctan
 from blobmaker.cubit_functions import to_bodies
 from blobmaker.constants import (
-    CLASS_MAPPING, 
-    NEUTRON_TEST_FACILITY_REQUIREMENTS, 
-    ROOM_REQUIREMENTS, 
-    BLANKET_REQUIREMENTS, 
-    BLANKET_SHELL_REQUIREMENTS, 
-    FACILITY_MORPHOLOGIES, 
+    CLASS_MAPPING,
+    NEUTRON_TEST_FACILITY_REQUIREMENTS,
+    ROOM_REQUIREMENTS,
+    BLANKET_REQUIREMENTS,
+    BLANKET_SHELL_REQUIREMENTS,
+    FACILITY_MORPHOLOGIES,
     HCPB_BLANKET_REQUIREMENTS
 )
 import numpy as np
 
 
-class GenericComponentAssembly:
+class GenericComponentAssembly(ComponentBase):
     '''
     Generic assembly to store components
     '''
-    def __init__(self, classname):
-        self.classname = classname
-        self.identifier = classname
+    def __init__(self, classname, json_object):
+        super().__init__(classname, json_object)
         self.components = []
 
     # 'geometries' refer to CubitInstance objects
@@ -101,7 +101,7 @@ class GenericComponentAssembly:
         '''
         for component in self.get_components():
             if isinstance(component, SimpleComponent):
-                for component_geometry in component.get_subcomponents():
+                for component_geometry in component.get_geometries():
                     if isinstance(component_geometry, CubitInstance):
                         if str(geometry) == str(component_geometry):
                             return component
@@ -111,22 +111,13 @@ class GenericComponentAssembly:
                     return found_component
         return None
 
-    def get_all_geometries(self) -> list[CubitInstance]:
-        '''Get every geometry stored in this assembly instance recursively
-
-        Returns
-        -------
-        list[CubitInstance]
-            list of geometries
-        '''
+    def get_geometries(self):
         instances_list = []
         for component in self.get_components():
             if isinstance(component, CubitInstance):
                 instances_list.append(component)
-            elif isinstance(component,SimpleComponent):
-                instances_list.extend(component.get_subcomponents())
-            elif isinstance(component, GenericComponentAssembly):
-                instances_list.extend(component.get_all_geometries())
+            elif isinstance(component, ComponentBase):
+                instances_list.extend(component.get_geometries())
         return instances_list
 
     def get_volumes_list(self) -> list[int]:
@@ -185,27 +176,7 @@ class GenericComponentAssembly:
                     component_list += component.get_components_of_class(classes)
         return component_list
 
-    def move(self, vector: Vertex):
-        '''Translate all children components by given vector in cubit
-
-        Parameters
-        ----------
-        vector : Vertex
-            vector to translate by
-        '''
-        for component in self.get_all_components():
-            component.move(vector)
-
-    def set_mesh_size(self, component_classes: list[str], size: float):
-        '''Set approximate mesh size of components with specified classnames
-
-        Parameters
-        ----------
-        component_classes : list[str]
-            components to set mesh size for
-        size : float
-            approximate mesh size
-        '''
+    def set_mesh_size(self, component_classes: list, size: int):
         component_classes = [globals()[CLASS_MAPPING[classname]] for classname in component_classes]
         components = self.get_components_of_class(component_classes)
         for component in components:
@@ -217,22 +188,23 @@ class GenericComponentAssembly:
 
 class CreatedComponentAssembly(GenericComponentAssembly):
     '''
-    Assembly to handle components created natively.
-    Takes a list of required classnames to set up a specific assembly.
-    Instantiating will fail without at least one component of the given classnames.
+    Assembly to handle components created natively. Takes a list of
+    required classnames to set up a specific assembly. Instantiating
+    will fail without at least one component of the given classnames.
     '''
-    def __init__(self, classname, required_classnames: list, json_object: dict):
-        self.classname = classname
-        self.origin = json_object["origin"] if "origin" in json_object.keys() else Vertex(0)
-        # this defines what components to require in every instance
-        self.required_classnames = required_classnames
-        self.components = []
-        self.component_list = json_object["components"].values() if type(json_object["components"]) is dict else json_object["components"]
 
+    def __init__(self, classname, required_classnames: list, json_object: dict):
+        self.required_classnames = required_classnames
+        if "components" in json_object.keys():
+            if type(json_object["components"]) is dict:
+                self.component_list = json_object["components"].values()
+            else:
+                self.component_list = json_object["components"]
+        else:
+            self.component_list = []
+        super().__init__(classname, json_object)
         # enforce given component_list based on required_classnames
         self.enforce_structure()
-        self.check_sanity()
-        # store instances
         self.setup_assembly()
         self.move(self.origin)
 
@@ -242,12 +214,13 @@ class CreatedComponentAssembly(GenericComponentAssembly):
         volume_ids_list = [i.cid for i in to_volumes(self.get_all_geometries())]
         overlaps = cubit.get_overlapping_volumes(volume_ids_list)
         if overlaps != ():
-            overlapping_components = {self.find_parent_component(CubitInstance(overlap_vol_id, "volume")).classname for overlap_vol_id in overlaps}
-            raise CubismError(f"The following components have overlaps: {overlapping_components}")
+            overlapping_components = [self.find_parent_component(CubitInstance(overlap_vol_id, "volume")) for overlap_vol_id in overlaps]
+            overlapping_components = {comp.classname for comp in overlapping_components if comp}
+            raise CubismError(f"The following volumes have overlaps: {overlaps}. These components have overlaps: {overlapping_components}")
 
     def enforce_structure(self):
-        '''Make sure an instance of this class contains the required
-        components. This looks at the classnames specified in the json file'''
+        '''Make sure an instance of this class contains the required components.
+        This looks at the classnames specified in the json file'''
         class_list = [i["class"] for i in self.component_list]
         for classes_required in self.required_classnames:
             if classes_required not in class_list:
@@ -278,7 +251,7 @@ class CreatedComponentAssembly(GenericComponentAssembly):
             if isinstance(component, CreatedComponentAssembly):
                 component.rotate(angle, origin, axis)
             elif isinstance(component, SimpleComponent):
-                for subcomponent in component.get_subcomponents():
+                for subcomponent in component.get_geometries():
                     cmd(f"rotate {subcomponent.geometry_type} {subcomponent.cid} about origin {str(origin)} direction {str(axis)} angle {angle}")
 
     def check_sanity(self):
@@ -314,8 +287,9 @@ class NeutronTestFacility(CreatedComponentAssembly):
 
     def enforce_facility_morphology(self):
         '''
-        Make sure the specified morphology is followed. 
-        This works by comparing the volumes of the source and blanket to the volume of their union
+        Make sure the specified morphology is followed.
+        This works by comparing the volumes of the source and blanket to the
+        volume of their union
         '''
 
         if self.morphology not in FACILITY_MORPHOLOGIES:
@@ -380,7 +354,7 @@ class NeutronTestFacility(CreatedComponentAssembly):
                 room_bounding_boxes += surrounding_walls.get_air_subcomponents()
             # walls are set up to be subtracted from air on creation so need to add them in manually
             for walls in room.get_components_of_class(WallComponent):
-                room_bounding_boxes += walls.get_subcomponents()
+                room_bounding_boxes += walls.get_geometries()
 
         # get a union defining the 'bounding boxes' for all rooms,
         # and a union of every geometry in the facility.
@@ -398,12 +372,14 @@ class NeutronTestFacility(CreatedComponentAssembly):
         union_object.destroy_cubit_instance()
 
         # if any part of the geometries are sticking out of a room,
-        # the volume of their union with the room will be greater than the volume of the room
+        # the volume of their union with the room will be greater
+        # than the volume of the room
         if union_volume > bounding_volume:
             raise CubismError("Everything not inside a room!")
 
         # there is probably a better way of doing this
-        # if a room is filled with air, subtract the union of all non-air geometries from it
+        # if a room is filled with air, subtract the union of all
+        # non-air geometries from it
         for surrounding_walls in self.get_components_of_class(SurroundingWallsComponent):
             if surrounding_walls.is_air():
                 for air in surrounding_walls.get_air_subcomponents():
@@ -458,7 +434,7 @@ class RoomAssembly(CreatedComponentAssembly):
                 # remove air
                 for air in surrounding_walls.get_air_subcomponents():
                     temp_wall = WallComponent({"geometry": wall_geometry, "material": wall_material})
-                    for t_w in temp_wall.get_subcomponents():
+                    for t_w in temp_wall.get_geometries():
                         cmd(f"subtract {t_w.geometry_type} {t_w.cid} from {air.geometry_type} {air.cid}")
 
 
@@ -527,17 +503,10 @@ class SourceAssembly(ExternalComponentAssembly):
 # more detailed components
 class PinAssembly(CreatedComponentAssembly):
     '''Cladding filled with breeder capped by a filter disc.
-    Enclosed in a pressure tube surrounded by a hexagonal prism of multiplier
-    '''
+    Enclosed in a pressure tube surrounded by a hexagonal prism of multiplier'''
     def __init__(self, json_object: dict):
         self.components = []
-        self.classname = "pin"
-        self.identifier = self.classname
-        self.materials = json_object["materials"]
-        self.geometry = json_object["geometry"]
-        self.origin = json_object["origin"] if "origin" in json_object.keys() else Vertex(0)
-        self.setup_assembly()
-        self.move(self.origin)
+        super().__init__("pin", [], json_object)
 
     def check_sanity(self):
         cladding_radius = self.geometry["coolant inlet radius"] + self.geometry["inner cladding"] + self.geometry["breeder chamber thickness"] + self.geometry["outer cladding"]
@@ -682,7 +651,7 @@ class PinAssembly(CreatedComponentAssembly):
         :rtype: dict
         '''
         try:
-            material_obj = self.materials[material.lower()]
+            material_obj = self.material[material.lower()]
         except KeyError:
             raise CubismError(f"Component {self.classname} should contain material of {material}")
         return {"geometry": geometry, "material": material_obj, "origin": Vertex(start_x)}
@@ -700,7 +669,7 @@ class BlanketShellAssembly(CreatedComponentAssembly):
                 first_wall_object = component
                 first_wall_geometry = first_wall_object["geometry"]
             elif component["class"] == "pin":
-                breeder_materials = component["materials"]
+                breeder_materials = component["material"]
                 breeder_geometry = component["geometry"]
                 multiplier_side = breeder_geometry["multiplier side"]
 
@@ -732,7 +701,7 @@ class BlanketShellAssembly(CreatedComponentAssembly):
             for i in range(row_pins):
                 # stop tiling if we overshoot the number of column pins (each column index corresponds to 2 column pins)
                 if (j*2)+1 + (i%2) <= distinct_pin_heights:
-                    self.components.append(PinAssembly({"materials":breeder_materials, "geometry":breeder_geometry, "origin":pin_pos}))
+                    self.components.append(PinAssembly({"material":breeder_materials, "geometry":breeder_geometry, "origin":pin_pos}))
                 pin_pos = pin_pos + Vertex(pin_spacing).rotate(((-1)**(i+1))*np.pi/6)
 
         self.components.append(FirstWallComponent(first_wall_object))
@@ -793,9 +762,7 @@ class HCPBBlanket(CreatedComponentAssembly):
     '''Mockup of a HCPB-style breeder blanket
     '''
     def __init__(self, json_object: dict):
-        self.geometry = json_object["geometry"]
         super().__init__("HCPB_blanket", HCPB_BLANKET_REQUIREMENTS, json_object)
-        self.identifier = self.classname
         # self.check_for_overlaps()
 
     def check_sanity(self):
@@ -906,7 +873,7 @@ class HCPBBlanket(CreatedComponentAssembly):
                 self.first_wall_geometry = component["geometry"]
                 self.first_wall_material = component["material"]
             elif component["class"] == "pin":
-                self.breeder_materials = component["materials"]
+                self.breeder_materials = component["material"]
                 self.breeder_geometry = component["geometry"]
             elif component["class"] == "front_rib":
                 self.front_ribs_geometry = component["geometry"]
@@ -976,7 +943,7 @@ class HCPBBlanket(CreatedComponentAssembly):
                 # stop tiling if we overshoot the number of column pins (each column index corresponds to 2 column pins)
                 if (j*2)+1 + (i%2) <= distinct_pin_heights:
                     pin_positions[j].append(pin_pos)
-                    self.components.append(PinAssembly({"materials":self.breeder_materials, "geometry":self.breeder_geometry, "origin":pin_pos}))
+                    self.components.append(PinAssembly({"material":self.breeder_materials, "geometry":self.breeder_geometry, "origin":pin_pos}))
                 else:
                     pin_positions[j].append(False)
                 pin_pos = pin_pos + Vertex(pin_spacing).rotate(((-1)**(i+1))*np.pi/6)
