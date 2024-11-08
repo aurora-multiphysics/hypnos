@@ -26,10 +26,8 @@ class ExternalComponent(CubitInstance):
         super().__init__(cid, geometry_type)
 
 
-# this is the common ancestor of SimpleComponent and GenericComponentAssembly
-# maybe needs a better name?
-class Settings(ABC):
-    '''Common settings for Components and Assemblies'''
+class ComponentBase(ABC):
+    '''Common base for Components and Assemblies'''
     def __init__(self, classname, params: dict):
         self._classname = classname
         self.identifier = classname
@@ -91,7 +89,7 @@ class Settings(ABC):
             cmd(f"{str(geom)} size {size}")
 
 
-class SimpleComponent(Settings):
+class SimpleComponent(ComponentBase):
     '''Base class for simple components.
     These are intended to be the smallest functional unit of a single material.
     They may comprise of multiple volumes/ may not be 'simple' geometrically
@@ -188,15 +186,6 @@ class SurroundingWallsComponent(SimpleComponent):
         cubit.subtract([subtract_vol], [block])
         room_id = cubit.get_last_id("volume")
         return CubitInstance(room_id, "volume")
-
-
-class BrickComponent(SimpleComponent):
-    '''This class exists for testing purposes'''
-    def __init__(self, json_object):
-        super().__init__("brick", json_object)
-
-    def make_geometry(self):
-        return create_brick(self.geometry)
 
 
 class AirComponent(SimpleComponent):

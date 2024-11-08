@@ -1,5 +1,6 @@
-from blobmaker.components import SimpleComponent, BrickComponent
+from blobmaker.components import SimpleComponent
 from blobmaker.generic_classes import CubitInstance, CubismError
+from blobmaker.geometry import create_brick
 import cubit
 import pytest
 
@@ -13,6 +14,16 @@ def geometry_json():
         },
         "origin": [10, 0, 0]
     }
+
+
+class BrickComponent(SimpleComponent):
+    '''This class exists for testing purposes'''
+    def __init__(self, json_object):
+        super().__init__("brick", json_object)
+
+    def make_geometry(self):
+        return create_brick(self.geometry)
+
 
 
 @pytest.fixture(scope="function")

@@ -1,6 +1,6 @@
 from blobmaker.generic_classes import CubismError, CubitInstance, cmd, cubit
 from blobmaker.components import (
-    Settings,
+    ComponentBase,
     ExternalComponent,
     SimpleComponent,
     SurroundingWallsComponent,
@@ -41,7 +41,7 @@ from blobmaker.constants import (
 import numpy as np
 
 
-class GenericComponentAssembly(Settings):
+class GenericComponentAssembly(ComponentBase):
     '''
     Generic assembly to store components
     '''
@@ -95,9 +95,7 @@ class GenericComponentAssembly(Settings):
         for component in self.get_components():
             if isinstance(component, CubitInstance):
                 instances_list.append(component)
-            elif isinstance(component, SimpleComponent):
-                instances_list.extend(component.get_geometries())
-            elif isinstance(component, GenericComponentAssembly):
+            elif isinstance(component, ComponentBase):
                 instances_list.extend(component.get_geometries())
         return instances_list
 
