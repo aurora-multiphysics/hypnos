@@ -177,7 +177,7 @@ class SimpleComponent(ComponentBase):
         return out_dict
 
     def volume_id_string(self):
-      '''Space-separated string of volume IDs.
+        '''Space-separated string of volume IDs.
 
         Returns
         -------
