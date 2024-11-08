@@ -1,3 +1,13 @@
+'''
+components.py
+author(s): Sid Mungale
+
+Simple Components
+These are components that contain a volume/s made of a single material
+
+(c) Copyright UKAEA 2024
+'''
+
 from blobmaker.generic_classes import CubismError, CubitInstance, cmd, cubit
 from blobmaker.cubit_functions import (
     to_volumes,
@@ -92,7 +102,7 @@ class ComponentBase(ABC):
 class SimpleComponent(ComponentBase):
     '''Base class for simple components.
     These are intended to be the smallest functional unit of a single material.
-    They may comprise of multiple volumes/ may not be 'simple' geometrically
+    They may comprise multiple volumes/ may not be 'simple' geometrically.
     '''
     def __init__(self, classname, json_object):
         super().__init__(classname, json_object)
@@ -115,11 +125,13 @@ class SimpleComponent(ComponentBase):
         '''
         pass
 
-    def add_to_subcomponents(self, subcomponents: CubitInstance | list[CubitInstance]):
-        '''Add geometry/ies to subcomponents attribute
+    def add_to_subcomponents(self, subcomponents: list[CubitInstance]):
+        '''Add geometries to self.subcomponents
 
-        :param subcomponents: Geometry or geometries
-        :type subcomponents: CubitInstance | list[CubitInstance]
+        Parameters
+        ----------
+        subcomponents : CubitInstance | list[CubitInstance]
+            geometry/ies to add
         '''
         if isinstance(subcomponents, CubitInstance):
             self.subcomponents.append(subcomponents)
@@ -137,7 +149,22 @@ class SimpleComponent(ComponentBase):
         to references to their composing volumes'''
         self.subcomponents = to_volumes(self.subcomponents)
 
-    def extract_parameters(self, parameters):
+    def extract_parameters(self, parameters) -> dict:
+        '''Get values of geometrical parameters.
+
+        Parameters
+        ----------
+        parameters : list | dict
+            list - get corresponding values of parameters,
+            i.e. returned dict will look like {key : value}
+            dict - {search_key : output_key},
+            i.e. returned dict will look like {output_key : value}
+
+        Returns
+        -------
+        dict
+            key-value pairs as described above
+        '''
         out_dict = {}
         if type(parameters) is list:
             for parameter in parameters:
@@ -150,6 +177,13 @@ class SimpleComponent(ComponentBase):
         return out_dict
 
     def volume_id_string(self):
+      '''Space-separated string of volume IDs.
+
+        Returns
+        -------
+        str
+            volume ID string
+        '''
         self.as_volumes()
         return " ".join([str(cmp.cid) for cmp in self.get_geometries() if cmp.geometry_type == "volume"])
 
@@ -210,7 +244,6 @@ class BreederComponent(SimpleComponent):
 class StructureComponent(SimpleComponent):
     def __init__(self, json_object):
         super().__init__("structure", json_object)
-
     def make_geometry(self):
         return create_brick(self.geometry)
 

@@ -1,3 +1,14 @@
+'''
+assemblies.py
+author(s): Sid Mungale
+
+Assembly classes and construct function.
+Assembly classes organise the arrangement of their children component classes,
+for example a Pin would consist of Cladding, Breeder, Coolant, etc. components.
+
+(c) Copyright UKAEA 2024
+'''
+
 from blobmaker.generic_classes import CubismError, CubitInstance, cmd, cubit
 from blobmaker.components import (
     ComponentBase,
@@ -49,13 +60,18 @@ class GenericComponentAssembly(ComponentBase):
         self.components = []
 
     # 'geometries' refer to CubitInstance objects
-    def get_geometries_from(self, class_list: list) -> list[CubitInstance]:
-        '''Get list of geometries under given classnames
+    def get_geometries_from(self, class_list: list[str]) -> list[CubitInstance]:
+        '''Get list of geometries with given classnames
 
-        :param classname_list: list of classnames to search under
-        :type classname_list: list
-        :return: list of geometries
-        :rtype: list[CubitInstance]
+        Parameters
+        ----------
+        class_list : list[str]
+            list of classnames
+
+        Returns
+        -------
+        list[CubitInstance]
+            list of geometries
         '''
         component_list = []
         for component in self.get_components():
@@ -70,12 +86,18 @@ class GenericComponentAssembly(ComponentBase):
         return component_list
 
     def find_parent_component(self, geometry: CubitInstance):
-        '''Get owning simple component of given geometry
+        '''If this assembly contains given geometry, return owning component.
+        Else return None.
 
-        :param geometry: Child geometry
-        :type geometry: CubitInstance
-        :return: Parent simple component or False if not found
-        :rtype: SimpleComponent | False
+        Parameters
+        ----------
+        geometry : CubitInstance
+            Child geometry
+
+        Returns
+        -------
+        SimpleComponent | None
+            Parent component | None
         '''
         for component in self.get_components():
             if isinstance(component, SimpleComponent):
@@ -87,7 +109,7 @@ class GenericComponentAssembly(ComponentBase):
                 found_component = component.find_parent_component(geometry)
                 if found_component:
                     return found_component
-        return False
+        return None
 
     def get_geometries(self):
         instances_list = []
@@ -103,46 +125,55 @@ class GenericComponentAssembly(ComponentBase):
         return [volume.cid for volume in volumes_list]
 
     def get_components(self) -> list:
-        '''Return all components stored in this assembly at the top-level
+        '''Return components stored in this assembly at the top-level,
+        i.e. SimpleComponents and GenericComponentAssemblys, if any.
 
-        :return: List of components
-        :rtype: list
+        Returns
+        -------
+        list
+            list of components
         '''
         return self.components
 
     def get_all_components(self) -> list[SimpleComponent]:
         '''Return all simple components stored in this assembly recursively
 
-        :return: List of components
-        :rtype: list[SimpleComponent]
+        Returns
+        -------
+        list[SimpleComponent]
+            list of simple components
         '''
         instances_list = []
         for component in self.get_components():
-            if isinstance(component,SimpleComponent):
+            if isinstance(component, SimpleComponent):
                 instances_list.append(component)
             elif isinstance(component, GenericComponentAssembly):
                 instances_list.extend(component.get_all_components())
-            else:
-                raise CubismError(f"Assembly {self.identifier} not trackable")
         return instances_list
 
-    def get_components_of_class(self, class_list: list) -> list:
-        '''Find components of given classes recursively
+    def get_components_of_class(self, classes: list) -> list:
+        '''Find components of with given classnames.
+        Searches through assemblies recursively.
 
-        :param class_list: List of classes to search for
-        :type class_list: list
-        :return: List of components
-        :rtype: list
+        Parameters
+        ----------
+        classes : list
+            list of component classes
+
+        Returns
+        -------
+        list
+            list of components
         '''
         component_list = []
-        if type(class_list) is not list:
-            class_list = [class_list]
+        if type(classes) is not list:
+            classes = [classes]
         for component in self.get_components():
-            for component_class in class_list:
+            for component_class in classes:
                 if isinstance(component, component_class):
                     component_list.append(component)
-                if isinstance(component, GenericComponentAssembly):
-                    component_list += component.get_components_of_class(class_list)
+                elif isinstance(component, GenericComponentAssembly):
+                    component_list += component.get_components_of_class(classes)
         return component_list
 
     def set_mesh_size(self, component_classes: list, size: int):
@@ -178,15 +209,14 @@ class CreatedComponentAssembly(GenericComponentAssembly):
         self.move(self.origin)
 
     def check_for_overlaps(self):
-        '''Blanket check for overlaps
-
-        :raises CubismError: Raises if overlaps are detected
+        '''Raise an error if any overlaps exist between children volumes
         '''
         volume_ids_list = [i.cid for i in to_volumes(self.get_all_geometries())]
         overlaps = cubit.get_overlapping_volumes(volume_ids_list)
         if overlaps != ():
-            overlapping_components = {self.find_parent_component(CubitInstance(overlap_vol_id, "volume")).classname for overlap_vol_id in overlaps}
-            raise CubismError(f"The following components have overlaps: {overlapping_components}")
+            overlapping_components = [self.find_parent_component(CubitInstance(overlap_vol_id, "volume")) for overlap_vol_id in overlaps]
+            overlapping_components = {comp.classname for comp in overlapping_components if comp}
+            raise CubismError(f"The following volumes have overlaps: {overlaps}. These components have overlaps: {overlapping_components}")
 
     def enforce_structure(self):
         '''Make sure an instance of this class contains the required components.
@@ -198,19 +228,21 @@ class CreatedComponentAssembly(GenericComponentAssembly):
                 raise CubismError(f"This assembly must contain: {self.required_classnames}. Currently contains: {class_list}")
 
     def setup_assembly(self):
-        '''Add components to attributes according to their class'''
+        '''Instantiate components in cubit'''
         for component_json_dict in self.component_list:
             self.components.append(construct(component_json_dict))
 
-    def rotate(self, angle, origin: Vertex, axis=Vertex(0, 0, 1)):
-        '''Rotate about a point+axis (IN DEGREES)
+    def rotate(self, angle: float, origin: Vertex = Vertex(0, 0, 0), axis: Vertex = Vertex(0, 0, 1)):
+        '''Rotate geometries about a given axis
 
-        :param angle: Angle to rotate by in degrees
-        :type angle: int
-        :param origin: centre of rotation
-        :type origin: Vertex
-        :param axis: axis to rotate about, defaults to Vertex(0,0,1)
-        :type axis: Vertex, optional
+        Parameters
+        ----------
+        angle : float
+            Angle to rotate by IN DEGREES
+        origin : Vertex
+            Point to rotate about, by default 0, 0, 0
+        axis : Vertex, optional
+            axis to rotate about, by default z-axis
         '''
         if origin == "origin":
             origin = self.origin
@@ -223,6 +255,9 @@ class CreatedComponentAssembly(GenericComponentAssembly):
                     cmd(f"rotate {subcomponent.geometry_type} {subcomponent.cid} about origin {str(origin)} direction {str(axis)} angle {angle}")
 
     def check_sanity(self):
+        '''Check whether geometrical parameters are physical on the
+        assembly level.
+        '''
         pass
 
 
@@ -289,7 +324,8 @@ class NeutronTestFacility(CreatedComponentAssembly):
             print(f"{self.morphology} morphology enforced")
 
     def apply_facility_morphology(self):
-        '''If the morphology is inclusive/overlap, remove the parts of the blanket inside the neutron source'''
+        '''If the morphology is inclusive/overlap,
+        remove the parts of the blanket inside the neutron source'''
         if self.morphology in ["inclusive", "overlap"]:
             # convert everything to volumes in case of stray bodies
             source_volumes = to_volumes(self.get_geometries_from([SourceAssembly, ExternalComponent]))
@@ -320,7 +356,8 @@ class NeutronTestFacility(CreatedComponentAssembly):
             for walls in room.get_components_of_class(WallComponent):
                 room_bounding_boxes += walls.get_geometries()
 
-        # get a union defining the 'bounding boxes' for all rooms, and a union of every geometry in the facility.
+        # get a union defining the 'bounding boxes' for all rooms,
+        # and a union of every geometry in the facility.
         # as well as the union of those two unions
         room_bounding_box = unionise(room_bounding_boxes)
         all_geometries = unionise(self.get_all_geometries())
@@ -445,7 +482,8 @@ class ExternalComponentAssembly(GenericComponentAssembly):
         raise CubismError("Can't find group ID?????")
 
     def add_volumes_and_bodies(self):
-        '''Add volumes and bodies in group to this assembly as ExternalComponent objects'''
+        '''Add volumes and bodies in group to this assembly as
+        ExternalComponent objects'''
         source_volume_ids = cubit.get_group_volumes(self.group_id)
         for volume_id in source_volume_ids:
             self.components.append(ExternalComponent(volume_id, "volume"))
@@ -456,7 +494,8 @@ class ExternalComponentAssembly(GenericComponentAssembly):
 
 # in case we need to do source-specific actions
 class SourceAssembly(ExternalComponentAssembly):
-    '''Assembly of external components, created when a json object has class= source'''
+    '''Assembly of external components,
+    created when a json object has class= source'''
     def __init__(self, json_object: dict):
         super().__init__(json_object)
 
@@ -465,7 +504,7 @@ class SourceAssembly(ExternalComponentAssembly):
 class PinAssembly(CreatedComponentAssembly):
     '''Cladding filled with breeder capped by a filter disc.
     Enclosed in a pressure tube surrounded by a hexagonal prism of multiplier'''
-    def __init__(self, json_object):
+    def __init__(self, json_object: dict):
         self.components = []
         super().__init__("pin", [], json_object)
 
@@ -1097,7 +1136,7 @@ def get_all_geometries_from_components(component_list) -> list[CubitInstance]:
     return instances
 
 
-# wrapper for cubit.union
+# DO NOT USE - legacy, there is a new union function in cubit_functions.py
 def unionise(component_list: list):
     '''Create a union of all instances in given components.
 
@@ -1139,12 +1178,17 @@ def unionise(component_list: list):
 
 
 def construct(json_object: dict, *args):
-    '''Return python class corresponding to given json object
+    '''Instantiate component in python and cubit
 
-    :param json_object: Dictionary describing parametric geometry
-    :type json_object: dict
-    :return: Corresponding component class
-    :rtype: SimpleComponent | GenericComponentAssembly
+    Parameters
+    ----------
+    json_object : dict
+        json input for component
+
+    Returns
+    -------
+    SimpleComponent | GenericComponentAssembly
+        Instantiated python class
     '''
     constructor = globals()[CLASS_MAPPING[json_object["class"]]]
     return constructor(json_object, *args)
