@@ -56,7 +56,7 @@ def test_extract_components():
     components = pin.get_all_components()
     tracker.extract_components(pin)
 
-    assert tracker.materials == set(PIN["materials"].values())
+    assert tracker.materials == set(PIN["material"].values())
     assert tracker.components == components
 
 

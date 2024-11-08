@@ -8,7 +8,6 @@ These are components that contain a volume/s made of a single material
 (c) Copyright UKAEA 2024
 '''
 
-from blobmaker.constants import BLOB_CLASSES
 from blobmaker.generic_classes import CubismError, CubitInstance, cmd, cubit
 from blobmaker.cubit_functions import (
     to_volumes,
@@ -23,9 +22,12 @@ from blobmaker.geometry import (
     make_surface,
     hypotenuse,
     arctan,
-    Line
+    Line,
+    convert_to_3d_vector,
+    create_brick
     )
 import numpy as np
+from abc import ABC, abstractmethod
 
 
 class ExternalComponent(CubitInstance):
@@ -34,51 +36,94 @@ class ExternalComponent(CubitInstance):
         super().__init__(cid, geometry_type)
 
 
-class SimpleComponent:
+class ComponentBase(ABC):
+    '''Common base for Components and Assemblies'''
+    def __init__(self, classname, params: dict):
+        self._classname = classname
+        self.identifier = classname
+        self.geometry = params["geometry"] if "geometry" in params.keys() else None
+        self.material = params["material"] if "material" in params.keys() else None
+        self.origin = Vertex(0)
+        if "origin" in params.keys():
+            origin = params["origin"]
+            if isinstance(origin, Vertex):
+                self.origin = origin
+            elif type(origin) is list:
+                self.origin = Vertex(*origin)
+        self.check_sanity()
+
+    @property
+    def classname(self):
+        return self._classname
+
+    @classname.setter
+    def classname(self, new_classname):
+        if type(new_classname) is str:
+            return new_classname
+        else:
+            print("classname must be a string")
+
+    @classname.deleter
+    def classname(self):
+        del self._classname
+
+    @classmethod
+    def from_classname(cls, classname, params):
+        for toplvl in cls.__subclasses__():
+            for construct_lvl in toplvl.__subclasses__():
+                if construct_lvl.classname == classname:
+                    return construct_lvl(params)
+
+    def check_sanity(self):
+        '''Check whether the parameters supplied to this instance are physical
+        '''
+        pass
+
+    @abstractmethod
+    def get_geometries(self) -> list[CubitInstance]:
+        '''Get contained geometries
+
+        Returns
+        -------
+        list[CubitInstance]
+            list of geometries
+        '''
+        pass
+
+    def move(self, vector: Vertex):
+        for geom in self.get_geometries():
+            cmd(f"{str(geom)} move {str(vector)}")
+
+    def set_mesh_size(self, size: int):
+        for geom in self.get_geometries():
+            cmd(f"{str(geom)} size {size}")
+
+
+class SimpleComponent(ComponentBase):
     '''Base class for simple components.
     These are intended to be the smallest functional unit of a single material.
     They may comprise multiple volumes/ may not be 'simple' geometrically.
     '''
-    def __init__(self, classname, json_object: dict):
+    def __init__(self, classname, json_object):
+        super().__init__(classname, json_object)
         self.subcomponents = []
-        self.classname = classname
-        self.identifier = classname
-        self.geometry, self.material, self.origin = self.__get_top_level_info(json_object)
-        self.check_sanity()
-
         self.add_to_subcomponents(self.make_geometry())
         if not self.origin == Vertex(0):
             self.move(self.origin)
 
-    def __get_top_level_info(self, json_object: dict):
-        '''Get top-level information from parameter dict and
-        ensure proper datatypes
+    def get_geometries(self) -> list[CubitInstance]:
+        return self.subcomponents
 
-        Parameters
-        ----------
-        json_object : dict
-            parameters necessary to instantiate this component
+    @abstractmethod
+    def make_geometry(self) -> list[CubitInstance]:
+        '''Make this instance in cubit
 
         Returns
         -------
-        dict, str, Vertex
-            Unpacked parameterical information
+        list[CubitInstance]
+            list of created geometries
         '''
-        if "geometry" not in json_object.keys():
-            raise CubismError(f"Component {self.classname} requires geometry")
-        elif type(json_object["geometry"]) is not dict:
-            raise TypeError("Geometrical parameters should be given as a dictionary")
-        elif "material" not in json_object.keys():
-            raise CubismError(f"Component {self.classname} requires a material")
-        elif type(json_object["material"]) is not str:
-            raise TypeError("Material should be given as a string")
-        origin = json_object["origin"] if "origin" in json_object.keys() else Vertex(0)
-        # acceptable but not preferred
-        if type(origin) is list and len(origin) == 3:
-            origin = Vertex(origin[0], origin[1], origin[2])
-        elif type(origin) is not Vertex:
-            raise TypeError("Origin should be represented using a Vertex")
-        return json_object["geometry"], json_object["material"], origin
+        pass
 
     def add_to_subcomponents(self, subcomponents: list[CubitInstance]):
         '''Add geometries to self.subcomponents
@@ -95,85 +140,14 @@ class SimpleComponent:
                 if isinstance(subcomponent, CubitInstance):
                     self.subcomponents.append(subcomponent)
 
-    def make_geometry(self):
-        '''create geometry in cubit.
-        if the class is a blob, make it.'''
-        if self.classname in BLOB_CLASSES:
-            return self.__create_cubit_blob(self.geometry)
-        else:
-            raise CubismError("Wrong class name somewhere?: " + self.classname)
-
-    def convert_to_3d_vector(self, dim):
-        if type(dim) is int:
-            return_vector = [dim for i in range(3)]
-        elif len(dim) == 1:
-            return_vector = [dim[0] for i in range(3)]
-        elif len(dim) == 3:
-            return_vector = dim
-        else:
-            raise CubismError("thickness should be either a 1D or 3D vector (or scalar)")
-        return return_vector
-
-    def __create_cubit_blob(self, geometry: dict):
-        '''create cube (if scalar/1D) or cuboid (if 3D) with dimensions.
-        Rotate it about the y-axis, x-axis, y-axis if euler_angles are specified.
-        Move it to position if specified'''
-        # setup variables
-        dims = self.convert_to_3d_vector(geometry["dimensions"])
-        pos = geometry["position"] if "position" in geometry.keys() else [0, 0, 0]
-        euler_angles = geometry["euler_angles"] if "euler_angles" in geometry.keys() else [0, 0, 0]
-        # create a cube or cuboid.
-        blob = cubit.brick(dims[0], dims[1], dims[2])
-        cid = cubit.get_last_id("volume")
-        # orientate according to euler angles
-        axis_list = ['y', 'x', 'y']
-        for i in range(3):  # hard-coding in 3D?
-            if not euler_angles[i] == 0:
-                cmd(f'rotate volume {cid} angle {euler_angles[i]} about {axis_list[i]}')
-        # move to specified position
-        cubit.move(blob, pos)
-        # return instance for further manipulation
-        return CubitInstance(cid, "volume")
-
     def as_bodies(self):
-        '''Convert subcomponents to references to their owning bodies'''
+        '''Convert geometries to references to their owning bodies'''
         self.subcomponents = to_bodies(self.subcomponents)
 
     def as_volumes(self):
         '''Convert any references to bodies in the subcomponents
         to references to their composing volumes'''
         self.subcomponents = to_volumes(self.subcomponents)
-
-    def get_subcomponents(self) -> list[CubitInstance]:
-        '''Get contained geometries'''
-        return self.subcomponents
-
-    def get_parameters(self, parameters: list) -> list:
-        '''Get values of geometrical parameters
-
-        Parameters
-        ----------
-        parameters : list[str]
-            list of parameters
-
-        Returns
-        -------
-        list
-            list of corresponding values
-        '''
-        return [self.geometry[parameter] for parameter in parameters]
-
-    def move(self, vector: Vertex):
-        '''Move contained geometries
-
-        Parameters
-        ----------
-        vector : Vertex
-            Vector to translate by
-        '''
-        for subcomponent in self.subcomponents:
-            if isinstance(subcomponent, CubitInstance):
-                cmd(f"{str(subcomponent)} move {str(vector)}")
 
     def extract_parameters(self, parameters) -> dict:
         '''Get values of geometrical parameters.
@@ -202,22 +176,8 @@ class SimpleComponent:
             raise CubismError(f"parameters type not recognised: {type(parameters)}")
         return out_dict
 
-    def check_sanity(self):
-        pass
-
-    def set_mesh_size(self, size: float):
-        '''Set approximate mesh size of geometries
-
-        Parameters
-        ----------
-        size : float
-            Approximate mesh size
-        '''
-        for subcomponent in self.get_subcomponents():
-            cmd(f"{subcomponent.geometry_type} {subcomponent.cid} size {size}")
-
-    def volume_id_string(self) -> str:
-        '''Space-separated string of volume IDs.
+    def volume_id_string(self):
+      '''Space-separated string of volume IDs.
 
         Returns
         -------
@@ -225,7 +185,7 @@ class SimpleComponent:
             volume ID string
         '''
         self.as_volumes()
-        return " ".join([str(subcomponent.cid) for subcomponent in self.get_subcomponents()])
+        return " ".join([str(cmp.cid) for cmp in self.get_geometries() if cmp.geometry_type == "volume"])
 
 
 class SurroundingWallsComponent(SimpleComponent):
@@ -247,13 +207,13 @@ class SurroundingWallsComponent(SimpleComponent):
             self.air.as_volumes()
 
     def get_air_subcomponents(self):
-        return self.air.get_subcomponents()
+        return self.air.get_geometries()
 
     def make_geometry(self):
         '''create 3d room with outer dimensions dimensions (int or list) and thickness (int or list)'''
         # get variables
-        outer_dims = self.convert_to_3d_vector(self.geometry["dimensions"])
-        thickness = self.convert_to_3d_vector(self.geometry["thickness"])
+        outer_dims = convert_to_3d_vector(self.geometry["dimensions"])
+        thickness = convert_to_3d_vector(self.geometry["thickness"])
         # create room
         subtract_vol = cubit.brick(outer_dims[0]-2*thickness[0], outer_dims[1]-2*thickness[1], outer_dims[2]-2*thickness[2])
         block = cubit.brick(outer_dims[0], outer_dims[1], outer_dims[2])
@@ -269,15 +229,23 @@ class AirComponent(SimpleComponent):
         # cubit subtract only keeps body ID invariant, so i will store air as a body
         self.as_bodies()
 
+    def make_geometry(self):
+        return create_brick(self.geometry)
+
 
 class BreederComponent(SimpleComponent):
     def __init__(self, json_object):
         super().__init__("breeder", json_object)
 
+    def make_geometry(self):
+        return create_brick(self.geometry)
+
 
 class StructureComponent(SimpleComponent):
     def __init__(self, json_object):
         super().__init__("structure", json_object)
+    def make_geometry(self):
+        return create_brick(self.geometry)
 
 
 class WallComponent(SimpleComponent):
@@ -287,23 +255,24 @@ class WallComponent(SimpleComponent):
     def make_geometry(self):
         # get variables
         # wall
-        geometry = self.geometry
-        thickness = geometry["wall thickness"]
-        plane = geometry["wall plane"] if "wall plane" in geometry.keys() else "x"
-        pos = geometry["wall position"] if "wall position" in geometry.keys() else 0
+        geom = self.geometry
+        thickness = geom["wall thickness"]
+        plane = geom["wall plane"] if "wall plane" in geom.keys() else "x"
+        pos = geom["wall position"] if "wall position" in geom.keys() else 0
         # hole
-        hole_pos = geometry["wall hole position"] if "wall hole position" in geometry.keys() else [0, 0]
-        hole_radius = geometry["wall hole radius"]
+        hole_pos = geom["wall hole position"] if "wall hole position" in geom.keys() else [0, 0]
+        hole_radius = geom["wall hole radius"]
         # wall fills room
-        room_dims = self.convert_to_3d_vector(geometry["dimensions"])
-        room_thickness = self.convert_to_3d_vector(geometry["thickness"])
+        room_dims = convert_to_3d_vector(geom["dimensions"])
+        room_thickness = convert_to_3d_vector(geom["thickness"])
         wall_dims = [room_dims[i]-2*room_thickness[i] for i in range(3)]
 
         # volume to subtract to create a hole
         cmd(f"create cylinder height {thickness} radius {hole_radius}")
         subtract_vol = CubitInstance(cubit.get_last_id("volume"), "volume")
 
-        # depending on what plane the wall needs to be in, create wall + make hole at right place
+        # depending on what plane the wall needs to be in,
+        # create wall + make hole at right place
         if plane == "x":
             cubit.brick(thickness, wall_dims[1], wall_dims[2])
             wall = CubitInstance(cubit.get_last_id("volume"), "volume")
@@ -377,7 +346,7 @@ class CladdingComponent(SimpleComponent):
         net_thickness = inner_cladding + breeder_chamber_thickness + outer_cladding
         slope_angle = arctan(net_thickness, offset)
 
-        
+
         if inner_bluntness != 0 and outer_bluntness != 0:
             cladding_vertices = list(np.zeros(14))
 
@@ -987,14 +956,14 @@ class PurgeGasPlate(SimpleComponent):
         plates = []
 
         left_plate_json = self.__make_side_plate_json(0)
-        plates.extend(Plate(self.classname+"_left", left_plate_json, "left", self.hole_pos[0]).get_subcomponents())
+        plates.extend(Plate(self.classname+"_left", left_plate_json, "left", self.hole_pos[0]).get_geometries())
 
         for i in range(len(self.rib_pos)-1):
             mid_plate_json = self.__make_mid_plate_json(i)
-            plates.extend(Plate(self.classname+"_mid", mid_plate_json, "mid", self.hole_pos[i+1]).get_subcomponents())
+            plates.extend(Plate(self.classname+"_mid", mid_plate_json, "mid", self.hole_pos[i+1]).get_geometries())
 
         right_plate_json = self.__make_side_plate_json(-1)
-        plates.extend(Plate(self.classname+"_right", right_plate_json, "right", self.hole_pos[-1]).get_subcomponents())
+        plates.extend(Plate(self.classname+"_right", right_plate_json, "right", self.hole_pos[-1]).get_geometries())
 
         return plates
 
