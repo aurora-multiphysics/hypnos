@@ -9,7 +9,11 @@ from blobmaker.geometry import (
     arctan,
     Vertex,
     make_surface,
-    Line
+    Line,
+    blunt_corner,
+    fetch,
+    unroll,
+    blunt_corners
 )
 from blobmaker.generic_classes import (
     CubitInstance,
@@ -18,6 +22,7 @@ from blobmaker.generic_classes import (
 import pytest
 import cubit
 import numpy as np
+from funcs_for_tests import verts_approx_equal
 
 cubism_err = pytest.raises(CubismError)
 type_err = pytest.raises(TypeError)
@@ -246,6 +251,20 @@ def test_line_vertex_at(line: Line):
         line.vertex_at()
 
 
+def test_line_vertex_from_dist():
+    line = Line(Vertex(0.03, 0.04), Vertex(3))
+    assert verts_approx_equal(line.vertex_from_dist(5), Vertex(6, 4))
+    assert verts_approx_equal(line.vertex_from_dist(0), Vertex(3))
+    assert verts_approx_equal(line.vertex_from_dist(-5), Vertex(0, -4))
+
+
+def test_line_from_vertices():
+    line1 = Line.from_vertices(Vertex(1, 1, 1), Vertex(3, 3, 3))
+    assert line1 == Line(Vertex(2, 2, 2), Vertex(1, 1, 1))
+    line2 = Line.from_vertices(Vertex(2, 0, 1), Vertex(3, -3, 3))
+    assert line2 == Line(Vertex(1, -3, 2), Vertex(2, 0, 1))
+
+
 def test_make_surface():
     vertices = [Vertex(5, 5), Vertex(5, -5), Vertex(-5, -5), Vertex(-5, 5)]
     surf = make_surface(vertices, []).handle
@@ -254,3 +273,40 @@ def test_make_surface():
         surf.normal_at((0, 0, 0)) == (0, 0, 1) or
         surf.normal_at((0, 0, 0)) == (0, 0, -1)
         )
+
+
+def test_blunt_corner():
+    outline = [Vertex(1), Vertex(0), Vertex(0, 1)]
+
+    # bluntness == 0.1 should split (0, 0) along x and y axes
+    blunted1 = blunt_corner(outline, 1, 0.1)
+    assert blunted1 == [Vertex(0.1), Vertex(0, 0.1)]
+
+    # bluntness == 0 should leave vertices unchanged
+    blunted2 = blunt_corner(outline, 1, 0)
+    assert blunted2 == [Vertex(0)]
+
+
+def test_fetch():
+    assert fetch([[1, 2], 3, [4, 5]]) == [2, 3, 4]
+    assert fetch([[1, 2], 3, 4]) == [2, 3, 4]
+    assert fetch([2, 3, [4, 5]]) == [2, 3, 4]
+    assert fetch([2, 3, 4]) == [2, 3, 4]
+
+
+def test_unroll():
+    tangled1 = [[0, 1, 2], 3, 4, [5, 6], 7]
+    tangled2 = [0, [1, 2], 3, 4, 5, 6, 7]
+    assert unroll(tangled1) == unroll(tangled2) == list(range(8))
+
+
+def test_blunt_corners():
+    verts = [Vertex(1), Vertex(0), Vertex(0, 1), Vertex(1, 1)]
+    blunted1, verts1 = blunt_corners(verts, [1, 2], [0.1, 0.1])
+    assert blunted1 == [Vertex(1), Vertex(0.1), Vertex(0, 0.1), Vertex(0, 0.9), Vertex(0.1, 1), Vertex(1, 1)]
+    assert verts1 == [1, 3]
+
+    verts = [Vertex(1), Vertex(0), Vertex(0, 1), Vertex(1, 1)]
+    blunted2, verts2 = blunt_corners(verts, [1], [0.1])
+    assert blunted2 == [Vertex(1), Vertex(0.1), Vertex(0, 0.1), Vertex(0, 1), Vertex(1, 1)]
+    assert verts2 == [1]

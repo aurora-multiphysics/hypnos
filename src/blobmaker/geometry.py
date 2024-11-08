@@ -449,8 +449,57 @@ class Line:
         else:
             raise CubismError("At least one argument should be provided")
 
-    def line_at(self, const: Vertex):
+    def line_at(self, const: Vertex) -> 'Line':
+        '''Return a line with the same slope but new const
+
+        Parameters
+        ----------
+        const : Vertex
+            vertex the new line passes through
+
+        Returns
+        -------
+        Line
+            line with same slope
+        '''
         return Line(self.slope, const)
+
+    def vertex_from_dist(self, distance: float) -> Vertex:
+        '''Get the vertex on this line at specified distance from const
+
+        Parameters
+        ----------
+        distance : float
+            distance along line to find vertex
+
+        Returns
+        -------
+        Vertex
+            vertex on line at specified distance
+        '''
+        unit_slope = self.slope.unit()
+        vert = self.const + (distance * unit_slope)
+        return vert
+
+    @classmethod
+    def from_vertices(cls, from_vert: Vertex, to_vert: Vertex) -> 'Line':
+        '''create a line passing through the given two vertices
+
+        Parameters
+        ----------
+        from_vert : Vertex
+            describes const of new line
+        to_vert : Vertex
+            describes slope along with from_vert
+
+        Returns
+        -------
+        Line
+            line passing through given vertices
+        '''
+        slope = to_vert - from_vert
+        point = from_vert
+        return Line(slope, point)
 
 
 def make_surface(vertices: list[Vertex], tangent_indices: list[int]) -> CubitInstance:
@@ -474,6 +523,123 @@ def make_surface(vertices: list[Vertex], tangent_indices: list[int]) -> CubitIns
     loop = make_loop(created_vertices, tangent_indices)
     surface = make_surface_from_curves(loop)
     return surface
+
+def blunt_corner(vertices: list[Vertex], idx: int, bluntness: float) -> list[Vertex]:
+    '''Blunt a corner in a list of vertices. The provided list of vertices
+    describe the outline of some geometry bounded by straight lines connecting
+    the points. This function will look at vertex at the provided index, and
+    'blunt' the corner it represents by splitting it into 2 vertices, each a
+    distance <bluntness> away from the original.
+
+    Parameters
+    ----------
+    vertices : list[Vertex]
+        vertices describing the outline of a geometry
+    idx : int
+        index of corner to be blunted
+    bluntness : float
+        distance to blunt vertex by
+
+    Returns
+    -------
+    list[Vertex]
+        list of 'blunted' vertices
+    '''
+    if bluntness == 0:
+        return [vertices[idx]]
+
+    dir1 = Line.from_vertices(vertices[idx], vertices[idx-1])
+    dir2 = Line.from_vertices(vertices[idx], vertices[idx+1])
+
+    split1 = dir1.vertex_from_dist(bluntness)
+    split2 = dir2.vertex_from_dist(bluntness)
+
+    return [split1, split2]
+
+
+def fetch(unwrap: list) -> list:
+    '''
+    "unwrap" a list locally and return items.
+    [[A, B], C, [D, E]] -> [B, C, D]
+    [B, C, [D, E]]      -> [B, C, D]
+    [[A, B], C, D]      -> [B, C, D]
+    [B, C, D]           -> [B, C, D]
+
+    Parameters
+    ----------
+    verts : list
+        list
+
+    Returns
+    -------
+    list
+        "unwrapped" list
+    '''
+    return_list = [0, unwrap[1], 0]
+    if len(unwrap) != 3:
+        raise CubismError('expected list of length 3')
+    return_list[0] = unwrap[0][1] if type(unwrap[0]) is list else unwrap[0]
+    return_list[2] = unwrap[2][0] if type(unwrap[2]) is list else unwrap[2]
+    return return_list
+
+
+def unroll(listlike: list) -> list:
+    '''Unroll lists inside lists
+
+    Parameters
+    ----------
+    listlike : list
+        A list that may have other lists inside it
+
+    Returns
+    -------
+    list
+        "unrolled" list
+    '''
+    return_list = []
+    for item in listlike:
+        if type(item) is list:
+            return_list.extend(item)
+        else:
+            return_list.append(item)
+    return return_list
+
+
+def blunt_corners(vertices: list[Vertex], ids: list[int], bluntnesses: list[int]) -> list:
+    '''Blunt many corners as in blunt_corner simultaneously.
+    Return indices of vertices that have been blunted.
+
+    Parameters
+    ----------
+    vertices : list[Vertex]
+        vertices describing a geometrical outline
+    ids : list[int]
+        indices of vertices to blunt
+    bluntnesses : list[int]
+    corresponding amounts to blunt by
+
+    Returns
+    -------
+    list[Vertex]
+        list of blunted vertices
+    list[int]
+        list of indices of blunted vertices
+    '''
+    if len(bluntnesses) != len(ids):
+        raise CubismError('length of bluntnesses should be the same as ids')
+    return_verts = []
+    for i, bluntness in zip(ids, bluntnesses):
+        blunted_vert = blunt_corner(fetch(vertices[i-1:i+2]), 1, bluntness)
+        if len(blunted_vert) > 1:
+            return_verts.append(i)
+        vertices[i] = blunted_vert
+
+    # each blunted vertex gets split into two. we account for this by
+    # adding n-1 to the index of the nth blunted vertex
+    return_verts.sort()
+    return_verts = [vert+i for i, vert in enumerate(return_verts)]
+
+    return unroll(vertices), return_verts
 
 
 def convert_to_3d_vector(dimlike: float | list) -> list[float]:
