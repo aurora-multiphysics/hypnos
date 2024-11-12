@@ -13,13 +13,19 @@ from blobmaker.geometry import (
     blunt_corner,
     fetch,
     unroll,
-    blunt_corners
+    blunt_corners,
+    create_brick,
+    rotate,
+    sweep_about,
+    sweep_along
 )
 from blobmaker.generic_classes import (
     CubitInstance,
     CubismError
 )
+from blobmaker.cubit_functions import subtract
 import pytest
+from pytest import approx
 import cubit
 import numpy as np
 from funcs_for_tests import verts_approx_equal
@@ -36,6 +42,17 @@ def verts():
     verts[2] = create_2d_vertex(5, 5)
     verts[3] = create_2d_vertex(-5, 5)
     return verts
+
+
+@pytest.fixture()
+def vert_face():
+    vert_face = [
+        Vertex(-0.5, -0.5),
+        Vertex(0.5, -0.5),
+        Vertex(0.5, 0.5),
+        Vertex(-0.5, 0.5)
+    ]
+    return vert_face
 
 
 @pytest.fixture()
@@ -205,7 +222,7 @@ def test_create(vertex: Vertex):
         Vertex("ha").create()
 
 
-def test_rotate(vertex: Vertex):
+def test_vertex_rotate(vertex: Vertex):
     vert1 = vertex.rotate(np.pi/2)
     assert (vert1.x, vert1.y, vert1.z) == pytest.approx((-2, 1, 3))
 
@@ -310,3 +327,51 @@ def test_blunt_corners():
     blunted2, verts2 = blunt_corners(verts, [1], [0.1])
     assert blunted2 == [Vertex(1), Vertex(0.1), Vertex(0, 0.1), Vertex(0, 1), Vertex(1, 1)]
     assert verts2 == [1]
+
+
+def test_create_brick():
+    brick = create_brick(1, 2, 3)
+    assert brick.handle.volume() == 6
+
+    brick2 = create_brick(10, 1, 1, [90, 180, 90])
+    assert brick2.handle.volume() == 10
+
+    # check whether euler rotations give expected result
+    # (subtracting 1 unit^3 from the cuboid with volume 6 unit^3)
+    brick = subtract([brick], [brick2])[0]
+    assert brick.handle.volume() == 5
+
+
+def test_rotate():
+    brick = create_brick(10, 1, 1)
+    rotate(
+        brick,
+        90,
+        Vertex(10),
+        Vertex(0, 0, 1)
+    )
+    assert brick.handle.centroid() == (10, -10, 0)
+
+
+def test_sweep_about(vert_face):
+    surf = make_surface(vert_face, [])
+    donut = sweep_about(
+        surf,
+        360,
+        Vertex(0, 1),
+        Vertex(1.5)
+    )
+
+    # here we are limited by cubit's accuracy
+    assert donut.handle.centroid() == approx((1.5, 0, 0), abs=1e-3)
+    assert donut.handle.volume() == approx(3*np.pi, abs=1e-3)
+
+
+def test_sweep_along(vert_face):
+    surf = make_surface(vert_face, [])
+    parallelepiped = sweep_along(
+        surf,
+        Vertex(3, 0, 4)
+    )
+
+    assert parallelepiped.handle.volume() == approx(4)
