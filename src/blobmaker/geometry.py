@@ -15,6 +15,16 @@ make_loop: connect many vertices with curves
 hypotenuse: square of sum of roots
 arctan: arctan -> (0, pi)
 make_surface: make surface from bounding vertices
+blunt_corner: split vertex into two
+fetch: get vertices from list of length 3
+unroll: unpack list of lists
+blunt_corners: blunt many corners simultaneously
+convert_to_3d_vector: opinionated conversion to list of length 3
+create_brick: create a cuboid
+make_brick_from_geom: create_brick from parameter dict
+rotate: rotate a geometry about any axis
+sweep_about: sweep a surface about an axis
+sweep_along: sweep a surface along a vector
 
 Classes
 -------
@@ -526,6 +536,7 @@ def make_surface(vertices: list[Vertex], tangent_indices: list[int]) -> CubitIns
     loop = make_loop(created_vertices, tangent_indices)
     surface = make_surface_from_curves(loop)
     return surface
+
 
 def blunt_corner(vertices: list[Vertex], idx: int, bluntness: float) -> list[Vertex]:
     '''Blunt a corner in a list of vertices. The provided list of vertices
