@@ -246,7 +246,7 @@ class GeometryMaker():
         defaults to "geometry"
         :type rootname: str, optional
         '''
-        print(f"exporting {rootname + get_format_extension(format)}")
+        print(f"exporting {rootname}{get_format_extension(format)}")
         format = format.lower()
         if format == "cubit" or "cub5" in format:
             cmd(f'export cubit "{rootname}.cub5"')
