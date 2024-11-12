@@ -36,7 +36,11 @@ from blobmaker.components import (
     SeparatorPlate,
     FWBackplate
 )
-from blobmaker.cubit_functions import to_volumes, get_entities_from_group
+from blobmaker.cubit_functions import (
+    to_volumes,
+    get_entities_from_group,
+    subtract
+)
 from blobmaker.geometry import Vertex, arctan
 from blobmaker.cubit_functions import to_bodies
 from blobmaker.constants import (
@@ -211,7 +215,7 @@ class CreatedComponentAssembly(GenericComponentAssembly):
     def check_for_overlaps(self):
         '''Raise an error if any overlaps exist between children volumes
         '''
-        volume_ids_list = [i.cid for i in to_volumes(self.get_all_geometries())]
+        volume_ids_list = [i.cid for i in to_volumes(self.get_geometries())]
         overlaps = cubit.get_overlapping_volumes(volume_ids_list)
         if overlaps != ():
             overlapping_components = [self.find_parent_component(CubitInstance(overlap_vol_id, "volume")) for overlap_vol_id in overlaps]
@@ -277,7 +281,7 @@ class NeutronTestFacility(CreatedComponentAssembly):
         source_object = unionise(self.get_components_of_class(SourceAssembly))
         blanket_components = []
         for i in self.get_components_of_class(RoomAssembly):
-            blanket_components += i.get_components_of_class(BlanketAssembly) 
+            blanket_components += i.get_components_of_class(BlanketAssembly)
         blanket_object = unionise(blanket_components)
         union_object = unionise([source_object, blanket_object])
 
@@ -310,7 +314,7 @@ class NeutronTestFacility(CreatedComponentAssembly):
             blanket_volumes = []
             for room in self.get_components_of_class(RoomAssembly):
                 for blanket in room.get_components_of_class(BlanketAssembly):
-                    blanket_volumes += to_volumes(blanket.get_all_geometries())
+                    blanket_volumes += to_volumes(blanket.get_geometries())
             # if there is an overlap, remove it
             for source_volume in source_volumes:
                 for blanket_volume in blanket_volumes:
@@ -321,7 +325,7 @@ class NeutronTestFacility(CreatedComponentAssembly):
             print(f"{self.morphology} morphology applied")
 
     def validate_rooms_and_fix_air(self):
-        '''Subtract all non-air geometries from all air geometries. 
+        '''Subtract all non-air geometries from all air geometries.
         Validate that everything is inside a room'''
 
         # collect geometries that define the complete space of the facility
@@ -338,7 +342,7 @@ class NeutronTestFacility(CreatedComponentAssembly):
         # and a union of every geometry in the facility.
         # as well as the union of those two unions
         room_bounding_box = unionise(room_bounding_boxes)
-        all_geometries = unionise(self.get_all_geometries())
+        all_geometries = unionise(self.get_geometries())
         union_object = unionise([room_bounding_box, all_geometries])
 
         # get volumes
@@ -362,7 +366,7 @@ class NeutronTestFacility(CreatedComponentAssembly):
             if surrounding_walls.is_air():
                 for air in surrounding_walls.get_air_subcomponents():
                     all_geometries_copy = all_geometries.copy()
-                    cmd(f'subtract {all_geometries_copy.geometry_type} {all_geometries_copy.cid} from {air.geometry_type} {air.cid}')
+                    air = subtract([air], [all_geometries_copy])
         # cleanup
         all_geometries.destroy_cubit_instance()
 
