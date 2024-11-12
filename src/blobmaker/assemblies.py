@@ -232,28 +232,6 @@ class CreatedComponentAssembly(GenericComponentAssembly):
         for component_json_dict in self.component_list:
             self.components.append(construct(component_json_dict))
 
-    def rotate(self, angle: float, origin: Vertex = Vertex(0, 0, 0), axis: Vertex = Vertex(0, 0, 1)):
-        '''Rotate geometries about a given axis
-
-        Parameters
-        ----------
-        angle : float
-            Angle to rotate by IN DEGREES
-        origin : Vertex
-            Point to rotate about, by default 0, 0, 0
-        axis : Vertex, optional
-            axis to rotate about, by default z-axis
-        '''
-        if origin == "origin":
-            origin = self.origin
-
-        for component in self.get_components():
-            if isinstance(component, CreatedComponentAssembly):
-                component.rotate(angle, origin, axis)
-            elif isinstance(component, SimpleComponent):
-                for subcomponent in component.get_geometries():
-                    cmd(f"rotate {subcomponent.geometry_type} {subcomponent.cid} about origin {str(origin)} direction {str(axis)} angle {angle}")
-
     def check_sanity(self):
         '''Check whether geometrical parameters are physical on the
         assembly level.
