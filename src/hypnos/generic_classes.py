@@ -64,7 +64,7 @@ class CubitInstance:
         vector : tuple
             tuple of length 3, coordinates to translate by in 3D space
         '''
-        cubit.move(self.handle, vector)
+        cmd(f"{self} move {vector[0]} {vector[1]} {vector[2]}")
 
     def update_reference(self, cid: int, geometry_type: str):
         '''Change what geometry this instance refers to
