@@ -628,7 +628,6 @@ class Plate(SimpleComponent):
         back_left_position, back_right_position = self.__get_back_vertices()
 
         plate_vertices = [Vertex(0) for i in range(4)]
-
         plate_vertices[0] = Vertex(-front_length/2, 0, thickness)
         plate_vertices[1] = Vertex(front_length/2, 0, thickness)
         plate_vertices[2] = Vertex(back_right_position)
@@ -720,8 +719,8 @@ class Rib(SimpleComponent):
         length = self.geometry["length"]
         thickness = self.geometry["thickness"]
 
-        structure = cmd_geom(f"create brick x {thickness} y {height} z {length}", "body")
-        cmd(f"{structure.geometry_type} {structure.cid} move 0 {height/2} {-length/2}")
+        structure = create_brick(thickness, height, length)
+        structure.move((0, height/2, -length/2))
 
         structure, number_of_channels = self.__make_side_channels(structure)
         rib = self.make_rib_connections(structure, number_of_channels)
@@ -763,11 +762,10 @@ class Rib(SimpleComponent):
 
     def tile_channels_vertically(self, structure: CubitInstance, channel_dims: Vertex, number_of_channels: int, y_margin: int, z_offset: int, spacing: int):
         for i in range(number_of_channels):
-            hole_to_be = cmd_geom(f"create brick x {channel_dims.x} y {channel_dims.y} z {channel_dims.z}", "volume")
-            hole_name = str(hole_to_be)
-            cmd(f"{hole_name} move 0 {channel_dims.y/2} {-channel_dims.z/2}")
-            cmd(f"{hole_name} move 0 {y_margin + i*spacing} {-z_offset}")
-            cmd(f"subtract {hole_name} from {str(structure)}")
+            hole_to_be = create_brick(channel_dims.x, channel_dims.y, channel_dims.z)
+            hole_to_be.move((0, channel_dims.y/2, -channel_dims.z/2))
+            hole_to_be.move((0, y_margin+i*spacing, -z_offset))
+            structure = subtract([structure], [hole_to_be])[0]
 
         return structure
 
@@ -830,8 +828,7 @@ class CoolantOutletPlenum(SimpleComponent):
         front_plate[3] = front_plate[0] + Vertex(0, 0, -thickness)
 
         face_to_sweep = make_surface(front_plate, [])
-        cmd(f"sweep surface {face_to_sweep.cid} vector 0 1 0 distance {height}")
-        front_plate = get_last_geometry("volume")
+        front_plate = sweep_along(face_to_sweep, Vertex(0, height))
 
         back_plate = list(np.zeros(4))
         back_plate[0] = Vertex(start_x, 0, -length)
@@ -840,8 +837,7 @@ class CoolantOutletPlenum(SimpleComponent):
         back_plate[3] = back_plate[0] + Vertex(0, 0, thickness)
 
         face_to_sweep = make_surface(back_plate, [])
-        cmd(f"sweep surface {face_to_sweep.cid} vector 0 1 0 distance {height}")
-        back_plate = get_last_geometry("volume")
+        back_plate = sweep_along(face_to_sweep, Vertex(0, height))
 
         return [front_plate, back_plate]
 
@@ -857,8 +853,8 @@ class CoolantOutletPlenum(SimpleComponent):
         side[6] = side[1] + Vertex(0, 0, -thickness)
         side[7] = side[0] + Vertex(0, 0, -thickness)
         face_to_sweep = make_surface(side, [1, 5])
-        cmd(f"sweep surface {face_to_sweep.cid} vector 0 1 0 distance {height}")
-        plenum = get_last_geometry("volume")
+        plenum = sweep_along(face_to_sweep, Vertex(0, height))
+
         return plenum
 
 
