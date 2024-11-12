@@ -8,13 +8,11 @@ These are components that contain a volume/s made of a single material
 (c) Copyright UKAEA 2024
 '''
 
-from hypnos.generic_classes import CubismError, CubitInstance, cmd, cubit
+from hypnos.generic_classes import CubismError, CubitInstance, cmd
 from hypnos.cubit_functions import (
     to_volumes,
     to_bodies,
-    get_last_geometry,
     subtract,
-    cmd_geom
     )
 from hypnos.geometry import (
     make_cylinder_along,
@@ -93,8 +91,12 @@ class ComponentBase(ABC):
         pass
 
     def move(self, vector: Vertex):
-        for geom in self.get_geometries():
-            cmd(f"{str(geom)} move {str(vector)}")
+        if type(vector) is tuple:
+            for geom in self.get_geometries():
+                geom.move(vector)
+        elif isinstance(vector, Vertex):
+            for geom in self.get_geometries():
+                geom.move((vector.x, vector.y, vector.z))
 
     def rotate(self, angle: float, origin: Vertex = Vertex(0, 0, 0), axis: Vertex = Vertex(0, 0, 1)):
         '''Rotate geometries about a given axis
