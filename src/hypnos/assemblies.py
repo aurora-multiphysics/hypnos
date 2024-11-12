@@ -40,12 +40,13 @@ from hypnos.cubit_functions import to_volumes, get_entities_from_group
 from hypnos.geometry import Vertex, arctan
 from hypnos.cubit_functions import to_bodies
 from hypnos.constants import (
-    CLASS_MAPPING, 
-    NEUTRON_TEST_FACILITY_REQUIREMENTS, 
-    ROOM_REQUIREMENTS, 
-    BLANKET_REQUIREMENTS, 
-    BLANKET_SHELL_REQUIREMENTS, 
-    FACILITY_MORPHOLOGIES, 
+    CLASS_MAPPING,
+    NEUTRON_TEST_FACILITY_REQUIREMENTS,
+    ROOM_REQUIREMENTS,
+    BLANKET_REQUIREMENTS,
+    BLANKET_SHELL_REQUIREMENTS,
+    FACILITY_MORPHOLOGIES,
+    HCPB_BLANKET_REQUIREMENTS
 )
 import numpy as np
 

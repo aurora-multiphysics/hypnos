@@ -19,7 +19,7 @@ from hypnos.generic_classes import (
     cmd
 )
 from funcs_for_tests import vols
-from blobmaker.geometry import make_cylinder_along
+from hypnos.geometry import make_cylinder_along
 
 import pytest
 import cubit
