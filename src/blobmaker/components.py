@@ -8,13 +8,11 @@ These are components that contain a volume/s made of a single material
 (c) Copyright UKAEA 2024
 '''
 
-from blobmaker.generic_classes import CubismError, CubitInstance, cmd, cubit
+from blobmaker.generic_classes import CubismError, CubitInstance, cmd
 from blobmaker.cubit_functions import (
     to_volumes,
     to_bodies,
-    get_last_geometry,
     subtract,
-    cmd_geom
     )
 from blobmaker.geometry import (
     make_cylinder_along,
@@ -96,8 +94,12 @@ class ComponentBase(ABC):
         pass
 
     def move(self, vector: Vertex):
-        for geom in self.get_geometries():
-            cmd(f"{str(geom)} move {str(vector)}")
+        if type(vector) is tuple:
+            for geom in self.get_geometries():
+                geom.move(vector)
+        elif isinstance(vector, Vertex):
+            for geom in self.get_geometries():
+                geom.move((vector.x, vector.y, vector.z))
 
     def rotate(self, angle: float, origin: Vertex = Vertex(0, 0, 0), axis: Vertex = Vertex(0, 0, 1)):
         '''Rotate geometries about a given axis
@@ -305,20 +307,22 @@ class WallComponent(SimpleComponent):
             wall = create_brick(thickness, wall_dims[1], wall_dims[2])
             rotate([subtract_vol], 90, axis=Vertex(0, 1))
             subtract_vol.move((0, hole_pos[1], hole_pos[0]))
+            wall_pos = (pos, 0, 0)
         elif plane == "y":
             wall = create_brick(wall_dims[0], thickness, wall_dims[2])
             rotate([subtract_vol], 90, axis=Vertex(1))
             subtract_vol.move((hole_pos[0], 0, hole_pos[1]))
+            wall_pos = (0, pos, 0)
         elif plane == "z":
             wall = create_brick(wall_dims[0], wall_dims[1], thickness)
             subtract_vol.move((hole_pos[0], hole_pos[1], 0))
+            wall_pos = (0, 0, pos)
         else:
             raise CubismError("unrecognised plane specified")
 
         # make hole in wall
         wall = subtract([wall], [subtract_vol])[0]
-        # move wall
-        cmd(f"move {wall} {plane} {pos}")
+        wall.move(wall_pos)
 
         return wall
 
