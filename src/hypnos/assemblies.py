@@ -200,7 +200,7 @@ class CreatedComponentAssembly(GenericComponentAssembly):
     def check_for_overlaps(self):
         '''Raise an error if any overlaps exist between children volumes
         '''
-        volume_ids_list = [i.cid for i in to_volumes(self.get_all_geometries())]
+        volume_ids_list = [i.cid for i in to_volumes(self.get_geometries())]
         overlaps = cubit.get_overlapping_volumes(volume_ids_list)
         if overlaps != ():
             overlapping_components = [self.find_parent_component(CubitInstance(overlap_vol_id, "volume")) for overlap_vol_id in overlaps]
