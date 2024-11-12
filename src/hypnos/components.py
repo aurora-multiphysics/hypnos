@@ -23,7 +23,10 @@ from hypnos.geometry import (
     hypotenuse,
     arctan,
     Line,
-    blunt_corners
+    blunt_corners,
+    rotate,
+    sweep_about,
+    sweep_along
     )
 import numpy as np
 from abc import ABC, abstractmethod
@@ -92,6 +95,23 @@ class ComponentBase(ABC):
     def move(self, vector: Vertex):
         for geom in self.get_geometries():
             cmd(f"{str(geom)} move {str(vector)}")
+
+    def rotate(self, angle: float, origin: Vertex = Vertex(0, 0, 0), axis: Vertex = Vertex(0, 0, 1)):
+        '''Rotate geometries about a given axis
+
+        Parameters
+        ----------
+        angle : float
+            Angle to rotate by IN DEGREES
+        origin : Vertex
+            Point to rotate about, by default 0, 0, 0
+        axis : Vertex, optional
+            axis to rotate about, by default z-axis
+        '''
+        if origin == "origin":
+            origin = self.origin
+
+        rotate(self.get_geometries(), angle, origin, axis)
 
     def set_mesh_size(self, size: int):
         for geom in self.get_geometries():
@@ -259,9 +279,10 @@ class CladdingComponent(SimpleComponent):
             )
 
         surface_to_sweep = make_surface(cladding_vertices, tangent_idx)
-
-        cmd(f"sweep surface {surface_to_sweep.cid} axis 0 {-coolant_inlet_radius} 0 1 0 0 angle 360")
-        cladding = get_last_geometry("volume")
+        cladding = sweep_about(
+            surface_to_sweep,
+            point=Vertex(0, -coolant_inlet_radius)
+        )
 
         duct_vertices = list(np.zeros(4))
         duct_vertices[0] = cladding_vertices[0] + Vertex(-purge_duct_offset, purge_duct_thickness)
@@ -270,12 +291,14 @@ class CladdingComponent(SimpleComponent):
         duct_vertices[3] = duct_vertices[0] + Vertex(0, purge_duct_cladding)
 
         duct_surface = make_surface(duct_vertices, [])
-        cmd(f"sweep surface {duct_surface.cid} axis 0 {-coolant_inlet_radius} 0 1 0 0 angle 360")
-        duct = get_last_geometry("volume")
+        duct = sweep_about(
+            duct_surface,
+            point=Vertex(0, -coolant_inlet_radius)
+        )
 
         # realign with origin
-        cubit.move(cladding.handle, [inner_length, coolant_inlet_radius, 0])
-        cubit.move(duct.handle, [inner_length, coolant_inlet_radius, 0])
+        cladding.move((inner_length, coolant_inlet_radius, 0))
+        duct.move((inner_length, coolant_inlet_radius, 0))
         return [cladding, duct]
 
 
@@ -319,11 +342,10 @@ class PinCoolant(SimpleComponent):
         )
 
         surface_to_sweep = make_surface(coolant_vertices, tangent_idx)
+        coolant = sweep_about(surface_to_sweep)
 
-        cmd(f"sweep surface {surface_to_sweep.cid} axis 0 0 0 1 0 0 angle 360")
-        coolant = get_last_geometry("volume")
         # realign with origin
-        cubit.move(coolant.handle, [inner_length+pressure_tube_gap, 0, 0])
+        coolant.move((inner_length+pressure_tube_gap, 0, 0))
         return coolant
 
 
@@ -336,14 +358,13 @@ class PressureTubeComponent(SimpleComponent):
         outer_radius = self.geometry["outer radius"]
         thickness = self.geometry["thickness"]
 
-        subtract_vol = cmd_geom(f"create cylinder height {length-thickness} radius {outer_radius-thickness}", "volume")
-        cmd(f"volume {subtract_vol.cid} move 0 0 {-thickness/2}")
-        cylinder = cmd_geom(f"create cylinder height {length} radius {outer_radius}", "volume")
+        subtract_vol = make_cylinder_along(outer_radius-thickness, length-thickness)
+        subtract_vol.move((0, 0, -thickness/2))
+        cylinder = make_cylinder_along(outer_radius, length)
 
-        cmd(f"subtract volume {subtract_vol.cid} from volume {cylinder.cid}")
-        tube = get_last_geometry("volume")
-        cmd(f"rotate volume {tube.cid} about Y angle -90")
-        cmd(f"volume {tube.cid} move {length/2} 0 0")
+        tube = subtract([cylinder], [subtract_vol])[0]
+        rotate(tube, -90, axis=Vertex(0, 1))
+        tube.move((length/2, 0, 0))
 
         return tube
 
@@ -364,8 +385,7 @@ class FilterLidComponent(SimpleComponent):
         tube_vertices[3] = tube_vertices[0] + Vertex(0, -thickness)
 
         tube_surface = make_surface(tube_vertices, [])
-        cmd(f"sweep surface {tube_surface.cid} axis 0 0 0 1 0 0 angle 360")
-        tube = get_last_geometry("volume")
+        tube = sweep_about(tube_surface)
 
         return tube
 
@@ -386,8 +406,7 @@ class PurgeGasComponent(SimpleComponent):
         tube_vertices[3] = tube_vertices[0] + Vertex(0, -thickness)
 
         tube_surface = make_surface(tube_vertices, [])
-        cmd(f"sweep surface {tube_surface.cid} axis 0 0 0 1 0 0 angle 360")
-        tube = get_last_geometry("volume")
+        tube = sweep_about(tube_surface)
 
         return tube
 
@@ -401,13 +420,13 @@ class FilterDiskComponent(SimpleComponent):
         outer_radius = self.geometry["outer radius"]
         thickness = self.geometry["thickness"]
 
-        subtract_vol = cmd_geom(f"create cylinder height {length} radius {outer_radius-thickness}", "volume")
-        cylinder = cmd_geom(f"create cylinder height {length} radius {outer_radius}", "volume")
+        subtract_vol = make_cylinder_along(outer_radius-thickness, length)
+        cylinder = make_cylinder_along(outer_radius, length)
 
-        cmd(f"subtract volume {subtract_vol.cid} from volume {cylinder.cid}")
-        tube = get_last_geometry("volume")
-        cmd(f"rotate volume {tube.cid} about Y angle -90")
-        cmd(f"volume {tube.cid} move {length/2} 0 0")
+        tube = subtract([cylinder], [subtract_vol])[0]
+        rotate(tube, -90, axis=Vertex(0, 1))
+        tube.move((length/2, 0, 0))
+
         return tube
 
 
@@ -425,17 +444,15 @@ class MultiplierComponent(SimpleComponent):
         side_length = self.geometry["side"]
 
         subtract_vol = make_cylinder_along(inner_radius, length, "z")
-        cmd(f"volume {subtract_vol.cid} move 0 0 {length/2}")
+        subtract_vol.move((0, 0, length/2))
 
         # hexagonal face
         face_vertex_positions = [Vertex(side_length).rotate(i*np.pi/3) for i in range(6)]
         face = make_surface(face_vertex_positions, [])
-        cmd(f"sweep surface {face.cid} vector 0 0 1 distance {length}")
-        hex_prism = get_last_geometry("volume")
+        hex_prism = sweep_along(face, Vertex(0, 0, length))
 
-        cmd(f"subtract volume {subtract_vol.cid} from volume {hex_prism.cid}")
-        multiplier = get_last_geometry("volume")
-        cmd(f"rotate volume {multiplier.cid} about Y angle 90")
+        multiplier = subtract([hex_prism], [subtract_vol])[0]
+        rotate(multiplier, 90, axis=Vertex(0, 1))
 
         return multiplier
 
@@ -471,10 +488,9 @@ class PinBreeder(SimpleComponent):
             [inner_bluntness, outer_bluntness]
         )
 
-        surface_to_sweep = make_surface(breeder_vertices, tangent_idx)
-        cmd(f"sweep surface {surface_to_sweep.cid} axis 0 {-inner_radius} 0 1 0 0 angle 360")
-        breeder = get_last_geometry("volume")
-        cubit.move(breeder.handle, [0, inner_radius, 0])
+        breeder_face = make_surface(breeder_vertices, tangent_idx)
+        breeder = sweep_about(breeder_face, point=Vertex(0, -inner_radius))
+        breeder.move((0, inner_radius, 0))
 
         return breeder
 
@@ -538,7 +554,7 @@ class FirstWallComponent(SimpleComponent):
         no_of_channels = (height - channel_spacing) // (channel_spacing + channel_width)
         for i in range(no_of_channels):
             channel = self.make_channel_volume(vertices)
-            if i%2 == 0:
+            if i % 2 == 0:
                 cmd(f"{channel} reflect 1 0 0")
             channel.move([0, i*(channel_spacing + channel_width) + channel_spacing, 0])
             first_wall = subtract([first_wall], [channel])[0]
