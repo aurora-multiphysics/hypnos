@@ -72,8 +72,8 @@ BLANKET_SHELL = {
         "horizontal offset": 0
     },
     "components": {
-        "pin": PIN,
-        "first_wall": FIRST_WALL
+        "PinAssembly": PIN,
+        "FirstWallComponent": FIRST_WALL
     }
 }
 
@@ -83,7 +83,7 @@ BLANKET_RING = {
         "minimum radius": 580
     },
     "components": {
-        "blanket_shell": {
+        "BlanketShellAssembly": {
             "class": "BlanketShellAssembly",
             "geometry": {
                 "pin spacing": 135,
@@ -91,7 +91,7 @@ BLANKET_RING = {
                 "horizontal offset": 0
             },
             "components": {
-                "first_wall": {
+                "FirstWallComponent": {
                     "class": "FirstWallComponent",
                     "material": "Tungsten",
                     "geometry": {
@@ -103,7 +103,7 @@ BLANKET_RING = {
                         "height": 580
                     }
                 },
-                "pin": {
+                "PinAssembly": {
                     "class": "PinAssembly",
                     "material": {
                             "cladding": "EUROFER",

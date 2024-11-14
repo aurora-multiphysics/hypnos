@@ -22,8 +22,8 @@
         "FW backplate thickness": 100
     },
     "components": {
-        "pin": {"class": "PinAssembly"},
-        "first_wall": {
+        "PinAssembly": {"class": "PinAssembly"},
+        "FirstWallComponent": {
             "class": "FirstWallComponent",
             "material": "Tungsten",
             "geometry": {
@@ -44,7 +44,7 @@
                 "channel spacing": 10
             }
         },
-        "front_rib": {
+        "FrontRib": {
             "class": "FrontRib",
             "geometry": {
                 "thickness": 30,
@@ -53,7 +53,7 @@
                 "side channel horizontal offset": 0
             }
         },
-        "back_rib": {
+        "BackRib": {
             "class": "BackRib",
             "geometry": {
                 "thickness": 60,
@@ -62,7 +62,7 @@
                 "side channel horizontal offset": 70
             }
         },
-        "coolant_outlet_plenum": {
+        "CoolantOutletPlenum": {
             "class": "CoolantOutletPlenum",
             "geometry": {
                 "length": 120,
