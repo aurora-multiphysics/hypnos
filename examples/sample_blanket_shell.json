@@ -1,5 +1,5 @@
 {
-    "class": "blanket_shell",
+    "class": "BlanketShellAssembly",
     "geometry": {
         "pin spacing": 135,
         "vertical offset": 0,

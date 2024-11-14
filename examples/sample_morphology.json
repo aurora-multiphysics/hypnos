@@ -1,10 +1,10 @@
 [
     {
-        "class": "neutron_test_facility",
+        "class": "NeutronTestFacility",
         "morphology": "overlap",
         "components": [
             {
-                "class" : "source",
+                "class" : "SourceAssembly",
                 "filepath": "./dummy_source.stp",
                 "group": "neutron_source",
                 "manufacturer": "blobcorp",
@@ -15,10 +15,10 @@
             },    
 
             {
-                "class": "room",
+                "class": "RoomAssembly",
                 "components": [
                     {
-                        "class": "surrounding_walls",
+                        "class": "SurroundingWallsComponent",
                         "material": "SS",
                         "air": "some_gas",
                         "geometry": {
@@ -28,7 +28,7 @@
 
                     },
                     {
-                        "class": "wall",
+                        "class": "WallComponent",
                         "material": "SS",
                         "geometry": {
                             "thickness": 5,
