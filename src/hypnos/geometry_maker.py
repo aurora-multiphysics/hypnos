@@ -45,7 +45,7 @@ class GeometryMaker():
         constructed geometry
     key_route_delimiter (str): delimiter for parameter paths
     '''
-    def __init__(self) -> None:
+    def __init__(self, custom_classes=[]) -> None:
         initialise_cubit()
         self.parameter_filler = ParameterFiller()
         self.tracker = Tracker()
@@ -55,6 +55,8 @@ class GeometryMaker():
         self.track_components = False
         self.key_route_delimiter = '/'
         self.class_dict = classdict(ComponentBase)
+        for cls in custom_classes:
+            self.class_dict[cls.__name__] = cls
 
     def fill_design_tree(self):
         '''Process design_tree manually
