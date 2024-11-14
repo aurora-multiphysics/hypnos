@@ -3,14 +3,23 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to hypnos's documentation!
-=====================================
+hypnos
+======
+
+Hypnos is a parametric geometry engine to create meshes for structures involved in the analysis of breeder blankets.
+
+Contents
+========
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
 
-   api
+   Requirements
+   Overview
+   Usage
+   HCPB pin parameters
+   User API
+   Developer API
 
 Indices and tables
 ==================

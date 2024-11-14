@@ -1,42 +1,42 @@
 Overview
 ========
 
-Hypnos's goal is to construct a geometry from the parameters you give it. The workflow is as follows:
-* Import parameters from json file
+Hypnos' goal is to construct a geometry from the parameters you give it. The workflow is as follows:
+
+* Import parameters from a json file
 * Build geometry in cubit, imprint and merge
 * Add blocks, sidesets, and groups
 * Mesh and/or Export
 
 This can be achieved either through running main.py, or in your own python script using the GeometryMaker class.
+These are explained in :doc:`Usage`.
 
-.. rubric:: main.py
+.. rubric:: types of geometries
 
-To use hypnos, run main.py, passing the name of the json file to a -f flag (default: examples/sample_pin.json)::
-    
-    python main.py -f examples/sample_pin.json
+The following terminology will be used when describing geometries:
 
-The following flags are also available:
-* -h: Print available flags for use
-* -c: Name of config file to use (optional)
-* -o: Name of geometry file to export including path (default: geometry)
-* -d: Destination to create output file(s) (default: ./)
-* -i: Name of class to print default template for. Leaving empty prints the available templates.
-* -g : Names of formats to export geometry to (defaults to cubit if neither geometry nor mesh options provided anywhere)
-* -m : Names of formats to export mesh to (optional)
+* simple component: A single geometrical entity or collection of entities made of the same material.
+  For example, the cladding of a pin is described by a 'cladding' simple component.
+  These need not be 'simple' geometrically.
+* assembly: A collection of other components
+* component: A simple component or an assembly
 
-The names given to flags -f, -o, and -d will be preferred over their equivalent options in the config file (file, root name, destination)
+.. caution:: This is probably a silly way of naming things.
 
-.. rubric:: GeometryMaker
+.. rubric:: json files
 
-The GeometryMaker class may be imported from the Hypnos module in order to proceed through the workflow. The following methods are available:
-* parse_json: Read in parameters from a json file
-* make_geometry: Construct geometry in cubit
-* imprint_and_merge: Run imprint and merge in cubit
-* track_components_and_materials: Add components to blocks, and component-component interfaces to sidesets
-* tetmesh: Run cubit's automatic tetmeshing command
-* export: Export geometry (and mesh if any) to a file of specified format
+Hypnos uses json files to describe parameters of a component.
+Components are represented by dictionaries of parameters ``{"key": value }``.
 
-There are also some convenience functions to do multiple steps at once:
-* file_to_merged_geometry: parse, make, imprint and merge
-* file_to_tracked_geometry: parse, make, imprint and merge, track
-* make_tracked_geometry: make, imprint and merge, track
+These will usually contain the following parameters:
+
+* ``"class"``: This must be declared to select a specific component
+* ``"material"``: The material this simple component is made of or a dictionary of materials used in this assembly
+* ``"geometry"``: The geometrical parameters describing this component.
+
+Json file names containing a json object describing a component (ex. hcpb_pin.json)
+can be used where such a json object is expected by using a string with the file name
+(ex. ``{"class": "blanket" ... "components" : ["hpcb_pin.json"]}``)
+
+Examples are given in sample json files
+
