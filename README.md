@@ -1,14 +1,30 @@
 # Hypnos
 
 Hypnos is a parametric geometry engine to create meshes for structures involved in the analysis of breeder blankets.
+Code blocks and paths are relative to the root directory.
 
 ## Requirements
 + [Coreform cubit](https://coreform.com/products/downloads/), along with a working license
 + [Python 3](https://www.python.org/downloads/)
 + The numpy python library: `pip install numpy`
 
-This code should be run with Coreform Cubit 2024.3. The DAGMC workflow will not work in previous versions.
-The cubit python library must be on your python path
+This code should be run with Coreform Cubit 2024.3+. The DAGMC workflow will not work in previous versions.
+The cubit python library must be accessible by python. On linux,
+`PATH=$PATH:<path to cubit.py>`
+
+## Installation
+Install Hypnos using pip
+`pip install .`
+If using as a developer, install as an editable
+`pip install --editable .`
+
+## Docs
+For the full instructions you will need to build the documentation via sphinx.
+```
+pip install sphinx
+sphinx-build -M html docs/source docs/build
+```
+You will then be able to access the documentation by opening docs/build/html/index.html
 
 ## Usage
 Hypnos uses json files to describe parameters of a component.
