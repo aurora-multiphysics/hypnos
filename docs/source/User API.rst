@@ -1,0 +1,39 @@
+User API
+========
+
+The GeometryMaker class may be imported from the Hypnos module in order to proceed through the workflow.
+Its attributes and some terminology is explained below:
+
+* ``design_tree``: A dictionary of the parameters used to construct a geometry.
+  These will usually describe its 'class', geometrical parameters, and material(s) it is made of.
+* ``constructed_geometry``: A list of python classes that correspond to the component(s) being constructed.
+* ``key_route_delimiter``: Delimiter separating parameter paths in the design tree,
+  as explained in :py:meth:`~geometry_maker.GeometryMaker.get_param`
+
+The following methods will take you through the workflow:
+
+* ``parse_json``: Read in parameters from a json file
+* ``make_geometry``: Construct geometry in cubit
+* ``imprint_and_merge``: Run imprint and merge in cubit
+* ``track_components_and_materials``: Add components to blocks, and component-component interfaces to sidesets
+* ``tetmesh``: Run cubit's automatic tetmeshing command
+* ``export``: Export geometry (and mesh if any) to a file of specified format
+
+There are also some convenience functions to do multiple steps at once:
+
+* ``file_to_merged_geometry``: parse, make, imprint and merge
+* ``file_to_tracked_geometry``: parse, make, imprint and merge, track
+* ``make_tracked_geometry``: make, imprint and merge, track
+
+Aside from these,
+
+* ``fill_design_tree``: Process design_tree manually
+* ``change_delimiter``: Change key_route_delimiter
+* ``get_param``: Get the value of a parameter stored in the design tree
+* ``change_params``: Update parameters stored in the design tree
+* ``set_mesh_size``: Set the approximate mesh size
+* ``export_exodus``: Exodus export with options for large file sizes
+* ``reset_cubit``: Reset cubit and corresponding internal states
+* ``exp_scale``: Scale cubit geometries by powers of 10
+
+The full class is documented in :doc:`GeometryMaker`
