@@ -12,7 +12,7 @@ Here are the steps to make a custom simple component for use with Hypnos:
     :caption: custom_component.json
 
     {
-        "class": "custom_component",
+        "class": "CustomComponent",
         "material": "material_name",
         "geometry": {
             "length": 5,
@@ -23,6 +23,7 @@ Here are the steps to make a custom simple component for use with Hypnos:
 * Import ``SimpleComponent`` from :doc:`Components`
 * Create your custom class, subclassing SimpleComponent.
   You will have access to the geometrical parameters via ``self.geometry``, a dictionary.
+* Define ``__init__``, passing a name you want to be used for this component in cubit groups, blocks, and sidesets.
 * Implement a ``check_sanity`` method to ensure the parameters you receive are physical.
 * Implement a ``make_geometry`` method to construct your component in cubit.
   This should return a list of created CubitInstances.
@@ -33,7 +34,10 @@ Here are the steps to make a custom simple component for use with Hypnos:
     from hypnos.components import SimpleComponent
     from hypnos.geometry import create_brick
 
-    CustomComponent(SimpleComponent):
+    class CustomComponent(SimpleComponent):
+        def __init__(classname, params):
+            super.__init__("custom", params)
+
         def check_sanity(self):
             length = self.geometry["length"]
             height = self.geometry["height"]
@@ -45,6 +49,18 @@ Here are the steps to make a custom simple component for use with Hypnos:
             height = self.geometry["height"]
             brick = create_brick(x=length, y=length, z=height)
             return brick
+
+You can now use this custom class with GeometryMaker!
+
+.. code-block:: python
+    :caption: custom_component.py (continued)
+
+    from hypnos.geometry_maker import GeometryMaker
+
+    maker = GeometryMaker([CustomComponent])
+    maker.file_to_tracked_geometry("custom_component.json")
+    maker.tetmesh()
+    maker.export("cub5", "custom")
 
 .. rubric:: creating geometries in cubit
 
