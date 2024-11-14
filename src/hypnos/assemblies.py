@@ -40,7 +40,6 @@ from hypnos.cubit_functions import to_volumes, get_entities_from_group
 from hypnos.geometry import Vertex, arctan
 from hypnos.cubit_functions import to_bodies
 from hypnos.constants import (
-    CLASS_MAPPING,
     NEUTRON_TEST_FACILITY_REQUIREMENTS,
     ROOM_REQUIREMENTS,
     BLANKET_REQUIREMENTS,
@@ -412,7 +411,7 @@ class RoomAssembly(CreatedComponentAssembly):
         # Take out any walls from component list
         json_walls = []
         for json_component in component_list:
-            if json_component["class"] == "wall":
+            if json_component["class"] == "WallComponent":
                 json_walls.append(json_component)
                 component_list.remove(json_component)
         json_object["components"] = component_list
@@ -869,17 +868,17 @@ class HCPBBlanket(CreatedComponentAssembly):
 
     def __add_component_attributes(self):
         for component in self.component_list:
-            if component["class"] == "first_wall":
+            if component["class"] == "FirstWallComponent":
                 self.first_wall_geometry = component["geometry"]
                 self.first_wall_material = component["material"]
-            elif component["class"] == "pin":
+            elif component["class"] == "PinAssembly":
                 self.breeder_materials = component["material"]
                 self.breeder_geometry = component["geometry"]
-            elif component["class"] == "front_rib":
+            elif component["class"] == "FrontRib":
                 self.front_ribs_geometry = component["geometry"]
-            elif component["class"] == "back_rib":
+            elif component["class"] == "BackRib":
                 self.back_ribs_geometry = component["geometry"]
-            elif component["class"] == "coolant_outlet_plenum":
+            elif component["class"] == "CoolantOutletPlenum":
                 self.cop_geometry = component["geometry"]
 
     def __dict_with_height(self):
@@ -1129,10 +1128,8 @@ def get_all_geometries_from_components(component_list) -> list[CubitInstance]:
     for component in component_list:
         if isinstance(component, CubitInstance):
             instances.append(component)
-        elif isinstance(component, SimpleComponent):
-            instances += component.subcomponents
-        elif isinstance(component, GenericComponentAssembly):
-            instances += component.get_all_geometries()
+        elif isinstance(component, ComponentBase):
+            instances += component.get_geometries()
     return instances
 
 
@@ -1187,8 +1184,17 @@ def construct(json_object: dict, *args):
 
     Returns
     -------
-    SimpleComponent | GenericComponentAssembly
+    ComponentBase
         Instantiated python class
     '''
-    constructor = globals()[CLASS_MAPPING[json_object["class"]]]
+    constructor = classdict(ComponentBase)[json_object["class"]]
     return constructor(json_object, *args)
+
+
+# it take so long to run :(
+def classdict(cls):
+    return_dict = {}
+    for subcls in cls.__subclasses__():
+        return_dict[subcls.__name__] = subcls
+        return_dict.update(classdict(subcls))
+    return return_dict
