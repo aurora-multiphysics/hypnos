@@ -1193,6 +1193,13 @@ def construct(json_object: dict, *args):
 
 # it take so long to run :(
 def classdict(cls):
+    '''Find all subclasses recursively.
+
+    Returns
+    -------
+    dict
+        {"Class": Class}
+    '''
     return_dict = {}
     for subcls in cls.__subclasses__():
         return_dict[subcls.__name__] = subcls
