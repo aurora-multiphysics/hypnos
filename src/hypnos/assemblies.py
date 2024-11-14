@@ -176,7 +176,7 @@ class GenericComponentAssembly(ComponentBase):
         return component_list
 
     def set_mesh_size(self, component_classes: list, size: int):
-        component_classes = [globals()[CLASS_MAPPING[classname]] for classname in component_classes]
+        component_classes = [classdict()[classname] for classname in component_classes]
         components = self.get_components_of_class(component_classes)
         for component in components:
             if isinstance(component, SimpleComponent):
