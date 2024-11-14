@@ -20,6 +20,8 @@ Here are the steps to make a custom simple component for use with Hypnos:
         }
     }
 
+.. rubric:: python
+
 * Import ``SimpleComponent`` from :doc:`Components`
 * Create your custom class, subclassing SimpleComponent.
   You will have access to the geometrical parameters via ``self.geometry``, a dictionary.
@@ -69,7 +71,7 @@ For example after creating a cuboid in a fresh session of cubit, Hypnos can trac
 ``CubitInstance(1, "volume")``.
 
 To create geometries in cubit, you may use the cubit python API, or issue commands to the cubit command line
-using :func:`~generic_classes.cmd`. However, it is preferable to the functions in :doc:`Geometry`,
+using :func:`~generic_classes.cmd`. However, it is preferable to use the functions in :doc:`Geometry`,
 or to create similar functions.
 
 For example :func:`~geometry.make_cylinder_along` will create a cylinder in cubit and return
