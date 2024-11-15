@@ -3,7 +3,6 @@ from hypnos import GeometryMaker
 
 def make_pin():
     maker = GeometryMaker()
-    maker.track_components = True
 
     # parses json file to a python dict in design_tree attribute
     maker.file_to_tracked_geometry("sample_pin.json")

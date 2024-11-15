@@ -11,7 +11,7 @@ from hypnos.tracking import Tracker
 from hypnos.assemblies import construct
 from hypnos.generic_classes import CubismError, cmd
 from hypnos.cubit_functions import initialise_cubit, reset_cubit
-from hypnos.parsing import extract_data, ParameterFiller, get_format_extension
+from hypnos.parsing import extract_data, ParameterFiller, get_format_extension, Config
 import functools
 
 
@@ -63,15 +63,39 @@ class GeometryMaker():
         constructed geometry
     key_route_delimiter (str): delimiter for parameter paths
     '''
-    def __init__(self) -> None:
+    def __init__(self, config: dict | str = None, json: str = None) -> None:
         initialise_cubit()
         self.parameter_filler = ParameterFiller()
         self.tracker = Tracker()
         self.design_tree = {}
         self.constructed_geometry = []
-        self.print_parameter_logs = False
-        self.track_components = False
         self.key_route_delimiter = '/'
+        # accept config data
+        if type(config) is str:
+            self.config = self.read_config(config)
+        elif type(config) is dict:
+            self.config = Config(**config)
+        else:
+            self.config = Config()
+        # accept a json file
+        if json:
+            self.parse_json(json)
+        # if export_immediately is true, run config steps
+        if self.config.export_immediately:
+            if not self.design_tree:
+                self.read_from_config()
+            self.export_from_config()
+
+    def read_config(self, config_file: str):
+        '''Read config data from a file
+
+        Parameters
+        ----------
+        config_file : str
+            Name of config file (including path)
+        '''
+        config_dict = extract_data(config_file)
+        self.config = Config(**config_dict)
 
     def fill_design_tree(self):
         '''Process design_tree manually
@@ -82,7 +106,7 @@ class GeometryMaker():
             Processed design tree
         '''
         self.design_tree = self.parameter_filler.process_design_tree(self.design_tree)
-        if self.print_parameter_logs:
+        if self.config.print_logs:
             self.parameter_filler.print_log()
         return self.design_tree
 
@@ -188,7 +212,7 @@ class GeometryMaker():
             raise CubismError("Path given does not correspond to existing parameters")
         param_dict[key_route[0]] = self.__build_param_dict(key_route[1:], param_dict[key_route[0]], updated_value)
         return param_dict
-    
+
     @log_method("Making geometry")
     def make_geometry(self):
         '''Build geometry corresponding to design tree in cubit
@@ -219,7 +243,6 @@ class GeometryMaker():
         self.tracker.track_boundaries()
         self.tracker.organise_into_groups()
 
-
     def set_mesh_size(self, size: int):
         '''Set approximate mesh size in cubit
 
@@ -237,6 +260,7 @@ class GeometryMaker():
         cmd('volume all scheme tet')
         cmd('mesh volume all')
 
+    @log_method("Exporting")
     def export(self, format: str = "cubit", rootname: str = "geometry"):
         '''Export mesh/ geometry in specfied format
 
@@ -263,6 +287,7 @@ class GeometryMaker():
             raise CubismError(f"Export format not recognised: {format}")
         print(f"exported {format} file")
 
+    @log_method("Exporting exodus")
     def export_exodus(self, rootname: str = "geometry", large_exodus=False, HDF5=False):
         '''Export as exodus II file.
 
@@ -282,7 +307,7 @@ class GeometryMaker():
             cmd("set exodus NetCDF4 on")
         cmd(f'export mesh "{rootname}.e"')
 
-    def reset_cubit(self):
+    def reset(self):
         '''Reset cubit and corresponding internal states.'''
         reset_cubit()
         self.tracker.reset()
@@ -328,3 +353,31 @@ class GeometryMaker():
             Exponent to scale by
         '''
         cmd(f"volume all scale {10**scaling} about 0 0 0")
+
+    def read_from_config(self):
+        '''Read json file specified by config
+        '''
+        self.parse_json(self.config.json_file)
+
+    def export_from_config(self):
+        '''make_tracked_geometry,
+        then export using the supplied config options.
+        '''
+        cfg = self.config
+        self.make_tracked_geometry()
+        self.exp_scale(cfg.scale_exponent)
+        if cfg.export_geom:
+            for export_type in cfg.export_geom:
+                self.export(export_type, cfg.rootname)
+
+        if not cfg.export_mesh:
+            return
+
+        self.tetmesh()
+        for export_type in cfg.export_mesh:
+            if export_type == "exodus":
+                self.export_exodus(
+                    cfg.rootname,
+                    cfg.exodus_options.large_exodus,
+                    cfg.exodus_options.hdf5
+                    )
