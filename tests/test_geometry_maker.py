@@ -175,7 +175,7 @@ def test_export_stp(goldpath, parsed, tmp_path):
 def test_export_existence(parsed, tmp_path):
     file_path = tmp_path / "pin"
     exodus_filepath = tmp_path / "pin_large_exodus"
-    parsed.reset_cubit()
+    parsed.reset()
     parsed.make_tracked_geometry()
     parsed.tetmesh()
 

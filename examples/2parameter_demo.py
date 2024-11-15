@@ -18,8 +18,8 @@ def build():
         # this will take a while
         # maker.tetmesh()
         # maker.export_exodus(f"multiplier_length_{length}")
-        
-        maker.reset_cubit()
+
+        maker.reset()
 
 
 if __name__ == "__main__":
