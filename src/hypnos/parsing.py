@@ -11,6 +11,7 @@ import json
 import copy
 from hypnos.default_params import DEFAULTS
 from hypnos.generic_classes import CubismError
+from dataclasses import dataclass, InitVar
 
 
 def extract_data(filename) -> dict:
@@ -210,3 +211,46 @@ def get_format_extension(format_type: str) -> str:
         return ".stp"
     else:
         raise CubismError(f"Unrecognised format: {format_type}")
+
+
+@dataclass
+class ExodusOptions:
+    large_exodus: bool = False
+    hdf5: bool = False
+
+
+@dataclass
+class Config:
+    print_logs: bool = False
+    json_file: str | None = None
+    rootname: str = "./geometry"
+    export_mesh: list[str] | None = None
+    export_geom: list[str] | None = None
+    scale_exponent: int = 1
+    exodus_dict: InitVar[dict | None] = None
+    exodus_options: ExodusOptions | None = None
+    export_immediately: bool = False
+
+    def __post_init__(self, exodus_dict):
+        if exodus_dict:
+            self.exodus_options = ExodusOptions(**exodus_dict)
+
+
+@dataclass
+class Args:
+    filename: str = None
+    config_file: InitVar[str | None] = None
+    config: Config | None = None
+    info: str = None
+
+    def __post_init__(self, config_file):
+        # if no file name anywhere, set a default value
+        if not (self.filename or config_file):
+            self.filename = "examples/sample_pin.json"
+            self.config = Config(export_geom=["cubit"])
+            print(f"Filename set to {self.filename} by default")
+        # if there is no filename provided but it exists in config, use that
+        elif not self.filename:
+            self.config = Config(**extract_data(config_file))
+            self.filename = self.config.json_file
+            print(f"Filename set to {self.filename} from config file")
