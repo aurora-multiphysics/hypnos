@@ -23,9 +23,7 @@ from hypnos.geometry import (
     hypotenuse,
     arctan,
     Line,
-    blunt_corners,
-    convert_to_3d_vector,
-    create_brick
+    blunt_corners
     )
 import numpy as np
 from abc import ABC, abstractmethod
@@ -187,115 +185,6 @@ class SimpleComponent(ComponentBase):
         '''
         self.as_volumes()
         return " ".join([str(cmp.cid) for cmp in self.get_geometries() if cmp.geometry_type == "volume"])
-
-
-class SurroundingWallsComponent(SimpleComponent):
-    '''Surrounding walls, filled with air'''
-    def __init__(self, json_object: dict):
-        super().__init__("surrounding_walls", json_object)
-
-        # fill room with air
-        self.air_material = json_object["air"]
-        self.air = AirComponent(self.geometry, self.air_material) if self.air_material != "none" else False
-
-    def is_air(self):
-        '''Does this room have air in it?'''
-        return isinstance(self.air, AirComponent)
-
-    def air_as_volumes(self):
-        '''reference air as volume entities instead of body entities'''
-        if self.is_air():
-            self.air.as_volumes()
-
-    def get_air_subcomponents(self):
-        return self.air.get_geometries()
-
-    def make_geometry(self):
-        '''create 3d room with outer dimensions dimensions (int or list) and thickness (int or list)'''
-        # get variables
-        outer_dims = convert_to_3d_vector(self.geometry["dimensions"])
-        thickness = convert_to_3d_vector(self.geometry["thickness"])
-        # create room
-        subtract_vol = cubit.brick(outer_dims[0]-2*thickness[0], outer_dims[1]-2*thickness[1], outer_dims[2]-2*thickness[2])
-        block = cubit.brick(outer_dims[0], outer_dims[1], outer_dims[2])
-        cubit.subtract([subtract_vol], [block])
-        room_id = cubit.get_last_id("volume")
-        return CubitInstance(room_id, "volume")
-
-
-class AirComponent(SimpleComponent):
-    '''Air, stored as body'''
-    def __init__(self, json_object: dict):
-        super().__init__("air", json_object)
-        # cubit subtract only keeps body ID invariant, so i will store air as a body
-        self.as_bodies()
-
-    def make_geometry(self):
-        return create_brick(self.geometry)
-
-
-class BreederComponent(SimpleComponent):
-    def __init__(self, json_object):
-        super().__init__("breeder", json_object)
-
-    def make_geometry(self):
-        return create_brick(self.geometry)
-
-
-class StructureComponent(SimpleComponent):
-    def __init__(self, json_object):
-        super().__init__("structure", json_object)
-    def make_geometry(self):
-        return create_brick(self.geometry)
-
-
-class WallComponent(SimpleComponent):
-    def __init__(self, json_object):
-        super().__init__("wall", json_object)
-
-    def make_geometry(self):
-        # get variables
-        # wall
-        geom = self.geometry
-        thickness = geom["wall thickness"]
-        plane = geom["wall plane"] if "wall plane" in geom.keys() else "x"
-        pos = geom["wall position"] if "wall position" in geom.keys() else 0
-        # hole
-        hole_pos = geom["wall hole position"] if "wall hole position" in geom.keys() else [0, 0]
-        hole_radius = geom["wall hole radius"]
-        # wall fills room
-        room_dims = convert_to_3d_vector(geom["dimensions"])
-        room_thickness = convert_to_3d_vector(geom["thickness"])
-        wall_dims = [room_dims[i]-2*room_thickness[i] for i in range(3)]
-
-        # volume to subtract to create a hole
-        cmd(f"create cylinder height {thickness} radius {hole_radius}")
-        subtract_vol = CubitInstance(cubit.get_last_id("volume"), "volume")
-
-        # depending on what plane the wall needs to be in,
-        # create wall + make hole at right place
-        if plane == "x":
-            cubit.brick(thickness, wall_dims[1], wall_dims[2])
-            wall = CubitInstance(cubit.get_last_id("volume"), "volume")
-            cmd(f"rotate volume {subtract_vol.cid} angle 90 about Y")
-            cmd(f"move volume {subtract_vol.cid} y {hole_pos[1]} z {hole_pos[0]}")
-        elif plane == "y":
-            cubit.brick(wall_dims[0], thickness, wall_dims[2])
-            wall = CubitInstance(cubit.get_last_id("volume"), "volume")
-            cmd(f"rotate volume {subtract_vol.cid} angle 90 about X")
-            cmd(f"move volume {subtract_vol.cid} x {hole_pos[0]} z {hole_pos[1]}")
-        elif plane == "z":
-            cubit.brick(wall_dims[0], wall_dims[1], thickness)
-            wall = CubitInstance(cubit.get_last_id("volume"), "volume")
-            cmd(f"move volume {subtract_vol.cid} x {hole_pos[0]} y {hole_pos[1]}")
-        else:
-            raise CubismError("unrecognised plane specified")
-
-        cmd(f"subtract volume {subtract_vol.cid} from volume {wall.cid}")
-        # move wall
-        cmd(f"move volume {wall.cid} {plane} {pos}")
-
-        return CubitInstance(wall.cid, wall.geometry_type)
 
 
 class CladdingComponent(SimpleComponent):
