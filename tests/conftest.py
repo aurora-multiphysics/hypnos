@@ -1,6 +1,6 @@
 import pytest
 import cubit
-from blobmaker.generic_classes import CubitInstance
+from hypnos.generic_classes import CubitInstance
 
 
 # initialise cubit once

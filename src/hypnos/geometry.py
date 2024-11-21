@@ -33,10 +33,8 @@ Line: Representation of a line in point-slope form
 
 (c) Copyright UKAEA 2024
 '''
-
-
-from blobmaker.generic_classes import CubitInstance, CubismError, cmd
-from blobmaker.cubit_functions import get_id_string, cmd_geom, get_last_geometry
+from hypnos.generic_classes import CubitInstance, CubismError, cmd
+from hypnos.cubit_functions import get_id_string, cmd_geom, get_last_geometry
 import numpy as np
 
 

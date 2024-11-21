@@ -1,6 +1,6 @@
-from blobmaker.components import SimpleComponent
-from blobmaker.generic_classes import CubitInstance, CubismError
-from blobmaker.geometry import make_brick_from_geom
+from hypnos.components import SimpleComponent
+from hypnos.generic_classes import CubitInstance, CubismError
+from hypnos.geometry import make_brick_from_geom
 import cubit
 import pytest
 

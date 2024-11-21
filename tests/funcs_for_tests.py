@@ -2,14 +2,14 @@
 Functions used in tests
 '''
 
-from blobmaker.geometry import Vertex
+from hypnos.geometry import Vertex
 from pytest import approx
-from blobmaker.geometry_maker import GeometryMaker
-from blobmaker.generic_classes import (
+from hypnos.geometry_maker import GeometryMaker
+from hypnos.generic_classes import (
     cmd,
     CubitInstance
 )
-from blobmaker.cubit_functions import union
+from hypnos.cubit_functions import union
 import cubit
 
 

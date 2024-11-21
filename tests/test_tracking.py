@@ -1,7 +1,7 @@
-from blobmaker.tracking import Tracker
-from blobmaker.assemblies import PinAssembly
-from blobmaker.default_params import PIN
-from blobmaker.geometry_maker import GeometryMaker
+from hypnos.tracking import Tracker
+from hypnos.assemblies import PinAssembly
+from hypnos.default_params import PIN
+from hypnos.geometry_maker import GeometryMaker
 import cubit
 import pytest
 

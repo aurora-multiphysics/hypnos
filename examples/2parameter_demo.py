@@ -1,4 +1,4 @@
-from blobmaker import GeometryMaker
+from hypnos import GeometryMaker
 
 multiplier_lengths = [385, 355, 325, 295, 265]
 

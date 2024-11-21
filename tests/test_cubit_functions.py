@@ -1,4 +1,4 @@
-from blobmaker.cubit_functions import (
+from hypnos.cubit_functions import (
     get_last_geometry,
     reset_cubit,
     cmd_geom,
@@ -13,13 +13,13 @@ from blobmaker.cubit_functions import (
     subtract,
     union
 )
-from blobmaker.generic_classes import (
+from hypnos.generic_classes import (
     CubitInstance,
     CubismError,
     cmd
 )
 from funcs_for_tests import vols
-from blobmaker.geometry import make_cylinder_along
+from hypnos.geometry import make_cylinder_along
 
 import pytest
 import cubit

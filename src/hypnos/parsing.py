@@ -9,8 +9,8 @@ Classes and functions to process json files describing the parameters
 
 import json
 import copy
-from blobmaker.default_params import DEFAULTS
-from blobmaker.generic_classes import CubismError
+from hypnos.default_params import DEFAULTS
+from hypnos.generic_classes import CubismError
 
 
 def extract_data(filename) -> dict:

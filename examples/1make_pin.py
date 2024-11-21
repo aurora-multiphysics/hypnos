@@ -1,4 +1,4 @@
-from blobmaker import GeometryMaker
+from hypnos import GeometryMaker
 
 
 def make_pin():
