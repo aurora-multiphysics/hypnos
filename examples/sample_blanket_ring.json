@@ -1,5 +1,5 @@
 {
-    "class": "blanket_ring",
+    "class": "BlanketRingAssembly",
     "geometry": {
         "minimum radius": 580
     },

@@ -70,13 +70,6 @@ class ComponentBase(ABC):
     def classname(self):
         del self._classname
 
-    @classmethod
-    def from_classname(cls, classname, params):
-        for toplvl in cls.__subclasses__():
-            for construct_lvl in toplvl.__subclasses__():
-                if construct_lvl.classname == classname:
-                    return construct_lvl(params)
-
     def check_sanity(self):
         '''Check whether the parameters supplied to this instance are physical
         '''

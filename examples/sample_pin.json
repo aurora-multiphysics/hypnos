@@ -1,5 +1,5 @@
 {
-    "class": "pin",
+    "class": "PinAssembly",
     "material": {
         "cladding": "EUROFER",
         "pressure tube": "EUROFER",

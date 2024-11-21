@@ -8,7 +8,7 @@ default parameter dictionaries
 '''
 
 PIN = {
-    "class": "pin",
+    "class": "PinAssembly",
     "material": {
         "cladding": "EUROFER",
         "pressure tube": "EUROFER",
@@ -43,7 +43,7 @@ PIN = {
 }
 
 FIRST_WALL = {
-    "class": "first_wall",
+    "class": "FirstWallComponent",
     "material": "Tungsten",
     "geometry": {
         "inner width": 1480,
@@ -65,34 +65,34 @@ FIRST_WALL = {
 }
 
 BLANKET_SHELL = {
-    "class": "blanket_shell",
+    "class": "BlanketShellAssembly",
     "geometry": {
         "pin spacing": 135,
         "vertical offset": 0,
         "horizontal offset": 0
     },
     "components": {
-        "pin": PIN,
-        "first_wall": FIRST_WALL
+        "PinAssembly": PIN,
+        "FirstWallComponent": FIRST_WALL
     }
 }
 
 BLANKET_RING = {
-    "class": "blanket_ring",
+    "class": "BlanketRingAssembly",
     "geometry": {
         "minimum radius": 580
     },
     "components": {
-        "blanket_shell": {
-            "class": "blanket_shell",
+        "BlanketShellAssembly": {
+            "class": "BlanketShellAssembly",
             "geometry": {
                 "pin spacing": 135,
                 "vertical offset": 0,
                 "horizontal offset": 0
             },
             "components": {
-                "first_wall": {
-                    "class": "first_wall",
+                "FirstWallComponent": {
+                    "class": "FirstWallComponent",
                     "material": "Tungsten",
                     "geometry": {
                         "inner width": 480,
@@ -103,8 +103,8 @@ BLANKET_RING = {
                         "height": 580
                     }
                 },
-                "pin": {
-                    "class": "pin",
+                "PinAssembly": {
+                    "class": "PinAssembly",
                     "material": {
                             "cladding": "EUROFER",
                             "pressure tube": "EUROFER",
@@ -137,7 +137,7 @@ BLANKET_RING = {
 }
 
 HCPB_BLANKET = {
-    "class": "HCPB_blanket",
+    "class": "HCPBBlanket",
     "geometry": {
         "pin spacing": 135,
         "pin vertical offset": 0,
@@ -160,8 +160,8 @@ HCPB_BLANKET = {
         "FW backplate thickness": 100
     },
     "components": {
-        "pin": {
-            "class": "pin",
+        "PinAssembly": {
+            "class": "PinAssembly",
             "material": {
                 "cladding": "EUROFER",
                 "pressure tube": "EUROFER",
@@ -194,8 +194,8 @@ HCPB_BLANKET = {
                 "filter lid length": 300
             }
         },
-        "first_wall": {
-            "class": "first_wall",
+        "FirstWallComponent": {
+            "class": "FirstWallComponent",
             "material": "Tungsten",
             "geometry": {
                 "inner width": 1480,
@@ -215,8 +215,8 @@ HCPB_BLANKET = {
                 "channel spacing": 10
             }
         },
-        "front_rib": {
-            "class": "front_rib",
+        "FrontRib": {
+            "class": "FrontRib",
             "geometry": {
                 "thickness": 30,
                 "side channel width": 10,
@@ -224,8 +224,8 @@ HCPB_BLANKET = {
                 "side channel horizontal offset": 0
             }
         },
-        "back_rib": {
-            "class": "back_rib",
+        "BackRib": {
+            "class": "BackRib",
             "geometry": {
                 "thickness": 60,
                 "side channel width": 10,
@@ -233,8 +233,8 @@ HCPB_BLANKET = {
                 "side channel horizontal offset": 70
             }
         },
-        "coolant_outlet_plenum": {
-            "class": "coolant_outlet_plenum",
+        "CoolantOutletPlenum": {
+            "class": "CoolantOutletPlenum",
             "geometry": {
                 "length": 120,
                 "width": 1000,
