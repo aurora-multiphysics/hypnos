@@ -1,4 +1,4 @@
-from hypnos.geometry_maker import GeometryMaker, make_everything
+from hypnos.geometry_maker import GeometryMaker
 from hypnos.default_params import PIN
 from hypnos.generic_classes import CubismError
 from hypnos.assemblies import PinAssembly
@@ -102,27 +102,6 @@ def parsed(maker, dirpath):
 @pytest.fixture(scope="function")
 def goldpath(pytestconfig):
     return pytestconfig.rootpath / "tests" / "gold"
-
-
-def test_make_everything():
-    # this should make a pin assembly
-    geom_list = make_everything(PIN)
-    geom = geom_list[0]
-    assert len(geom_list) == 1
-    assert isinstance(geom, PinAssembly)
-
-    # make sure it contains all the components we want
-    comp_classes = [type(comp) for comp in geom.components]
-    for pin_comp in PIN_COMPS:
-        assert pin_comp in comp_classes
-
-    fake_json_obj = [PIN]
-    json_list = make_everything(fake_json_obj)
-    assert len(json_list) == 1
-    assert isinstance(json_list[0], PinAssembly)
-
-    with pytest.raises(CubismError):
-        make_everything(1)
 
 
 def test_parse_json(parsed):

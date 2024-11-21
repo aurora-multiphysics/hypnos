@@ -1,5 +1,5 @@
 {
-    "class": "blanket_shell",
+    "class": "BlanketShellAssembly",
     "geometry": {
         "pin spacing": 135,
         "vertical offset": 0,
@@ -7,7 +7,7 @@
     },
     "components": {
         "first_wall": {
-            "class": "first_wall",
+            "class": "FirstWallComponent",
             "material": "Tungsten",
             "geometry": {
                 "inner width": 480,
@@ -19,7 +19,7 @@
             }
         },
         "pin": {
-            "class": "pin",
+            "class": "PinAssembly",
             "material": {
                 "cladding": "Steel",
                 "pressure tube": "Steel",

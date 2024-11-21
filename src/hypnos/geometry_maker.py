@@ -8,30 +8,12 @@ Python interface to access program functionality
 '''
 
 from hypnos.tracking import Tracker
-from hypnos.assemblies import construct
+from hypnos.components import ComponentBase
+from hypnos.assemblies import classdict
 from hypnos.generic_classes import CubismError, cmd
 from hypnos.cubit_functions import initialise_cubit, reset_cubit
 from hypnos.parsing import extract_data, ParameterFiller, get_format_extension
 import functools
-
-
-def make_everything(json_object):
-    '''Construct all specified components
-
-    Parameters
-    ----------
-    json_object : dict or list
-        Description of geometry(ies) to construct in cubit
-
-    Returns
-    -------
-    Class corresponding to constructed geometry
-    '''
-    if type(json_object) is list:
-        return [construct(json_component) for json_component in json_object]
-    elif type(json_object) is dict:
-        return [construct(json_object)]
-    raise CubismError("json object not recognised")
 
 
 def log_method(method_name: str):
@@ -63,7 +45,7 @@ class GeometryMaker():
         constructed geometry
     key_route_delimiter (str): delimiter for parameter paths
     '''
-    def __init__(self) -> None:
+    def __init__(self, custom_classes=[]) -> None:
         initialise_cubit()
         self.parameter_filler = ParameterFiller()
         self.tracker = Tracker()
@@ -72,6 +54,9 @@ class GeometryMaker():
         self.print_parameter_logs = False
         self.track_components = False
         self.key_route_delimiter = '/'
+        self.class_dict = classdict(ComponentBase)
+        for cls in custom_classes:
+            self.class_dict[cls.__name__] = cls
 
     def fill_design_tree(self):
         '''Process design_tree manually
@@ -188,7 +173,7 @@ class GeometryMaker():
             raise CubismError("Path given does not correspond to existing parameters")
         param_dict[key_route[0]] = self.__build_param_dict(key_route[1:], param_dict[key_route[0]], updated_value)
         return param_dict
-    
+
     @log_method("Making geometry")
     def make_geometry(self):
         '''Build geometry corresponding to design tree in cubit
@@ -197,7 +182,15 @@ class GeometryMaker():
         -------
         Class corresponding to the constructed cubit geometry
         '''
-        self.constructed_geometry = make_everything(self.design_tree)
+        params = self.design_tree
+        classname = params["class"]
+
+        if type(self.design_tree) is list:
+            self.constructed_geometry = [self.class_dict[classname](param) for param in params]
+        elif type(self.design_tree) is dict:
+            self.constructed_geometry = [self.class_dict[classname](params)]
+        else:
+            raise CubismError("json object not recognised")
         return self.constructed_geometry
 
     @log_method("Imprint and merge")

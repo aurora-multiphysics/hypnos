@@ -1,0 +1,8 @@
+{
+    "class": "CustomComponent",
+    "material": "material_name",
+    "geometry": {
+        "length": 5,
+        "height": 7.931
+    }
+}

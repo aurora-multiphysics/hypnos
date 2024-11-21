@@ -1,5 +1,5 @@
 {
-    "class": "HCPB_blanket",
+    "class": "HCPBBlanket",
     "geometry": {
         "pin spacing": 135,
         "pin vertical offset": 0,
@@ -23,7 +23,7 @@
     },
     "components": {
         "pin": {
-            "class": "pin",
+            "class": "PinAssembly",
             "material": {
                 "cladding": "EUROFER",
                 "pressure tube": "EUROFER",
@@ -57,7 +57,7 @@
             }
         },
         "first_wall": {
-            "class": "first_wall",
+            "class": "FirstWallComponent",
             "material": "Tungsten",
             "geometry": {
                 "inner width": 1480,
@@ -78,7 +78,7 @@
             }
         },
         "front_rib": {
-            "class": "front_rib",
+            "class": "FrontRib",
             "geometry": {
                 "thickness": 30,
                 "side channel width": 10,
@@ -87,7 +87,7 @@
             }
         },
         "back_rib": {
-            "class": "back_rib",
+            "class": "BackRib",
             "geometry": {
                 "thickness": 60,
                 "side channel width": 10,
@@ -96,7 +96,7 @@
             }
         },
         "coolant_outlet_plenum": {
-            "class": "coolant_outlet_plenum",
+            "class": "CoolantOutletPlenum",
             "geometry": {
                 "length": 120,
                 "width": 1000,
