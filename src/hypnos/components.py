@@ -8,13 +8,11 @@ These are components that contain a volume/s made of a single material
 (c) Copyright UKAEA 2024
 '''
 
-from hypnos.generic_classes import CubismError, CubitInstance, cmd, cubit
+from hypnos.generic_classes import CubismError, CubitInstance, cmd
 from hypnos.cubit_functions import (
     to_volumes,
     to_bodies,
-    get_last_geometry,
     subtract,
-    cmd_geom
     )
 from hypnos.geometry import (
     make_cylinder_along,
@@ -25,7 +23,11 @@ from hypnos.geometry import (
     Line,
     blunt_corners,
     convert_to_3d_vector,
-    create_brick
+    create_brick,
+    make_brick_from_geom,
+    rotate,
+    sweep_about,
+    sweep_along
     )
 import numpy as np
 from abc import ABC, abstractmethod
@@ -92,8 +94,29 @@ class ComponentBase(ABC):
         pass
 
     def move(self, vector: Vertex):
-        for geom in self.get_geometries():
-            cmd(f"{str(geom)} move {str(vector)}")
+        if type(vector) is tuple:
+            for geom in self.get_geometries():
+                geom.move(vector)
+        elif isinstance(vector, Vertex):
+            for geom in self.get_geometries():
+                geom.move((vector.x, vector.y, vector.z))
+
+    def rotate(self, angle: float, origin: Vertex = Vertex(0, 0, 0), axis: Vertex = Vertex(0, 0, 1)):
+        '''Rotate geometries about a given axis
+
+        Parameters
+        ----------
+        angle : float
+            Angle to rotate by IN DEGREES
+        origin : Vertex
+            Point to rotate about, by default 0, 0, 0
+        axis : Vertex, optional
+            axis to rotate about, by default z-axis
+        '''
+        if origin == "origin":
+            origin = self.origin
+
+        rotate(self.get_geometries(), angle, origin, axis)
 
     def set_mesh_size(self, size: int):
         for geom in self.get_geometries():
@@ -211,16 +234,22 @@ class SurroundingWallsComponent(SimpleComponent):
         return self.air.get_geometries()
 
     def make_geometry(self):
-        '''create 3d room with outer dimensions dimensions (int or list) and thickness (int or list)'''
+        '''create 3d room with outer dimensions dimensions (int or list)
+        and thickness (int or list)'''
         # get variables
         outer_dims = convert_to_3d_vector(self.geometry["dimensions"])
         thickness = convert_to_3d_vector(self.geometry["thickness"])
         # create room
-        subtract_vol = cubit.brick(outer_dims[0]-2*thickness[0], outer_dims[1]-2*thickness[1], outer_dims[2]-2*thickness[2])
-        block = cubit.brick(outer_dims[0], outer_dims[1], outer_dims[2])
-        cubit.subtract([subtract_vol], [block])
-        room_id = cubit.get_last_id("volume")
-        return CubitInstance(room_id, "volume")
+        subtract_vol = create_brick(
+            outer_dims[0]-2*thickness[0],
+            outer_dims[1]-2*thickness[1],
+            outer_dims[2]-2*thickness[2])
+        block = create_brick(
+            outer_dims[0],
+            outer_dims[1],
+            outer_dims[2])
+        room = subtract([block], [subtract_vol])
+        return room
 
 
 class AirComponent(SimpleComponent):
@@ -231,7 +260,7 @@ class AirComponent(SimpleComponent):
         self.as_bodies()
 
     def make_geometry(self):
-        return create_brick(self.geometry)
+        return make_brick_from_geom(self.geometry)
 
 
 class BreederComponent(SimpleComponent):
@@ -239,14 +268,15 @@ class BreederComponent(SimpleComponent):
         super().__init__("breeder", json_object)
 
     def make_geometry(self):
-        return create_brick(self.geometry)
+        return make_brick_from_geom(self.geometry)
 
 
 class StructureComponent(SimpleComponent):
     def __init__(self, json_object):
         super().__init__("structure", json_object)
+
     def make_geometry(self):
-        return create_brick(self.geometry)
+        return make_brick_from_geom(self.geometry)
 
 
 class WallComponent(SimpleComponent):
@@ -269,33 +299,32 @@ class WallComponent(SimpleComponent):
         wall_dims = [room_dims[i]-2*room_thickness[i] for i in range(3)]
 
         # volume to subtract to create a hole
-        cmd(f"create cylinder height {thickness} radius {hole_radius}")
-        subtract_vol = CubitInstance(cubit.get_last_id("volume"), "volume")
+        subtract_vol = make_cylinder_along(hole_radius, thickness)
 
         # depending on what plane the wall needs to be in,
         # create wall + make hole at right place
         if plane == "x":
-            cubit.brick(thickness, wall_dims[1], wall_dims[2])
-            wall = CubitInstance(cubit.get_last_id("volume"), "volume")
-            cmd(f"rotate volume {subtract_vol.cid} angle 90 about Y")
-            cmd(f"move volume {subtract_vol.cid} y {hole_pos[1]} z {hole_pos[0]}")
+            wall = create_brick(thickness, wall_dims[1], wall_dims[2])
+            rotate([subtract_vol], 90, axis=Vertex(0, 1))
+            subtract_vol.move((0, hole_pos[1], hole_pos[0]))
+            wall_pos = (pos, 0, 0)
         elif plane == "y":
-            cubit.brick(wall_dims[0], thickness, wall_dims[2])
-            wall = CubitInstance(cubit.get_last_id("volume"), "volume")
-            cmd(f"rotate volume {subtract_vol.cid} angle 90 about X")
-            cmd(f"move volume {subtract_vol.cid} x {hole_pos[0]} z {hole_pos[1]}")
+            wall = create_brick(wall_dims[0], thickness, wall_dims[2])
+            rotate([subtract_vol], 90, axis=Vertex(1))
+            subtract_vol.move((hole_pos[0], 0, hole_pos[1]))
+            wall_pos = (0, pos, 0)
         elif plane == "z":
-            cubit.brick(wall_dims[0], wall_dims[1], thickness)
-            wall = CubitInstance(cubit.get_last_id("volume"), "volume")
-            cmd(f"move volume {subtract_vol.cid} x {hole_pos[0]} y {hole_pos[1]}")
+            wall = create_brick(wall_dims[0], wall_dims[1], thickness)
+            subtract_vol.move((hole_pos[0], hole_pos[1], 0))
+            wall_pos = (0, 0, pos)
         else:
             raise CubismError("unrecognised plane specified")
 
-        cmd(f"subtract volume {subtract_vol.cid} from volume {wall.cid}")
-        # move wall
-        cmd(f"move volume {wall.cid} {plane} {pos}")
+        # make hole in wall
+        wall = subtract([wall], [subtract_vol])[0]
+        wall.move(wall_pos)
 
-        return CubitInstance(wall.cid, wall.geometry_type)
+        return wall
 
 
 class CladdingComponent(SimpleComponent):
@@ -370,9 +399,10 @@ class CladdingComponent(SimpleComponent):
             )
 
         surface_to_sweep = make_surface(cladding_vertices, tangent_idx)
-
-        cmd(f"sweep surface {surface_to_sweep.cid} axis 0 {-coolant_inlet_radius} 0 1 0 0 angle 360")
-        cladding = get_last_geometry("volume")
+        cladding = sweep_about(
+            surface_to_sweep,
+            point=Vertex(0, -coolant_inlet_radius)
+        )
 
         duct_vertices = list(np.zeros(4))
         duct_vertices[0] = cladding_vertices[0] + Vertex(-purge_duct_offset, purge_duct_thickness)
@@ -381,12 +411,14 @@ class CladdingComponent(SimpleComponent):
         duct_vertices[3] = duct_vertices[0] + Vertex(0, purge_duct_cladding)
 
         duct_surface = make_surface(duct_vertices, [])
-        cmd(f"sweep surface {duct_surface.cid} axis 0 {-coolant_inlet_radius} 0 1 0 0 angle 360")
-        duct = get_last_geometry("volume")
+        duct = sweep_about(
+            duct_surface,
+            point=Vertex(0, -coolant_inlet_radius)
+        )
 
         # realign with origin
-        cubit.move(cladding.handle, [inner_length, coolant_inlet_radius, 0])
-        cubit.move(duct.handle, [inner_length, coolant_inlet_radius, 0])
+        cladding.move((inner_length, coolant_inlet_radius, 0))
+        duct.move((inner_length, coolant_inlet_radius, 0))
         return [cladding, duct]
 
 
@@ -430,11 +462,10 @@ class PinCoolant(SimpleComponent):
         )
 
         surface_to_sweep = make_surface(coolant_vertices, tangent_idx)
+        coolant = sweep_about(surface_to_sweep)
 
-        cmd(f"sweep surface {surface_to_sweep.cid} axis 0 0 0 1 0 0 angle 360")
-        coolant = get_last_geometry("volume")
         # realign with origin
-        cubit.move(coolant.handle, [inner_length+pressure_tube_gap, 0, 0])
+        coolant.move((inner_length+pressure_tube_gap, 0, 0))
         return coolant
 
 
@@ -447,14 +478,13 @@ class PressureTubeComponent(SimpleComponent):
         outer_radius = self.geometry["outer radius"]
         thickness = self.geometry["thickness"]
 
-        subtract_vol = cmd_geom(f"create cylinder height {length-thickness} radius {outer_radius-thickness}", "volume")
-        cmd(f"volume {subtract_vol.cid} move 0 0 {-thickness/2}")
-        cylinder = cmd_geom(f"create cylinder height {length} radius {outer_radius}", "volume")
+        subtract_vol = make_cylinder_along(outer_radius-thickness, length-thickness)
+        subtract_vol.move((0, 0, -thickness/2))
+        cylinder = make_cylinder_along(outer_radius, length)
 
-        cmd(f"subtract volume {subtract_vol.cid} from volume {cylinder.cid}")
-        tube = get_last_geometry("volume")
-        cmd(f"rotate volume {tube.cid} about Y angle -90")
-        cmd(f"volume {tube.cid} move {length/2} 0 0")
+        tube = subtract([cylinder], [subtract_vol])[0]
+        rotate(tube, -90, axis=Vertex(0, 1))
+        tube.move((length/2, 0, 0))
 
         return tube
 
@@ -475,8 +505,7 @@ class FilterLidComponent(SimpleComponent):
         tube_vertices[3] = tube_vertices[0] + Vertex(0, -thickness)
 
         tube_surface = make_surface(tube_vertices, [])
-        cmd(f"sweep surface {tube_surface.cid} axis 0 0 0 1 0 0 angle 360")
-        tube = get_last_geometry("volume")
+        tube = sweep_about(tube_surface)
 
         return tube
 
@@ -497,8 +526,7 @@ class PurgeGasComponent(SimpleComponent):
         tube_vertices[3] = tube_vertices[0] + Vertex(0, -thickness)
 
         tube_surface = make_surface(tube_vertices, [])
-        cmd(f"sweep surface {tube_surface.cid} axis 0 0 0 1 0 0 angle 360")
-        tube = get_last_geometry("volume")
+        tube = sweep_about(tube_surface)
 
         return tube
 
@@ -512,13 +540,13 @@ class FilterDiskComponent(SimpleComponent):
         outer_radius = self.geometry["outer radius"]
         thickness = self.geometry["thickness"]
 
-        subtract_vol = cmd_geom(f"create cylinder height {length} radius {outer_radius-thickness}", "volume")
-        cylinder = cmd_geom(f"create cylinder height {length} radius {outer_radius}", "volume")
+        subtract_vol = make_cylinder_along(outer_radius-thickness, length)
+        cylinder = make_cylinder_along(outer_radius, length)
 
-        cmd(f"subtract volume {subtract_vol.cid} from volume {cylinder.cid}")
-        tube = get_last_geometry("volume")
-        cmd(f"rotate volume {tube.cid} about Y angle -90")
-        cmd(f"volume {tube.cid} move {length/2} 0 0")
+        tube = subtract([cylinder], [subtract_vol])[0]
+        rotate(tube, -90, axis=Vertex(0, 1))
+        tube.move((length/2, 0, 0))
+
         return tube
 
 
@@ -536,17 +564,15 @@ class MultiplierComponent(SimpleComponent):
         side_length = self.geometry["side"]
 
         subtract_vol = make_cylinder_along(inner_radius, length, "z")
-        cmd(f"volume {subtract_vol.cid} move 0 0 {length/2}")
+        subtract_vol.move((0, 0, length/2))
 
         # hexagonal face
         face_vertex_positions = [Vertex(side_length).rotate(i*np.pi/3) for i in range(6)]
         face = make_surface(face_vertex_positions, [])
-        cmd(f"sweep surface {face.cid} vector 0 0 1 distance {length}")
-        hex_prism = get_last_geometry("volume")
+        hex_prism = sweep_along(face, Vertex(0, 0, length))
 
-        cmd(f"subtract volume {subtract_vol.cid} from volume {hex_prism.cid}")
-        multiplier = get_last_geometry("volume")
-        cmd(f"rotate volume {multiplier.cid} about Y angle 90")
+        multiplier = subtract([hex_prism], [subtract_vol])[0]
+        rotate(multiplier, 90, axis=Vertex(0, 1))
 
         return multiplier
 
@@ -582,10 +608,9 @@ class PinBreeder(SimpleComponent):
             [inner_bluntness, outer_bluntness]
         )
 
-        surface_to_sweep = make_surface(breeder_vertices, tangent_idx)
-        cmd(f"sweep surface {surface_to_sweep.cid} axis 0 {-inner_radius} 0 1 0 0 angle 360")
-        breeder = get_last_geometry("volume")
-        cubit.move(breeder.handle, [0, inner_radius, 0])
+        breeder_face = make_surface(breeder_vertices, tangent_idx)
+        breeder = sweep_about(breeder_face, point=Vertex(0, -inner_radius))
+        breeder.move((0, inner_radius, 0))
 
         return breeder
 
@@ -641,20 +666,18 @@ class FirstWallComponent(SimpleComponent):
         face_to_sweep = make_surface(vertices, tangent_idx)
 
         # line up sweep direction along y axis
-        cmd(f"surface {face_to_sweep.cid} move -{outer_width/2} 0 0")
-        cmd(f"surface {face_to_sweep.cid} rotate 90 about x")
-        cmd(f"sweep surface {face_to_sweep.cid} vector 0 1 0 distance {height}")
-        first_wall = get_last_geometry("volume")
+        face_to_sweep.move((-outer_width/2, 0, 0))
+        rotate(face_to_sweep, 90, axis=Vertex(1))
+        first_wall = sweep_along(face_to_sweep, Vertex(0, height))
 
         no_of_channels = (height - channel_spacing) // (channel_spacing + channel_width)
         for i in range(no_of_channels):
             channel = self.make_channel_volume(vertices)
-            if i%2 == 0:
+            if i % 2 == 0:
                 cmd(f"{channel} reflect 1 0 0")
             channel.move([0, i*(channel_spacing + channel_width) + channel_spacing, 0])
             first_wall = subtract([first_wall], [channel])[0]
 
-        # cubit.move(first_wall.cubitInstance, [0,0,length])
         return first_wall
 
     def make_channel_volume(self, vertices):
@@ -664,7 +687,6 @@ class FirstWallComponent(SimpleComponent):
         outer_width = geometry["outer width"]
         length = geometry["length"]
         offset = (outer_width - inner_width)/2
-
         # get channel params
         channel_width = geometry["channel width"]
         channel_back_manifold_offset = geometry["channel back manifold offset"]
@@ -679,29 +701,28 @@ class FirstWallComponent(SimpleComponent):
         slope_right = Vertex(-offset, length).unit()
         slope_left = Vertex(offset, length).unit()
         # construct channel vertices
-        channel_vertices = [Vertex(0) for i in range(16)]
-        channel_vertices[0] = Line(slope_left, vertices[11]).vertex_at(y=channel_back_manifold_offset) + (channel_padding * slope_left)
-        channel_vertices[2] = vertices[1] - out_left * channel_depth
-        channel_vertices[1] = Line(slope_left, channel_vertices[2]).vertex_at(y= channel_vertices[0].y)
-        channel_vertices[3] = vertices[2] - Vertex(0, channel_depth)
-        channel_vertices[4] = vertices[3] - Vertex(0, channel_depth)
-        channel_vertices[5] = vertices[4] - out_right * channel_depth
-        channel_vertices[7] = Line(slope_right, vertices[6]).vertex_at(y=channel_front_manifold_offset) + (channel_padding * slope_right)
-        channel_vertices[6] = Line(slope_right, channel_vertices[5]).vertex_at(y=channel_vertices[7].y)
-        channel_vertices[8] = channel_vertices[7] + (channel_front_manifold_width - 2*channel_padding) * slope_right
-        channel_vertices[10] = channel_vertices[5] - (channel_width * out_right)
-        channel_vertices[9] = Line(slope_right, channel_vertices[10]).vertex_at(y=channel_vertices[8].y)
-        channel_vertices[11] = channel_vertices[4] - Vertex(0, channel_width)
-        channel_vertices[12] = channel_vertices[3] - Vertex(0, channel_width)
-        channel_vertices[13] = channel_vertices[2] - channel_width * out_left
-        channel_vertices[15] = channel_vertices[0] + (channel_back_manifold_width - 2*channel_padding) * slope_left
-        channel_vertices[14] = Line(slope_left, channel_vertices[13]).vertex_at(y= channel_vertices[15].y)
-        # make into surface and sweep surface to make volume
-        channel_to_sweep = make_surface(channel_vertices, [2, 4, 10, 12])
-        cmd(f"surface {channel_to_sweep.cid} move -{outer_width/2} 0 0")
-        cmd(f"surface {channel_to_sweep.cid} rotate 90 about x")
-        cmd(f"sweep surface {channel_to_sweep.cid} vector 0 1 0 distance {channel_width}")
-        channel = get_last_geometry("volume")
+        ch_verts = [Vertex(0) for i in range(16)]
+        ch_verts[0] = Line(slope_left, vertices[11]).vertex_at(y=channel_back_manifold_offset) + (channel_padding * slope_left)
+        ch_verts[2] = vertices[1] - out_left * channel_depth
+        ch_verts[1] = Line(slope_left, ch_verts[2]).vertex_at(y=ch_verts[0].y)
+        ch_verts[3] = vertices[2] - Vertex(0, channel_depth)
+        ch_verts[4] = vertices[3] - Vertex(0, channel_depth)
+        ch_verts[5] = vertices[4] - out_right * channel_depth
+        ch_verts[7] = Line(slope_right, vertices[6]).vertex_at(y=channel_front_manifold_offset) + (channel_padding * slope_right)
+        ch_verts[6] = Line(slope_right, ch_verts[5]).vertex_at(y=ch_verts[7].y)
+        ch_verts[8] = ch_verts[7] + (channel_front_manifold_width - 2*channel_padding) * slope_right
+        ch_verts[10] = ch_verts[5] - (channel_width * out_right)
+        ch_verts[9] = Line(slope_right, ch_verts[10]).vertex_at(y=ch_verts[8].y)
+        ch_verts[11] = ch_verts[4] - Vertex(0, channel_width)
+        ch_verts[12] = ch_verts[3] - Vertex(0, channel_width)
+        ch_verts[13] = ch_verts[2] - channel_width * out_left
+        ch_verts[15] = ch_verts[0] + (channel_back_manifold_width - 2*channel_padding) * slope_left
+        ch_verts[14] = Line(slope_left, ch_verts[13]).vertex_at(y=ch_verts[15].y)
+        # make into surface and sweep to make volume
+        channel_face = make_surface(ch_verts, [2, 4, 10, 12])
+        channel_face.move((-outer_width/2, 0, 0))
+        rotate(channel_face, 90, axis=Vertex(1))
+        channel = sweep_along(channel_face, Vertex(0, channel_width))
 
         return channel
 
@@ -727,18 +748,17 @@ class Plate(SimpleComponent):
         back_left_position, back_right_position = self.__get_back_vertices()
 
         plate_vertices = [Vertex(0) for i in range(4)]
-
         plate_vertices[0] = Vertex(-front_length/2, 0, thickness)
         plate_vertices[1] = Vertex(front_length/2, 0, thickness)
         plate_vertices[2] = Vertex(back_right_position)
         plate_vertices[3] = Vertex(back_left_position)
 
         face_to_sweep = make_surface(plate_vertices, [])
-        cmd(f"sweep surface {face_to_sweep.cid} vector 0 1 0 distance {height}")
-        plate = get_last_geometry("body")
-        cmd(f"{str(plate)} move {self.origin.x} 0 0")
+        plate = sweep_along(face_to_sweep, Vertex(0, height))
+        plate.move((self.origin.x, 0, 0))
         plate = self.__make_holes(plate)
-        cmd(f"{str(plate)} move {Vertex(-self.origin.x).x} 0 0")
+        plate.move((-self.origin.x, 0, 0))
+
         return to_volumes([plate])
 
     def __make_holes(self, plate: CubitInstance):
@@ -747,10 +767,10 @@ class Plate(SimpleComponent):
 
         for row in self.pin_pos:
             for position in row:
-                hole_position = Vertex(position.x, position.y, 0)
-                hole_to_be = cmd_geom(f"create cylinder radius {hole_radius} height {plate_thickness*3}", "volume")
-                cmd(f"{hole_to_be.geometry_type} {hole_to_be.cid} move {str(hole_position)}")
-                cmd(f"subtract {hole_to_be.geometry_type} {hole_to_be.cid} from {plate.geometry_type} {plate.cid}")
+                hole_position = (position.x, position.y, 0)
+                hole_to_be = make_cylinder_along(hole_radius, plate_thickness*3)
+                hole_to_be.move(hole_position)
+                plate = subtract([plate], [hole_to_be])[0]
         return plate
 
 
@@ -819,8 +839,8 @@ class Rib(SimpleComponent):
         length = self.geometry["length"]
         thickness = self.geometry["thickness"]
 
-        structure = cmd_geom(f"create brick x {thickness} y {height} z {length}", "body")
-        cmd(f"{structure.geometry_type} {structure.cid} move 0 {height/2} {-length/2}")
+        structure = create_brick(thickness, height, length)
+        structure.move((0, height/2, -length/2))
 
         structure, number_of_channels = self.__make_side_channels(structure)
         rib = self.make_rib_connections(structure, number_of_channels)
@@ -862,11 +882,10 @@ class Rib(SimpleComponent):
 
     def tile_channels_vertically(self, structure: CubitInstance, channel_dims: Vertex, number_of_channels: int, y_margin: int, z_offset: int, spacing: int):
         for i in range(number_of_channels):
-            hole_to_be = cmd_geom(f"create brick x {channel_dims.x} y {channel_dims.y} z {channel_dims.z}", "volume")
-            hole_name = str(hole_to_be)
-            cmd(f"{hole_name} move 0 {channel_dims.y/2} {-channel_dims.z/2}")
-            cmd(f"{hole_name} move 0 {y_margin + i*spacing} {-z_offset}")
-            cmd(f"subtract {hole_name} from {str(structure)}")
+            hole_to_be = create_brick(channel_dims.x, channel_dims.y, channel_dims.z)
+            hole_to_be.move((0, channel_dims.y/2, -channel_dims.z/2))
+            hole_to_be.move((0, y_margin+i*spacing, -z_offset))
+            structure = subtract([structure], [hole_to_be])[0]
 
         return structure
 
@@ -929,8 +948,7 @@ class CoolantOutletPlenum(SimpleComponent):
         front_plate[3] = front_plate[0] + Vertex(0, 0, -thickness)
 
         face_to_sweep = make_surface(front_plate, [])
-        cmd(f"sweep surface {face_to_sweep.cid} vector 0 1 0 distance {height}")
-        front_plate = get_last_geometry("volume")
+        front_plate = sweep_along(face_to_sweep, Vertex(0, height))
 
         back_plate = list(np.zeros(4))
         back_plate[0] = Vertex(start_x, 0, -length)
@@ -939,8 +957,7 @@ class CoolantOutletPlenum(SimpleComponent):
         back_plate[3] = back_plate[0] + Vertex(0, 0, thickness)
 
         face_to_sweep = make_surface(back_plate, [])
-        cmd(f"sweep surface {face_to_sweep.cid} vector 0 1 0 distance {height}")
-        back_plate = get_last_geometry("volume")
+        back_plate = sweep_along(face_to_sweep, Vertex(0, height))
 
         return [front_plate, back_plate]
 
@@ -956,8 +973,8 @@ class CoolantOutletPlenum(SimpleComponent):
         side[6] = side[1] + Vertex(0, 0, -thickness)
         side[7] = side[0] + Vertex(0, 0, -thickness)
         face_to_sweep = make_surface(side, [1, 5])
-        cmd(f"sweep surface {face_to_sweep.cid} vector 0 1 0 distance {height}")
-        plenum = get_last_geometry("volume")
+        plenum = sweep_along(face_to_sweep, Vertex(0, height))
+
         return plenum
 
 
