@@ -2,8 +2,7 @@ Getting Started
 ===============
 
 
-Dependencies
-============
+.. rubric:: Dependencies
 
 To use Hypnos, the following are required:
 
@@ -17,8 +16,7 @@ The cubit python library must be accessible by python. On linux::
 
     export PYTHONPATH=$PYTHONPATH:/path-to-cubit/bin
 
-Package Installation
-====================
+.. rubric:: Package Installation
 
 Install Hypnos using pip (in hypnos/, the root directory)::
 
@@ -28,8 +26,7 @@ If using as a developer, install as an editable::
 
     pip install --editable .
 
-Tests
-=====
+.. rubric:: Tests
 
 To run tests, use `Pytest <https://docs.pytest.org/en/8.2.x/getting-started.html>`_::
 
