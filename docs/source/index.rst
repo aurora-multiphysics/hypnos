@@ -14,12 +14,11 @@ Contents
 .. toctree::
    :maxdepth: 2
 
-   Requirements
+   Getting Started
    Overview
-   Usage
+   User Guide
+   Developer Guide
    HCPB pin parameters
-   User API
-   Developer API
 
 Indices and tables
 ==================

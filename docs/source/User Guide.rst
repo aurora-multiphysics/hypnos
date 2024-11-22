@@ -1,5 +1,5 @@
-Usage
-=====
+User Guide
+==========
 
 Hypnos can be used either through running the main.py script,
 or by importing the GeometryMaker class from the python library.
@@ -25,8 +25,15 @@ The names given to flags -f, -o, and -d will be preferred over their equivalent 
 .. rubric:: GeometryMaker
 
 The GeometryMaker class may be imported from the Hypnos module in order to proceed through the workflow.
+Its attributes and some terminology is explained below:
 
-The following methods are available:
+* ``design_tree``: A dictionary of the parameters used to construct a geometry.
+  These will usually describe its 'class', geometrical parameters, and material(s) it is made of.
+* ``constructed_geometry``: A list of python classes that correspond to the component(s) being constructed.
+* ``key_route_delimiter``: Delimiter separating parameter paths in the design tree,
+  as explained in :py:meth:`~geometry_maker.GeometryMaker.get_param`
+
+The following methods will take you through the workflow:
 
 * ``parse_json``: Read in parameters from a json file
 * ``make_geometry``: Construct geometry in cubit
@@ -41,4 +48,15 @@ There are also some convenience functions to do multiple steps at once:
 * ``file_to_tracked_geometry``: parse, make, imprint and merge, track
 * ``make_tracked_geometry``: make, imprint and merge, track
 
-These are described in more detail in :doc:`User API`
+Aside from these,
+
+* ``fill_design_tree``: Process design_tree manually
+* ``change_delimiter``: Change key_route_delimiter
+* ``get_param``: Get the value of a parameter stored in the design tree
+* ``change_params``: Update parameters stored in the design tree
+* ``set_mesh_size``: Set the approximate mesh size
+* ``export_exodus``: Exodus export with options for large file sizes
+* ``reset_cubit``: Reset cubit and corresponding internal states
+* ``exp_scale``: Scale cubit geometries by powers of 10
+
+The full class is documented in :doc:`GeometryMaker`

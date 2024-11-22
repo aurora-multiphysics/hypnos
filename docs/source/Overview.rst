@@ -9,7 +9,7 @@ Hypnos' goal is to construct a geometry from the parameters you give it. The wor
 * Mesh and/or Export
 
 This can be achieved either through running main.py, or in your own python script using the GeometryMaker class.
-These are explained in :doc:`Usage`.
+These are explained in :doc:`User Guide`.
 
 .. rubric:: types of geometries
 

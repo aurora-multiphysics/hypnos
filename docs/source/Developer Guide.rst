@@ -1,5 +1,5 @@
-Developer API
-=============
+Developer Guide
+===============
 
 Here are the steps to make a custom simple component for use with Hypnos:
 
