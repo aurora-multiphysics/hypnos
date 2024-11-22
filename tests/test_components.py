@@ -1,6 +1,6 @@
 from hypnos.components import SimpleComponent
 from hypnos.generic_classes import CubitInstance, CubismError
-from hypnos.geometry import create_brick
+from hypnos.geometry import make_brick_from_geom
 import cubit
 import pytest
 
@@ -22,7 +22,7 @@ class BrickComponent(SimpleComponent):
         super().__init__("brick", json_object)
 
     def make_geometry(self):
-        return create_brick(self.geometry)
+        return make_brick_from_geom(self.geometry)
 
 
 @pytest.fixture(scope="function")

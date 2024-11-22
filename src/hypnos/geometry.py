@@ -15,6 +15,16 @@ make_loop: connect many vertices with curves
 hypotenuse: square of sum of roots
 arctan: arctan -> (0, pi)
 make_surface: make surface from bounding vertices
+blunt_corner: split vertex into two
+fetch: get vertices from list of length 3
+unroll: unpack list of lists
+blunt_corners: blunt many corners simultaneously
+convert_to_3d_vector: opinionated conversion to list of length 3
+create_brick: create a cuboid
+make_brick_from_geom: create_brick from parameter dict
+rotate: rotate a geometry about any axis
+sweep_about: sweep a surface about an axis
+sweep_along: sweep a surface along a vector
 
 Classes
 -------
@@ -23,10 +33,8 @@ Line: Representation of a line in point-slope form
 
 (c) Copyright UKAEA 2024
 '''
-
-
 from hypnos.generic_classes import CubitInstance, CubismError, cmd
-from hypnos.cubit_functions import get_id_string, cmd_geom
+from hypnos.cubit_functions import get_id_string, cmd_geom, get_last_geometry
 import numpy as np
 
 
@@ -279,6 +287,9 @@ class Vertex():
     def __str__(self) -> str:
         return f"{self.x} {self.y} {self.z}"
 
+    def __iter__(self):
+        return iter((self.x, self.y, self.z))
+
     def create(self) -> CubitInstance:
         '''Create this vertex in cubit.
 
@@ -524,6 +535,7 @@ def make_surface(vertices: list[Vertex], tangent_indices: list[int]) -> CubitIns
     surface = make_surface_from_curves(loop)
     return surface
 
+
 def blunt_corner(vertices: list[Vertex], idx: int, bluntness: float) -> list[Vertex]:
     '''Blunt a corner in a list of vertices. The provided list of vertices
     describe the outline of some geometry bounded by straight lines connecting
@@ -666,9 +678,40 @@ def convert_to_3d_vector(dimlike: float | list) -> list[float]:
     return return_vector
 
 
-def create_brick(geometry: dict) -> CubitInstance:
-    '''create cube (if scalar/1D) or cuboid (if 3D) with dimensions.
+def create_brick(x, y, z, euler_angles=[0, 0, 0]) -> CubitInstance:
+    '''Create a brick.
     Rotate it about the y-axis, x-axis, y-axis if euler_angles are specified.
+
+    Parameters
+    ----------
+    x : float
+        length along x
+    y : float
+        length along y
+    z : float
+        length along z
+    euler_angles : list, optional
+        euler angles to rotate by, by default [0, 0, 0]
+        must be of length 3.
+
+    Returns
+    -------
+    CubitInstance
+        brick volume
+    '''
+    # create a cube or cuboid.
+    brick = cmd_geom(f"create brick x {x} y {y} z {z}", "volume")
+    # orientate according to euler angles
+    axis_list = ['y', 'x', 'y']
+    for i in range(3):
+        if not euler_angles[i] == 0:
+            cmd(f'rotate {brick} angle {euler_angles[i]} about {axis_list[i]}')
+    # return instance for further manipulation
+    return brick
+
+
+def make_brick_from_geom(geometry: dict) -> CubitInstance:
+    '''Run create_brick but parse input as a parameter dictionary.
 
     Parameters
     ----------
@@ -680,17 +723,76 @@ def create_brick(geometry: dict) -> CubitInstance:
     Returns
     -------
     CubitInstance
-        created brick
+        brick volume
     '''
     # setup variables
     dims = convert_to_3d_vector(geometry["dimensions"])
     euler_angles = geometry["euler_angles"] if "euler_angles" in geometry.keys() else [0, 0, 0]
-    # create a cube or cuboid.
-    brick = cmd_geom(f"create brick x {dims[0]} y {dims[1]} z {dims[2]}", "volume")
-    # orientate according to euler angles
-    axis_list = ['y', 'x', 'y']
-    for i in range(3):
-        if not euler_angles[i] == 0:
-            cmd(f'rotate volume {brick.cid} angle {euler_angles[i]} about {axis_list[i]}')
-    # return instance for further manipulation
+    brick = create_brick(dims[0], dims[1], dims[2], euler_angles)
     return brick
+
+
+def rotate(geoms: list[CubitInstance], angle: float, origin: Vertex = Vertex(0, 0, 0), axis: Vertex = Vertex(0, 0, 1)):
+    '''Rotate geometries about a given axis
+
+        Parameters
+        ----------
+        angle : float
+            Angle to rotate by IN DEGREES
+        origin : Vertex
+            Point to rotate about, by default 0, 0, 0
+        axis : Vertex, optional
+            axis to rotate about, by default z-axis
+        '''
+    if isinstance(geoms, CubitInstance):
+        geoms = [geoms]
+    for geom in geoms:
+        cmd(f"rotate {geom} about origin {str(origin)} direction {str(axis)} angle {angle}")
+
+
+def sweep_about(surf: CubitInstance, angle=360, vec=Vertex(1), point=Vertex(0)) -> CubitInstance:
+    '''Sweep a surface about an axis
+
+    Parameters
+    ----------
+    surf : CubitInstance
+        surface to sweep
+    angle : int, optional
+        angle to sweep by, by default 360
+    vec : Vertex, optional
+        direction of axis, by default Vertex(1), i.e. the x-axis
+    point : Vertex, optional
+        A point the axis passes through, by default Vertex(0)
+
+    Returns
+    -------
+    CubitInstance
+        Swept volume
+    '''
+    if surf.geometry_type != "surface":
+        raise CubismError("Provided geometry is not a surface")
+    cmd(f"sweep {surf} axis {point} {vec} angle {angle}")
+    swept_vol = get_last_geometry("volume")
+    return swept_vol
+
+
+def sweep_along(surf: CubitInstance, vector: Vertex) -> CubitInstance:
+    '''Sweep a surface along a vector
+
+    Parameters
+    ----------
+    surf : CubitInstance
+        surface to sweep
+    vector : Vertex
+        vector to sweep along
+
+    Returns
+    -------
+    CubitInstance
+        swept volume
+    '''
+    if surf.geometry_type != "surface":
+        raise CubismError("Provided geometry is not a surface")
+    cmd(f"sweep {surf} vector {vector.unit()} distance {vector.distance()}")
+    swept_vol = get_last_geometry("volume")
+    return swept_vol
