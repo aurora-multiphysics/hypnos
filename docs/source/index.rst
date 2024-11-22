@@ -14,8 +14,8 @@ Contents
 .. toctree::
    :maxdepth: 2
 
-   Getting Started
    Overview
+   Getting Started
    User Guide
    Developer Guide
    HCPB pin parameters
