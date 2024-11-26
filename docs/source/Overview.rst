@@ -38,5 +38,5 @@ Json file names containing a json object describing a component (ex. hcpb_pin.js
 can be used where such a json object is expected by using a string with the file name
 (ex. ``{"class": "blanket" ... "components" : ["hpcb_pin.json"]}``)
 
-Examples are given in sample json files
+Examples are given in sample json files in ``examples/``.
 

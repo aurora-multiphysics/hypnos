@@ -18,7 +18,9 @@ Contents
    Getting Started
    User Guide
    Developer Guide
-   HCPB pin parameters
+   HCPB first wall
+   HCPB pin
+   HCPB blanket
 
 Indices and tables
 ==================
