@@ -512,7 +512,7 @@ class FirstWallComponent(SimpleComponent):
         geometry = self.geometry
         inner_width = geometry["inner width"]
         outer_width = geometry["outer width"]
-        bluntness = geometry["bluntness"]
+        bluntness = geometry["bluntness"] if "bluntness" in geometry.keys() else 0
         length = geometry["length"]
         thickness = geometry["thickness"]
         sidewall_thickness = geometry["sidewall thickness"]
@@ -539,6 +539,8 @@ class FirstWallComponent(SimpleComponent):
         vertices[6] = vertices[1] + Vertex(sidewall_horizontal) + Vertex(-thickness/np.tan(slope_angle), -thickness, 0)
         vertices[7] = vertices[0] + Vertex(sidewall_horizontal)
 
+        channel_ref = self.make_channel_volume(vertices)
+
         vertices, tangent_idx = blunt_corners(
             vertices,
             [1, 2, 5, 6],
@@ -554,57 +556,64 @@ class FirstWallComponent(SimpleComponent):
 
         no_of_channels = (height - channel_spacing) // (channel_spacing + channel_width)
         for i in range(no_of_channels):
-            channel = self.make_channel_volume(vertices)
+            channel = channel_ref.copy()
             if i % 2 == 0:
                 cmd(f"{channel} reflect 1 0 0")
             channel.move([0, i*(channel_spacing + channel_width) + channel_spacing, 0])
             first_wall = subtract([first_wall], [channel])[0]
-
+        channel_ref.destroy_cubit_instance()
         return first_wall
 
-    def make_channel_volume(self, vertices):
+    def make_channel_volume(self, fw_verts):
+        # vertices should be the pre-blunted first wall vertices (length 8)
         geometry = self.geometry
         # get first wall params
-        inner_width = geometry["inner width"]
-        outer_width = geometry["outer width"]
-        length = geometry["length"]
-        offset = (outer_width - inner_width)/2
+        fw_inner_width = geometry["inner width"]
+        fw_outer_width = geometry["outer width"]
+        fw_length = geometry["length"]
+        offset = (fw_outer_width - fw_inner_width)/2
+        bluntness = geometry["bluntness"] if "bluntness" in geometry.keys() else 0
         # get channel params
-        channel_width = geometry["channel width"]
-        channel_back_manifold_offset = geometry["channel back manifold offset"]
-        channel_back_manifold_width = geometry["channel back manifold width"]
-        channel_front_manifold_offset = geometry["channel front manifold offset"]
-        channel_front_manifold_width = geometry["channel front manifold width"]
-        channel_depth = geometry["channel depth"]
-        channel_padding = geometry["channel padding"]
+        width = geometry["channel width"]
+        back_manifold_offset = geometry["channel back manifold offset"]
+        back_manifold_width = geometry["channel back manifold width"]
+        front_manifold_offset = geometry["channel front manifold offset"]
+        front_manifold_width = geometry["channel front manifold width"]
+        depth = geometry["channel depth"]
+        padding = geometry["channel padding"]
         # useful unit vectors
-        out_right = Vertex(length, offset).unit()
-        out_left = Vertex(-length, offset).unit()
-        slope_right = Vertex(-offset, length).unit()
-        slope_left = Vertex(offset, length).unit()
+        out_right = Vertex(fw_length, offset).unit()
+        out_left = Vertex(-fw_length, offset).unit()
+        slope_right = Vertex(-offset, fw_length).unit()
+        slope_left = Vertex(offset, fw_length).unit()
+        # reference positions
+        channel_top = fw_verts[1].y - depth
         # construct channel vertices
-        ch_verts = [Vertex(0) for i in range(16)]
-        ch_verts[0] = Line(slope_left, vertices[11]).vertex_at(y=channel_back_manifold_offset) + (channel_padding * slope_left)
-        ch_verts[2] = vertices[1] - out_left * channel_depth
-        ch_verts[1] = Line(slope_left, ch_verts[2]).vertex_at(y=ch_verts[0].y)
-        ch_verts[3] = vertices[2] - Vertex(0, channel_depth)
-        ch_verts[4] = vertices[3] - Vertex(0, channel_depth)
-        ch_verts[5] = vertices[4] - out_right * channel_depth
-        ch_verts[7] = Line(slope_right, vertices[6]).vertex_at(y=channel_front_manifold_offset) + (channel_padding * slope_right)
-        ch_verts[6] = Line(slope_right, ch_verts[5]).vertex_at(y=ch_verts[7].y)
-        ch_verts[8] = ch_verts[7] + (channel_front_manifold_width - 2*channel_padding) * slope_right
-        ch_verts[10] = ch_verts[5] - (channel_width * out_right)
-        ch_verts[9] = Line(slope_right, ch_verts[10]).vertex_at(y=ch_verts[8].y)
-        ch_verts[11] = ch_verts[4] - Vertex(0, channel_width)
-        ch_verts[12] = ch_verts[3] - Vertex(0, channel_width)
-        ch_verts[13] = ch_verts[2] - channel_width * out_left
-        ch_verts[15] = ch_verts[0] + (channel_back_manifold_width - 2*channel_padding) * slope_left
-        ch_verts[14] = Line(slope_left, ch_verts[13]).vertex_at(y=ch_verts[15].y)
+        verts = [Vertex(0) for i in range(12)]
+        verts[0] = Line(slope_left, fw_verts[7]).vertex_at(y=back_manifold_offset) + (padding * slope_left)
+        verts[2] = Line(slope_left, fw_verts[1]-out_left*depth).vertex_at(y=channel_top)
+        verts[1] = Line(slope_left, verts[2]).vertex_at(y=verts[0].y)
+        verts[3] = Line(slope_right, fw_verts[2]-out_right*depth).vertex_at(y=channel_top)
+        verts[5] = Line(slope_right, fw_verts[4]).vertex_at(y=front_manifold_offset) + (padding * slope_right)
+        verts[4] = Line(slope_right, verts[3]).vertex_at(y=verts[5].y)
+        verts[6] = verts[5] + slope_right * (front_manifold_width - 2*padding)
+        verts[8] = Line(slope_right, verts[3]-out_right*width).vertex_at(y=channel_top-width)
+        verts[7] = Line(slope_right, verts[8]).vertex_at(y=verts[6].y)
+        verts[9] = Line(slope_left, verts[2]-out_left*width).vertex_at(y=channel_top-width)
+        verts[11] = verts[0] + slope_left * (back_manifold_width - 2*padding)
+        verts[10] = Line(slope_left, verts[9]).vertex_at(y=verts[11].y)
+
+        verts, tangent_idx = blunt_corners(
+            verts,
+            [2, 3, 8, 9],
+            [bluntness for i in range(4)]
+        )
+
         # make into surface and sweep to make volume
-        channel_face = make_surface(ch_verts, [2, 4, 10, 12])
-        channel_face.move((-outer_width/2, 0, 0))
+        channel_face = make_surface(verts, tangent_idx)
+        channel_face.move((-fw_outer_width/2, 0, 0))
         rotate(channel_face, 90, axis=Vertex(1))
-        channel = sweep_along(channel_face, Vertex(0, channel_width))
+        channel = sweep_along(channel_face, Vertex(0, width))
 
         return channel
 
