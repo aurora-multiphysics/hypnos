@@ -26,6 +26,7 @@ If using as a developer, install as an editable::
 
     pip install --editable .
 
+.. _tests:
 .. rubric:: Tests
 
 To run tests, use `Pytest <https://docs.pytest.org/en/8.2.x/getting-started.html>`_::
