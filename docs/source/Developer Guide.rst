@@ -77,6 +77,26 @@ or to create similar functions.
 For example :func:`~geometry.make_cylinder_along` will create a cylinder in cubit and return
 a CubitInstance object referring to it.
 
+.. rubric:: contributing
+
+If you would like to contribute to this code, please follow the following process:
+
+* Check whether an issue describing your changes already exists on github, else make one.
+  If one already does, it may be that someone is already working on these changes.
+* Follow the steps in `Contributing to a project <https://docs.github.com/en/get-started/exploring-projects-on-github/contributing-to-a-project>`_.
+  Before making a pull request as described above, it is wise to ensure that you are up to date with the upstream source and also that all tests pass (:ref:`tests`)
+* If you are not up to date, you will want to rebase your changes on top. The following code will attempt to rebase on top of the dev branch.
+
+.. code-block:: bash
+
+    git remote add upstream https://github.com/sid-mungale/blobmaker.git
+    git fetch upstream
+    git switch dev
+    git merge upstream/dev
+    git switch <branch_with_your_changes>
+    git rebase dev
+
+
 .. toctree::
     Assemblies
     Components
