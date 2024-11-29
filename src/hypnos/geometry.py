@@ -406,6 +406,11 @@ class Line:
             return NotImplemented
         return self.const == other.const and self.slope == other.slope
 
+    def __neg__(self):
+        point = self.const
+        slope = -self.slope
+        return Line(slope, point)
+
     def __mul__(self, other):
         return other * self.slope
 
