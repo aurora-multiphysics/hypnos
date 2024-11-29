@@ -17,10 +17,18 @@ The following flags are also available:
 * ``-o``: Name of geometry file to export including path (default: geometry)
 * ``-d``: Destination to create output file(s) (default: ./)
 * ``-i``: Name of class to print default template for. Leaving empty prints the available templates.
-* ``-g`` : Names of formats to export geometry to (defaults to cubit if neither geometry nor mesh options provided anywhere)
-* ``-m`` : Names of formats to export mesh to (optional)
+* ``-g`` : Names of formats to export geometry to (defaults to cubit if neither geometry nor mesh options provided anywhere) ["cubit", "stp"]
+* ``-m`` : Names of formats to export mesh to (optional) ["exodus", "DAGMC"]
 
 The names given to flags -f, -o, and -d will be preferred over their equivalent options in the config file (file, root name, destination)
+
+There are several example json files provided in ``examples/``, along with descriptions of their corresponding classes:
+
+* :doc:`HCPB first wall`
+* :doc:`HCPB pin`
+* :doc:`HCPB blanket`
+
+There is also a sample config file for use with the -c tag: ``examples/sample_config.json`
 
 .. rubric:: GeometryMaker
 
@@ -59,4 +67,5 @@ Aside from these,
 * ``reset_cubit``: Reset cubit and corresponding internal states
 * ``exp_scale``: Scale cubit geometries by powers of 10
 
-The full class is documented in :doc:`GeometryMaker`
+The full class is documented in :doc:`GeometryMaker`.
+Some examples of use are given in the python files in ``examples/``.
