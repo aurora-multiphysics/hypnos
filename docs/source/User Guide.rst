@@ -28,7 +28,7 @@ There are several example json files provided in ``examples/``, along with descr
 * :doc:`HCPB pin`
 * :doc:`HCPB blanket`
 
-There is also a sample config file for use with the -c tag: ``examples/sample_config.json`
+There is also a sample config file for use with the -c tag: ``examples/sample_config.json``
 
 .. rubric:: GeometryMaker
 
