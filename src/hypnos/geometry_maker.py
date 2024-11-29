@@ -37,8 +37,10 @@ def make_everything(json_object):
 def log_method(method_name: str):
     '''Decorator to print logs for class methods
 
-    :param method_name: Name of task the method will perform
-    :type method_name: str
+    Parameters
+    ----------
+    method_name : str
+        name of method to print when logging
     '''
     def decorator_log(func):
         @functools.wraps(func)
@@ -56,12 +58,17 @@ class GeometryMaker():
 
     Attributes
     ----------
-    parameter_filler: Handles processing of json files
-    tracker: handles tracking groups, blocks, and sidesets in cubit
-    design_tree (dict): Parameters for constructing geometry
-    constructed_geometry (list): Python classes corresponding to
+    parameter_filler: ParameterFiller
+        Handles processing of json files
+    tracker: Tracker
+        handles tracking groups, blocks, and sidesets in cubit
+    design_tree: dict
+        Parameters for constructing geometry
+    constructed_geometry: dict
+        Python classes corresponding to
         constructed geometry
-    key_route_delimiter (str): delimiter for parameter paths
+    key_route_delimiter: str
+        delimiter for parameter paths
     '''
     def __init__(self) -> None:
         initialise_cubit()
@@ -79,7 +86,7 @@ class GeometryMaker():
         Returns
         -------
         dict
-            Processed design tree
+            processed design tree
         '''
         self.design_tree = self.parameter_filler.process_design_tree(self.design_tree)
         if self.print_parameter_logs:
@@ -93,12 +100,12 @@ class GeometryMaker():
         Parameters
         ----------
         filename : str
-            Name of json file
+            name of json file
 
         Returns
         -------
         dict
-            Design tree corresponding to parsed json file
+            processed design tree
         '''
         self.design_tree = extract_data(filename)
         return self.fill_design_tree()
@@ -125,10 +132,8 @@ class GeometryMaker():
         For example to change the value of the parameter
         'pin spacing' to 135 here:
         {
-            "class": "hcpb_blanket",
-            "geometry": {
-            "pin spacing": 100
-            }
+        "class": "hcpb_blanket",
+        "geometry": {"pin spacing": 100}
         }
 
         The argument provided here would have to be
@@ -152,10 +157,8 @@ class GeometryMaker():
 
         For example to get the value of the parameter 'pin spacing' here:
         {
-            "class": "hcpb_blanket",
-            "geometry": {
-            "pin spacing": 100
-            }
+        "class": "hcpb_blanket",
+        "geometry": {"pin spacing": 100}
         }
 
         The argument provided here would have to be "geometry/pin spacing"
@@ -188,7 +191,7 @@ class GeometryMaker():
             raise CubismError("Path given does not correspond to existing parameters")
         param_dict[key_route[0]] = self.__build_param_dict(key_route[1:], param_dict[key_route[0]], updated_value)
         return param_dict
-    
+
     @log_method("Making geometry")
     def make_geometry(self):
         '''Build geometry corresponding to design tree in cubit
@@ -219,7 +222,6 @@ class GeometryMaker():
         self.tracker.track_boundaries()
         self.tracker.organise_into_groups()
 
-
     def set_mesh_size(self, size: int):
         '''Set approximate mesh size in cubit
 
@@ -240,11 +242,13 @@ class GeometryMaker():
     def export(self, format: str = "cubit", rootname: str = "geometry"):
         '''Export mesh/ geometry in specfied format
 
-        :param format: Name of export format, defaults to "cubit"
-        :type format: str, optional
-        :param rootname: Name to give output file including path,
-        defaults to "geometry"
-        :type rootname: str, optional
+        Parameters
+        ----------
+        format : str, optional
+            file format, by default "cubit"
+        rootname : str, optional
+            filename, including path if in a different directory,
+            by default "geometry"
         '''
         print(f"exporting {rootname}{get_format_extension(format)}")
         format = format.lower()
@@ -266,15 +270,17 @@ class GeometryMaker():
     def export_exodus(self, rootname: str = "geometry", large_exodus=False, HDF5=False):
         '''Export as exodus II file.
 
-        :param rootname: Name to give output file including path,
-        defaults to "geometry"
-        :type rootname: str, optional
-        :param large_exodus: Create a large model that can store individual
-        datasets > 2GB, defaults to False
-        :type large_exodus: bool, optional
-        :param HDF5: Create a model that can store even larger files,
-        defaults to False
-        :type HDF5: bool, optional
+        Parameters
+        ----------
+        rootname : str, optional
+            Name to give output file including path,
+            by default "geometry"
+        large_exodus : bool, optional
+            Create a large model that can store individual datasets > 2GB,
+            by default False
+        HDF5 : bool, optional
+            Create a model that can store even larger files,
+            by default False
         '''
         if large_exodus:
             cmd("set large exodus on")
