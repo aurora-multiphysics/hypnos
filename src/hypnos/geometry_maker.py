@@ -80,10 +80,10 @@ class GeometryMaker():
         # accept a json file
         if json:
             self.parse_json(json)
+        elif self.config.parameter_file:
+            self.read_json_from_config()
         # if export_immediately is true, run config steps
         if self.config.export_immediately:
-            if not self.design_tree:
-                self.read_from_config()
             self.export_from_config()
 
     def read_config(self, config_file: str):
@@ -354,10 +354,10 @@ class GeometryMaker():
         '''
         cmd(f"volume all scale {10**scaling} about 0 0 0")
 
-    def read_from_config(self):
+    def read_json_from_config(self):
         '''Read json file specified by config
         '''
-        self.parse_json(self.config.json_file)
+        self.parse_json(self.config.parameter_file)
 
     def export_from_config(self):
         '''make_tracked_geometry,
@@ -368,7 +368,7 @@ class GeometryMaker():
         self.exp_scale(cfg.scale_exponent)
         if cfg.export_geom:
             for export_type in cfg.export_geom:
-                self.export(export_type, cfg.rootname)
+                self.export(export_type, cfg.export_name)
 
         if not cfg.export_mesh:
             return
@@ -377,7 +377,7 @@ class GeometryMaker():
         for export_type in cfg.export_mesh:
             if export_type == "exodus":
                 self.export_exodus(
-                    cfg.rootname,
+                    cfg.export_name,
                     cfg.exodus_options.large_exodus,
                     cfg.exodus_options.hdf5
                     )
