@@ -24,7 +24,8 @@ from hypnos.geometry import (
     blunt_corners,
     rotate,
     sweep_about,
-    sweep_along
+    sweep_along,
+    create_brick
     )
 import numpy as np
 from abc import ABC, abstractmethod
