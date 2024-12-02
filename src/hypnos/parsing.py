@@ -245,6 +245,8 @@ class Args:
     def __post_init__(self, config_file):
         if config_file:
             self.config = extract_data(config_file)
+        else:
+            self.config = {"export_geom": ["cubit"]}
         # if no file name anywhere, raise an error
         if not self.filename and "parameter_file" not in self.config.keys():
             raise CubismError("No parameter file name provided")

@@ -24,7 +24,7 @@ For the full instructions you will need to build the documentation via sphinx.
 pip install sphinx
 sphinx-build -M html docs/source docs/build
 ```
-You will then be able to access the documentation by opening docs/build/html/index.html in your preferred browser.
+You will then be able to access the documentation by opening `docs/build/html/index.html` in your preferred browser.
 Please ensure you don't have an older version of sphinx-build in your path. You can do this by running:
 ```
 which sphinx-build
@@ -35,21 +35,35 @@ Hypnos uses json files to describe parameters of a component.
 Components are represented by json objects "{ }", using the "class" key to select a specific component type.
 Json files containing a json object describing a component (ex. hcpb_pin.json) can be used where such a json object is expected by using a string with the file name (ex. {"class": "blanket" ... "components" : \["hpcb_pin.json"]})
 
-Examples are given in sample json files
+Examples are given in sample json files in `examples/`, and explained further in the sphinx documentation.
 
-To use hypnos, run main.py, passing the name of the json file to a -f flag (default: examples/sample_pin.json):
+To use hypnos, run main.py, passing the name of the json file to a `-f` flag:
 ```python main.py -f examples/sample_pin.json```
+By default, this will export the described geometry as a .cub5 file (with no mesh).
 
-The following flags are also available:
-+ -h: Print available flags for use
-+ -c: Name of config file to use (optional)
-+ -o: Name of geometry file to export including path (default: geometry)
-+ -d: Destination to create output file(s) (default: ./)
-+ -i: Name of class to print default template for. Leaving empty prints the available templates.
-+ -g : Names of formats to export geometry to (defaults to cubit if neither geometry nor mesh options provided anywhere)
-+ -m : Names of formats to export mesh to (optional)
+To configure this process, pass the name of a config json file to a `-c` flag:
+```python main.py -f examples/sample_config.json```
+The structure of a config file is described in the section below.
 
-The names given to flags -f, -o, and -d will be preferred over their equivalent options in the config file (file, root name, destination)
+To print the default template of a class, pass its name to a `-i` flag.
+If no argument is given, the available templates will be printed.
+```python main.py -i "first_wall"```
+
+
+## Config
+A config file lets you configure the exporting process of a geometry.
+It is a json file with a dictionary with the format {"option": option_value}
+The options a config file will accept are:
+
++ `"parameter_file"`: Name of the parameter json file.
++ `"scale_exponent"`: Power of 10 to scale geometry by before exporting (int, default: 0 i.e. no scaling)
++ `"export_name"`: Name to use when exporting a file, including the path (defaults to './geometry')
++ `"export_geom"`: List of format names to export geometry to {"cubit", "stp"}
++ `"export_mesh"` List of format names to export meshed geometry to {"exodus", "DAGMC", "cubit"}
++ `"exodus_options"`: Dictionary of options to use when exporting to an exodus file
+    + `"large_exodus"`: Create a large model that can store individual datasets > 2GB (bool, default: false)
+    + `"hdf5"`: Create a model that can store even larger files (bool, default: false)
+
 
 ## References
 Users are suggested to cite the below work(s) if using parts of this code based off of them.
