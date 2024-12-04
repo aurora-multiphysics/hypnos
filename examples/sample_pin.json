@@ -1,6 +1,6 @@
 {
     "class": "pin",
-    "materials": {
+    "material": {
         "cladding": "EUROFER",
         "pressure tube": "EUROFER",
         "multiplier": "Beryllium",

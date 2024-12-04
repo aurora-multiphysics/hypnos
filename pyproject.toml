@@ -3,9 +3,9 @@ requires = ["setuptools>=59.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "blobmaker"
+name = "hypnos"
 version = "0.1.0"
-description = "Blobmaker is a parametric geometry engine to create meshes for structures involved in the analysis of breeder blankets."
+description = "Hypnos is a parametric geometry engine to create meshes for structures involved in the analysis of breeder blankets."
 authors = [
   { name = "Sid Mungale", email = "sid.mungale@ukaea.uk" }
 ]
@@ -21,8 +21,14 @@ dependencies = [
 ]
 
 [project.urls]
-"Repository" = "https://github.com/sid-mungale/blobmaker"
-"Issue Tracker" = "https://github.com/sid-mungale/blobmaker/issues"
+"Repository" = "https://github.com/sid-mungale/hypnos"
+"Issue Tracker" = "https://github.com/sid-mungale/hypnos/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+markers = [
+  "slow: marks tests as slow"
+]

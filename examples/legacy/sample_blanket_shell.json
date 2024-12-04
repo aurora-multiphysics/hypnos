@@ -1,0 +1,12 @@
+{
+    "class": "blanket_shell",
+    "geometry": {
+        "pin spacing": 135,
+        "vertical offset": 0,
+        "horizontal offset": 0
+    },
+    "components": {
+        "pin": "sample_pin.json",
+        "first_wall": "sample_first_wall.json"
+    }
+}

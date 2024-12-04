@@ -3,7 +3,9 @@ Generic Classes
 
 .. currentmodule:: generic_classes
 
-.. autoclass:: GenericCubitInstance
+.. autoclass:: cmd
+
+.. autoclass:: CubitInstance
 
 .. autofunction:: get_cubit_geometry
 
