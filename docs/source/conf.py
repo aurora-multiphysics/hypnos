@@ -52,7 +52,7 @@ exclude_patterns = []
 html_theme = 'alabaster'
 
 html_theme_options = {
-    "github_user": "sid-mungale",
+    "github_user": "aurora-multiphysics",
     "github_repo": "hypnos",
     "description": "parametric geometry engine for breeder blanket design",
     "fixed_sidebar": True,
