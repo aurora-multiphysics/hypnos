@@ -23,7 +23,7 @@ from hypnos.generic_classes import (
     CubitInstance,
     CubismError
 )
-from blobmaker.cubit_functions import subtract
+from hypnos.cubit_functions import subtract
 import pytest
 from pytest import approx
 import cubit

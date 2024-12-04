@@ -22,7 +22,7 @@ copyright = 'UKAEA'
 author = 'sid'
 
 # The full version, including alpha/beta/rc tags
-release = '0.1'
+release = '0.0.1'
 
 
 # -- General configuration ---------------------------------------------------
@@ -52,8 +52,8 @@ exclude_patterns = []
 html_theme = 'alabaster'
 
 html_theme_options = {
-    "github_user": "sid-mungale",
-    "github_repo": "blobmaker",
+    "github_user": "aurora-multiphysics",
+    "github_repo": "hypnos",
     "description": "parametric geometry engine for breeder blanket design",
     "fixed_sidebar": True,
     "github_button": True
