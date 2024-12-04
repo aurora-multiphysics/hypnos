@@ -53,7 +53,7 @@ html_theme = 'alabaster'
 
 html_theme_options = {
     "github_user": "sid-mungale",
-    "github_repo": "blobmaker",
+    "github_repo": "hypnos",
     "description": "parametric geometry engine for breeder blanket design",
     "fixed_sidebar": True,
     "github_button": True
