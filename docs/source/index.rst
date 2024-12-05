@@ -6,6 +6,9 @@
 hypnos
 ======
 
+.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.14277222.svg
+  :target: https://doi.org/10.5281/zenodo.14277222
+
 Hypnos is a parametric geometry engine to create meshes for structures involved in the analysis of breeder blankets.
 
 Contents
