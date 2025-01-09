@@ -310,7 +310,7 @@ class CylindricalLayerComponent(SimpleComponent):
         face_thickness = self.geometry["face_thickness"]
         if not face_thickness:
             face_thickness = thickness
-        outer_length = inner_length + face_thickness
+        outer_length = inner_length + 2*face_thickness
         axis = self.geometry["axis"]
 
         # Make geometry.
