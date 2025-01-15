@@ -55,6 +55,12 @@ def test_move(brick):
     assert brick_vol.centroid() == (1, 1, 1)
 
 
+def test_get_volume(brick):
+    assert brick.get_volume() == 1
+    fake_brick = CubitInstance(1, "surface")
+    assert fake_brick.get_volume() == 0
+
+
 def test_update_reference(brick):
     # here we want to check that 'updating' the reference to volume 1 will
     # make CubitInstance refer to the same volume

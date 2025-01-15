@@ -181,6 +181,9 @@ class SimpleComponent(ComponentBase):
         self.as_volumes()
         return " ".join([str(cmp.cid) for cmp in self.get_geometries() if cmp.geometry_type == "volume"])
 
+    def get_volume(self):
+        return sum([geom.get_volume() for geom in self.get_geometries()])
+
 
 class SurroundingWallsComponent(SimpleComponent):
     '''Surrounding walls, filled with air'''

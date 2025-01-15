@@ -80,6 +80,18 @@ class CubitInstance:
         self.geometry_type = geometry_type
         self.handle = get_cubit_geometry(cid, geometry_type)
 
+    def get_volume(self) -> float:
+        '''get volume of this geometry
+
+        Returns
+        -------
+        float
+            volume of geometry
+        '''
+        if self.geometry_type in ["body", "volume"]:
+            return self.handle.volume()
+        return 0
+
 
 # make finding handles less annoying - used by CubitInstance
 def get_cubit_geometry(geometry_id: int, geometry_type: str):

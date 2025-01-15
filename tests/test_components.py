@@ -76,3 +76,7 @@ def test_extract_parameters(simple_component: SimpleComponent):
 
 def test_vol_id_string(simple_component: SimpleComponent):
     assert simple_component.volume_id_string() == "1"
+
+
+def test_get_volume(simple_component: SimpleComponent):
+    assert simple_component.get_volume() == 125
