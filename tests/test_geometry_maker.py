@@ -3,6 +3,7 @@ from hypnos.default_params import PIN
 from hypnos.generic_classes import CubismError
 from hypnos.assemblies import PinAssembly
 from hypnos.components import (
+    SimpleComponent,
     MultiplierComponent,
     PressureTubeComponent,
     CladdingComponent,
@@ -12,6 +13,7 @@ from hypnos.components import (
     FilterDiskComponent,
     PinBreeder
 )
+from hypnos.geometry import create_brick
 
 import difflib
 import sys
@@ -82,18 +84,14 @@ def compare_stp(filepath1: str, filepath2: str):
     return True
 
 
-@pytest.fixture(scope='function')
-def maker():
-    return GeometryMaker()
-
-
 @pytest.fixture(scope="function")
 def dirpath(pytestconfig):
     return pytestconfig.rootpath / "tests" / "geometry_maker_testing"
 
 
 @pytest.fixture(scope='function')
-def parsed(maker, dirpath):
+def parsed(dirpath):
+    maker = GeometryMaker()
     parse_file = dirpath / PARSE_FILE
     maker.parse_json(parse_file)
     return maker
@@ -171,3 +169,38 @@ def test_export_existence(parsed, tmp_path):
 
     with pytest.raises(CubismError):
         parsed.export("not a file type", file_path)
+
+
+class CustomComponent(SimpleComponent):
+    def __init__(self, params):
+        super().__init__("custom", params)
+
+    def check_sanity(self):
+        length = self.geometry["length"]
+        height = self.geometry["height"]
+        if length < 0 or height < 0:
+            raise ValueError("parameters must be positive")
+
+    def make_geometry(self):
+        length = self.geometry["length"]
+        height = self.geometry["height"]
+        brick = create_brick({"dimensions": [length, length, height]})
+        return brick
+
+
+def test_custom_components():
+    maker = GeometryMaker(custom_classes=[CustomComponent])
+    custom_dict = {
+        "class": "CustomComponent",
+        "material": "none",
+        "geometry": {
+            "length": 7,
+            "height": 3
+        }
+    }
+    maker.design_tree = custom_dict
+    maker.make_geometry()
+    custom_comp = maker.constructed_geometry[0]
+
+    assert isinstance(custom_comp, CustomComponent)
+    assert custom_comp.get_volume() == 147
