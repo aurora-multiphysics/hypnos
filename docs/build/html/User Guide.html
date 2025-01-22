@@ -1,0 +1,185 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+    <title>User Guide &#8212; hypnos 0.0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Developer Guide" href="Developer%20Guide.html" />
+    <link rel="prev" title="Getting Started" href="Getting%20Started.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  <div class="document">
+    
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">hypnos</a></h1>
+
+
+
+<p class="blurb">parametric geometry engine for breeder blanket design</p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=aurora-multiphysics&repo=hypnos&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="Overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Getting%20Started.html">Getting Started</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">User Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Developer%20Guide.html">Developer Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="HCPB%20first%20wall.html">HCPB first wall</a></li>
+<li class="toctree-l1"><a class="reference internal" href="HCPB%20pin.html">HCPB pin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="HCPB%20blanket.html">HCPB blanket</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="Getting%20Started.html" title="previous chapter">Getting Started</a></li>
+      <li>Next: <a href="Developer%20Guide.html" title="next chapter">Developer Guide</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="user-guide">
+<h1>User Guide<a class="headerlink" href="#user-guide" title="Permalink to this headline">¶</a></h1>
+<p>Hypnos can be used either through running the main.py script,
+or by importing the GeometryMaker class from the python library.</p>
+<p class="rubric">main.py</p>
+<p>To use hypnos, run main.py, passing the name of the json file to a <code class="docutils literal notranslate"><span class="pre">-f</span></code> flag (default: examples/sample_pin.json):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">main</span><span class="o">.</span><span class="n">py</span> <span class="o">-</span><span class="n">f</span> <span class="n">examples</span><span class="o">/</span><span class="n">sample_pin</span><span class="o">.</span><span class="n">json</span>
+</pre></div>
+</div>
+<p>The following flags are also available:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">-h</span></code>: Print available flags for use</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-c</span></code>: Name of config file to use (optional)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-o</span></code>: Name of geometry file to export including path (default: geometry)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-d</span></code>: Destination to create output file(s) (default: ./)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-i</span></code>: Name of class to print default template for. Leaving empty prints the available templates.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-g</span></code> : Names of formats to export geometry to (defaults to cubit if neither geometry nor mesh options provided anywhere) [“cubit”, “stp”]</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-m</span></code> : Names of formats to export mesh to (optional) [“exodus”, “DAGMC”]</p></li>
+</ul>
+<p>The names given to flags -f, -o, and -d will be preferred over their equivalent options in the config file (file, root name, destination)</p>
+<p>There are several example json files provided in <code class="docutils literal notranslate"><span class="pre">examples/</span></code>, along with descriptions of their corresponding classes:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="HCPB%20first%20wall.html"><span class="doc">HCPB first wall</span></a></p></li>
+<li><p><a class="reference internal" href="HCPB%20pin.html"><span class="doc">HCPB pin</span></a></p></li>
+<li><p><a class="reference internal" href="HCPB%20blanket.html"><span class="doc">HCPB blanket</span></a></p></li>
+</ul>
+<p>There is also a sample config file for use with the -c tag: <code class="docutils literal notranslate"><span class="pre">examples/sample_config.json</span></code></p>
+<p class="rubric">GeometryMaker</p>
+<p>The GeometryMaker class may be imported from the Hypnos module in order to proceed through the workflow.
+Its attributes and some terminology is explained below:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">design_tree</span></code>: A dictionary of the parameters used to construct a geometry.
+These will usually describe its ‘class’, geometrical parameters, and material(s) it is made of.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">constructed_geometry</span></code>: A list of python classes that correspond to the component(s) being constructed.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">key_route_delimiter</span></code>: Delimiter separating parameter paths in the design tree,
+as explained in <a class="reference internal" href="GeometryMaker.html#geometry_maker.GeometryMaker.get_param" title="geometry_maker.GeometryMaker.get_param"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_param()</span></code></a></p></li>
+</ul>
+<p>The following methods will take you through the workflow:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">parse_json</span></code>: Read in parameters from a json file</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">make_geometry</span></code>: Construct geometry in cubit</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">imprint_and_merge</span></code>: Run imprint and merge in cubit</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">track_components_and_materials</span></code>: Add components to blocks, and component-component interfaces to sidesets</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">tetmesh</span></code>: Run cubit’s automatic tetmeshing command</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">export</span></code>: Export geometry (and mesh if any) to a file of specified format</p></li>
+</ul>
+<p>There are also some convenience functions to do multiple steps at once:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">file_to_merged_geometry</span></code>: parse, make, imprint and merge</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">file_to_tracked_geometry</span></code>: parse, make, imprint and merge, track</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">make_tracked_geometry</span></code>: make, imprint and merge, track</p></li>
+</ul>
+<p>Aside from these,</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">fill_design_tree</span></code>: Process design_tree manually</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">change_delimiter</span></code>: Change key_route_delimiter</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">get_param</span></code>: Get the value of a parameter stored in the design tree</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">change_params</span></code>: Update parameters stored in the design tree</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">set_mesh_size</span></code>: Set the approximate mesh size</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">export_exodus</span></code>: Exodus export with options for large file sizes</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">reset_cubit</span></code>: Reset cubit and corresponding internal states</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">exp_scale</span></code>: Scale cubit geometries by powers of 10</p></li>
+</ul>
+<p>The full class is documented in <a class="reference internal" href="GeometryMaker.html"><span class="doc">GeometryMaker</span></a>.
+Some examples of use are given in the python files in <code class="docutils literal notranslate"><span class="pre">examples/</span></code>.</p>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+    <div class="clearer"></div>
+  </div>
+    <div class="footer">
+      &copy;UKAEA.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.3.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/User Guide.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

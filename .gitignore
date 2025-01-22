@@ -3,13 +3,12 @@ step_import*.log
 cleanup_cubit.sh
 *.kra*
 __pycache__
-docs/build
 geometry_storage
 blobenv
 
 # Distribution / packaging
 .Python
-build/
+./build/
 develop-eggs/
 dist/
 downloads/

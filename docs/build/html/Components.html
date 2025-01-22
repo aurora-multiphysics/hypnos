@@ -1,0 +1,233 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+    <title>Components &#8212; hypnos 0.0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Cubit Functions" href="Cubit%20Functions.html" />
+    <link rel="prev" title="Assemblies" href="Assemblies.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  <div class="document">
+    
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">hypnos</a></h1>
+
+
+
+<p class="blurb">parametric geometry engine for breeder blanket design</p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=aurora-multiphysics&repo=hypnos&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="Overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Getting%20Started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="User%20Guide.html">User Guide</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="Developer%20Guide.html">Developer Guide</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="Assemblies.html">Assemblies</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Cubit%20Functions.html">Cubit Functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Generic%20Classes.html">Generic Classes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Geometry.html">Geometry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Tracking.html">Tracking &amp; Parsing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="GeometryMaker.html">GeometryMaker</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="HCPB%20first%20wall.html">HCPB first wall</a></li>
+<li class="toctree-l1"><a class="reference internal" href="HCPB%20pin.html">HCPB pin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="HCPB%20blanket.html">HCPB blanket</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  <li><a href="Developer%20Guide.html">Developer Guide</a><ul>
+      <li>Previous: <a href="Assemblies.html" title="previous chapter">Assemblies</a></li>
+      <li>Next: <a href="Cubit%20Functions.html" title="next chapter">Cubit Functions</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="components">
+<h1>Components<a class="headerlink" href="#components" title="Permalink to this headline">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="components.SimpleComponent">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">components.</span></span><span class="sig-name descname"><span class="pre">SimpleComponent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">classname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">json_object</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#components.SimpleComponent" title="Permalink to this definition">¶</a></dt>
+<dd><p>Base class for simple components.
+These are intended to be the smallest functional unit of a single material.
+They may comprise multiple volumes/ may not be ‘simple’ geometrically.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="components.SimpleComponent.add_to_subcomponents">
+<span class="sig-name descname"><span class="pre">add_to_subcomponents</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">subcomponents</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">hypnos.generic_classes.CubitInstance</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#components.SimpleComponent.add_to_subcomponents" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add geometries to self.subcomponents</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>subcomponents</strong> (<a class="reference internal" href="Generic%20Classes.html#generic_classes.CubitInstance" title="generic_classes.CubitInstance"><em>CubitInstance</em></a><em> | </em><em>list</em><em>[</em><a class="reference internal" href="Generic%20Classes.html#generic_classes.CubitInstance" title="generic_classes.CubitInstance"><em>CubitInstance</em></a><em>]</em>) – geometry/ies to add</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="components.SimpleComponent.as_bodies">
+<span class="sig-name descname"><span class="pre">as_bodies</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#components.SimpleComponent.as_bodies" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert geometries to references to their owning bodies</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="components.SimpleComponent.as_volumes">
+<span class="sig-name descname"><span class="pre">as_volumes</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#components.SimpleComponent.as_volumes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert any references to bodies in the subcomponents
+to references to their composing volumes</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="components.SimpleComponent.extract_parameters">
+<span class="sig-name descname"><span class="pre">extract_parameters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parameters</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="headerlink" href="#components.SimpleComponent.extract_parameters" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get values of geometrical parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>parameters</strong> (<em>list</em><em> | </em><em>dict</em>) – list - get corresponding values of parameters,
+i.e. returned dict will look like {key : value}
+dict - {search_key : output_key},
+i.e. returned dict will look like {output_key : value}</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>key-value pairs as described above</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="components.SimpleComponent.get_geometries">
+<span class="sig-name descname"><span class="pre">get_geometries</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">hypnos.generic_classes.CubitInstance</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#components.SimpleComponent.get_geometries" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get contained geometries</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>list of geometries</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>list[<a class="reference internal" href="Generic%20Classes.html#generic_classes.CubitInstance" title="generic_classes.CubitInstance">CubitInstance</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="components.SimpleComponent.make_geometry">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">make_geometry</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">hypnos.generic_classes.CubitInstance</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#components.SimpleComponent.make_geometry" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make this instance in cubit</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>list of created geometries</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>list[<a class="reference internal" href="Generic%20Classes.html#generic_classes.CubitInstance" title="generic_classes.CubitInstance">CubitInstance</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="components.SimpleComponent.volume_id_string">
+<span class="sig-name descname"><span class="pre">volume_id_string</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#components.SimpleComponent.volume_id_string" title="Permalink to this definition">¶</a></dt>
+<dd><p>Space-separated string of volume IDs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>volume ID string</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="components.ExternalComponent">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">components.</span></span><span class="sig-name descname"><span class="pre">ExternalComponent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#components.ExternalComponent" title="Permalink to this definition">¶</a></dt>
+<dd><p>Track components imported externally</p>
+</dd></dl>
+
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+    <div class="clearer"></div>
+  </div>
+    <div class="footer">
+      &copy;UKAEA.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.3.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/Components.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

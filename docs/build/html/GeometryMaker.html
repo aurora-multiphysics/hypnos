@@ -1,0 +1,410 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+    <title>GeometryMaker &#8212; hypnos 0.0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="HCPB first wall" href="HCPB%20first%20wall.html" />
+    <link rel="prev" title="Tracking &amp; Parsing" href="Tracking.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  <div class="document">
+    
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">hypnos</a></h1>
+
+
+
+<p class="blurb">parametric geometry engine for breeder blanket design</p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=aurora-multiphysics&repo=hypnos&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="Overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Getting%20Started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="User%20Guide.html">User Guide</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="Developer%20Guide.html">Developer Guide</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="Assemblies.html">Assemblies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Components.html">Components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Cubit%20Functions.html">Cubit Functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Generic%20Classes.html">Generic Classes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Geometry.html">Geometry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Tracking.html">Tracking &amp; Parsing</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">GeometryMaker</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="HCPB%20first%20wall.html">HCPB first wall</a></li>
+<li class="toctree-l1"><a class="reference internal" href="HCPB%20pin.html">HCPB pin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="HCPB%20blanket.html">HCPB blanket</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  <li><a href="Developer%20Guide.html">Developer Guide</a><ul>
+      <li>Previous: <a href="Tracking.html" title="previous chapter">Tracking &amp; Parsing</a></li>
+      <li>Next: <a href="HCPB%20first%20wall.html" title="next chapter">HCPB first wall</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="geometrymaker">
+<h1>GeometryMaker<a class="headerlink" href="#geometrymaker" title="Permalink to this headline">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="geometry_maker.GeometryMaker">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">geometry_maker.</span></span><span class="sig-name descname"><span class="pre">GeometryMaker</span></span><a class="headerlink" href="#geometry_maker.GeometryMaker" title="Permalink to this definition">¶</a></dt>
+<dd><p>Access Hypnos functionality</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="geometry_maker.GeometryMaker.parameter_filler">
+<span class="sig-name descname"><span class="pre">parameter_filler</span></span><a class="headerlink" href="#geometry_maker.GeometryMaker.parameter_filler" title="Permalink to this definition">¶</a></dt>
+<dd><p>Handles processing of json files</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="Tracking.html#parsing.ParameterFiller" title="parsing.ParameterFiller">ParameterFiller</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="geometry_maker.GeometryMaker.tracker">
+<span class="sig-name descname"><span class="pre">tracker</span></span><a class="headerlink" href="#geometry_maker.GeometryMaker.tracker" title="Permalink to this definition">¶</a></dt>
+<dd><p>handles tracking groups, blocks, and sidesets in cubit</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="Tracking.html#tracking.Tracker" title="tracking.Tracker">Tracker</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="geometry_maker.GeometryMaker.design_tree">
+<span class="sig-name descname"><span class="pre">design_tree</span></span><a class="headerlink" href="#geometry_maker.GeometryMaker.design_tree" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parameters for constructing geometry</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="geometry_maker.GeometryMaker.constructed_geometry">
+<span class="sig-name descname"><span class="pre">constructed_geometry</span></span><a class="headerlink" href="#geometry_maker.GeometryMaker.constructed_geometry" title="Permalink to this definition">¶</a></dt>
+<dd><p>Python classes corresponding to
+constructed geometry</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="geometry_maker.GeometryMaker.key_route_delimiter">
+<span class="sig-name descname"><span class="pre">key_route_delimiter</span></span><a class="headerlink" href="#geometry_maker.GeometryMaker.key_route_delimiter" title="Permalink to this definition">¶</a></dt>
+<dd><p>delimiter for parameter paths</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="geometry_maker.GeometryMaker.change_delimiter">
+<span class="sig-name descname"><span class="pre">change_delimiter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">delimiter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry_maker.GeometryMaker.change_delimiter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Change the delimiter to use in key paths
+for the change_params and get_param methods.
+By default the delimiter is ‘/’.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>delimiter</strong> (<em>str</em>) – New delimiter</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="geometry_maker.GeometryMaker.change_params">
+<span class="sig-name descname"><span class="pre">change_params</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">updated_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry_maker.GeometryMaker.change_params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Change parameters in stored design tree.
+A parameter is referenced using it’s path.
+This path is a string of the keys that are
+used to access that parameter in the json file.</p>
+<p>For example to change the value of the parameter
+‘pin spacing’ to 135 here:
+{
+“class”: “hcpb_blanket”,
+“geometry”: {“pin spacing”: 100}
+}</p>
+<p>The argument provided here would have to be
+{“geometry/pin spacing”: 135}
+with ‘/’ being the default delimiter.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>updated_params</strong> (<em>dict</em>) – dictionary of the form {path to parameter : updated value}</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="geometry_maker.GeometryMaker.exp_scale">
+<span class="sig-name descname"><span class="pre">exp_scale</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">scaling</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry_maker.GeometryMaker.exp_scale" title="Permalink to this definition">¶</a></dt>
+<dd><p>Scale size of the geometry by 10^(scaling) to change what units
+cubit reports in.
+The default parameters assume 1 cubit unit = 1mm.
+So, for example, to get 1 cubit unit = 1cm you would use scaling = -1.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>scaling</strong> (<em>int</em>) – Exponent to scale by</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="geometry_maker.GeometryMaker.export">
+<span class="sig-name descname"><span class="pre">export</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">format</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'cubit'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rootname</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'geometry'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry_maker.GeometryMaker.export" title="Permalink to this definition">¶</a></dt>
+<dd><p>Export mesh/ geometry in specfied format</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>format</strong> (<em>str</em><em>, </em><em>optional</em>) – file format, by default “cubit”</p></li>
+<li><p><strong>rootname</strong> (<em>str</em><em>, </em><em>optional</em>) – filename, including path if in a different directory,
+by default “geometry”</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="geometry_maker.GeometryMaker.export_exodus">
+<span class="sig-name descname"><span class="pre">export_exodus</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rootname</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'geometry'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">large_exodus</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">HDF5</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry_maker.GeometryMaker.export_exodus" title="Permalink to this definition">¶</a></dt>
+<dd><p>Export as exodus II file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>rootname</strong> (<em>str</em><em>, </em><em>optional</em>) – Name to give output file including path,
+by default “geometry”</p></li>
+<li><p><strong>large_exodus</strong> (<em>bool</em><em>, </em><em>optional</em>) – Create a large model that can store individual datasets &gt; 2GB,
+by default False</p></li>
+<li><p><strong>HDF5</strong> (<em>bool</em><em>, </em><em>optional</em>) – Create a model that can store even larger files,
+by default False</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="geometry_maker.GeometryMaker.file_to_tracked_geometry">
+<span class="sig-name descname"><span class="pre">file_to_tracked_geometry</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry_maker.GeometryMaker.file_to_tracked_geometry" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse json file, make geometry,
+imprint + merge it,
+track boundaries.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>filename</strong> (<em>str</em>) – name of json file</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="geometry_maker.GeometryMaker.fill_design_tree">
+<span class="sig-name descname"><span class="pre">fill_design_tree</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#geometry_maker.GeometryMaker.fill_design_tree" title="Permalink to this definition">¶</a></dt>
+<dd><p>Process design_tree manually</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>processed design tree</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="geometry_maker.GeometryMaker.get_param">
+<span class="sig-name descname"><span class="pre">get_param</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">param_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry_maker.GeometryMaker.get_param" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get parameter in stored design tree.
+A parameter is referenced using it’s path.</p>
+<p>For example to get the value of the parameter ‘pin spacing’ here:
+{
+“class”: “hcpb_blanket”,
+“geometry”: {“pin spacing”: 100}
+}</p>
+<p>The argument provided here would have to be “geometry/pin spacing”
+with ‘/’ being the default delimiter.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>param_path</strong> (<em>str</em>) – Path to parameter</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>value of parameter</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>any</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="geometry_maker.GeometryMaker.imprint_and_merge">
+<span class="sig-name descname"><span class="pre">imprint_and_merge</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#geometry_maker.GeometryMaker.imprint_and_merge" title="Permalink to this definition">¶</a></dt>
+<dd><p>Imprint and merge geometry in cubit.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="geometry_maker.GeometryMaker.make_geometry">
+<span class="sig-name descname"><span class="pre">make_geometry</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#geometry_maker.GeometryMaker.make_geometry" title="Permalink to this definition">¶</a></dt>
+<dd><p>Build geometry corresponding to design tree in cubit</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p></p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>Class corresponding to the constructed cubit geometry</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="geometry_maker.GeometryMaker.make_merged_geometry">
+<span class="sig-name descname"><span class="pre">make_merged_geometry</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#geometry_maker.GeometryMaker.make_merged_geometry" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make geometry, imprint and merge</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="geometry_maker.GeometryMaker.make_tracked_geometry">
+<span class="sig-name descname"><span class="pre">make_tracked_geometry</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#geometry_maker.GeometryMaker.make_tracked_geometry" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make geometry, imprint + merge it, track boundaries.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="geometry_maker.GeometryMaker.parse_json">
+<span class="sig-name descname"><span class="pre">parse_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry_maker.GeometryMaker.parse_json" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse a json file and add corresponding design tree
+to design_tree attribute</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>filename</strong> (<em>str</em>) – name of json file</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>processed design tree</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="geometry_maker.GeometryMaker.reset_cubit">
+<span class="sig-name descname"><span class="pre">reset_cubit</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#geometry_maker.GeometryMaker.reset_cubit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reset cubit and corresponding internal states.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="geometry_maker.GeometryMaker.set_mesh_size">
+<span class="sig-name descname"><span class="pre">set_mesh_size</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry_maker.GeometryMaker.set_mesh_size" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set approximate mesh size in cubit</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>size</strong> (<em>int</em>) – Mesh size in cubit units</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="geometry_maker.GeometryMaker.tetmesh">
+<span class="sig-name descname"><span class="pre">tetmesh</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#geometry_maker.GeometryMaker.tetmesh" title="Permalink to this definition">¶</a></dt>
+<dd><p>Mesh geometry in cubit</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="geometry_maker.GeometryMaker.track_components_and_materials">
+<span class="sig-name descname"><span class="pre">track_components_and_materials</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#geometry_maker.GeometryMaker.track_components_and_materials" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add components to blocks and component-component interfaces to sidesets
+Add materials and material-material interfaces to groups.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+    <div class="clearer"></div>
+  </div>
+    <div class="footer">
+      &copy;UKAEA.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.3.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/GeometryMaker.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
