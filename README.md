@@ -21,7 +21,9 @@ If using as a developer, install as an editable
 `pip install --editable .`
 
 ## Docs
-For the full instructions you will need to build the documentation via sphinx.
+View the documentation [here](https://aurora-multiphysics.github.io/hypnos/).
+
+You can also build the documentation via sphinx.
 ```
 pip install sphinx
 sphinx-build -M html docs/source docs/build
