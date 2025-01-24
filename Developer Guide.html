@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Developer Guide &#8212; hypnos 1.0.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d1102ebc" />
+    <link rel="stylesheet" type="text/css" href="_static/basic.css?v=686e5160" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=f6a572b4" />
+    <script src="_static/documentation_options.js?v=8d563738"></script>
+    <script src="_static/doctools.js?v=9bcbadda"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Assemblies" href="Assemblies.html" />
+    <link rel="prev" title="User Guide" href="User%20Guide.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  <div class="document">
+    
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">hypnos</a></h1>
+
+
+
+<p class="blurb">parametric geometry engine for breeder blanket design</p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=aurora-multiphysics&repo=hypnos&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="Overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Getting%20Started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="User%20Guide.html">User Guide</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Developer Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="Assemblies.html">Assemblies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Components.html">Components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Cubit%20Functions.html">Cubit Functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Generic%20Classes.html">Generic Classes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Geometry.html">Geometry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Tracking.html">Tracking &amp; Parsing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="GeometryMaker.html">GeometryMaker</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="HCPB%20first%20wall.html">HCPB first wall</a></li>
+<li class="toctree-l1"><a class="reference internal" href="HCPB%20pin.html">HCPB pin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="HCPB%20blanket.html">HCPB blanket</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="User%20Guide.html" title="previous chapter">User Guide</a></li>
+      <li>Next: <a href="Assemblies.html" title="next chapter">Assemblies</a></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="developer-guide">
+<h1>Developer Guide<a class="headerlink" href="#developer-guide" title="Link to this heading">¶</a></h1>
+<p>Here are the steps to make a custom simple component for use with Hypnos:</p>
+<p class="rubric">json file</p>
+<ul class="simple">
+<li><p>Decide on a class name and the geometrical parameters you will need to construct this component.</p></li>
+<li><p>create a json file with a dictionary of this information, and a material.</p></li>
+</ul>
+<div class="literal-block-wrapper docutils container" id="id1">
+<div class="code-block-caption"><span class="caption-text">custom_component.json</span><a class="headerlink" href="#id1" title="Link to this code">¶</a></div>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;class&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;CustomComponent&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;material&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;material_name&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;geometry&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;length&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;height&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">7.931</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+<p class="rubric">python</p>
+<ul class="simple">
+<li><p>Import <code class="docutils literal notranslate"><span class="pre">SimpleComponent</span></code> from <a class="reference internal" href="Components.html"><span class="doc">Components</span></a></p></li>
+<li><p>Create your custom class, subclassing SimpleComponent.
+You will have access to the geometrical parameters via <code class="docutils literal notranslate"><span class="pre">self.geometry</span></code>, a dictionary.</p></li>
+<li><p>Define <code class="docutils literal notranslate"><span class="pre">__init__</span></code>, passing a name you want to be used for this component in cubit groups, blocks, and sidesets.</p></li>
+<li><p>Implement a <code class="docutils literal notranslate"><span class="pre">check_sanity</span></code> method to ensure the parameters you receive are physical.</p></li>
+<li><p>Implement a <code class="docutils literal notranslate"><span class="pre">make_geometry</span></code> method to construct your component in cubit.
+This should return a list of created CubitInstances.</p></li>
+</ul>
+<div class="literal-block-wrapper docutils container" id="id2">
+<div class="code-block-caption"><span class="caption-text">custom_component.py</span><a class="headerlink" href="#id2" title="Link to this code">¶</a></div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">hypnos.components</span> <span class="kn">import</span> <span class="n">SimpleComponent</span>
+<span class="kn">from</span> <span class="nn">hypnos.geometry</span> <span class="kn">import</span> <span class="n">create_brick</span>
+
+<span class="k">class</span> <span class="nc">CustomComponent</span><span class="p">(</span><span class="n">SimpleComponent</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="n">classname</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+        <span class="nb">super</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s2">&quot;custom&quot;</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">check_sanity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">length</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">geometry</span><span class="p">[</span><span class="s2">&quot;length&quot;</span><span class="p">]</span>
+        <span class="n">height</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">geometry</span><span class="p">[</span><span class="s2">&quot;height&quot;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">length</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">height</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;parameters must be positive&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">make_geometry</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">length</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">geometry</span><span class="p">[</span><span class="s2">&quot;length&quot;</span><span class="p">]</span>
+        <span class="n">height</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">geometry</span><span class="p">[</span><span class="s2">&quot;height&quot;</span><span class="p">]</span>
+        <span class="n">brick</span> <span class="o">=</span> <span class="n">create_brick</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">length</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">length</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="n">height</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">brick</span>
+</pre></div>
+</div>
+</div>
+<p>You can now use this custom class with GeometryMaker!</p>
+<div class="literal-block-wrapper docutils container" id="id3">
+<div class="code-block-caption"><span class="caption-text">custom_component.py (continued)</span><a class="headerlink" href="#id3" title="Link to this code">¶</a></div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">hypnos.geometry_maker</span> <span class="kn">import</span> <span class="n">GeometryMaker</span>
+
+<span class="n">maker</span> <span class="o">=</span> <span class="n">GeometryMaker</span><span class="p">([</span><span class="n">CustomComponent</span><span class="p">])</span>
+<span class="n">maker</span><span class="o">.</span><span class="n">file_to_tracked_geometry</span><span class="p">(</span><span class="s2">&quot;custom_component.json&quot;</span><span class="p">)</span>
+<span class="n">maker</span><span class="o">.</span><span class="n">tetmesh</span><span class="p">()</span>
+<span class="n">maker</span><span class="o">.</span><span class="n">export</span><span class="p">(</span><span class="s2">&quot;cub5&quot;</span><span class="p">,</span> <span class="s2">&quot;custom&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p class="rubric">creating geometries in cubit</p>
+<p>Hypnos knows about the existence of a geometrical entity in cubit via instances of the CubitInstance class.
+For example after creating a cuboid in a fresh session of cubit, Hypnos can track the created volume with
+<code class="docutils literal notranslate"><span class="pre">CubitInstance(1,</span> <span class="pre">&quot;volume&quot;)</span></code>.</p>
+<p>To create geometries in cubit, you may use the cubit python API, or issue commands to the cubit command line
+using <a class="reference internal" href="Generic%20Classes.html#generic_classes.cmd" title="generic_classes.cmd"><code class="xref py py-func docutils literal notranslate"><span class="pre">cmd()</span></code></a>. However, it is preferable to use the functions in <a class="reference internal" href="Geometry.html"><span class="doc">Geometry</span></a>,
+or to create similar functions.</p>
+<p>For example <code class="xref py py-func docutils literal notranslate"><span class="pre">make_cylinder_along()</span></code> will create a cylinder in cubit and return
+a CubitInstance object referring to it.</p>
+<p class="rubric">contributing</p>
+<p>If you would like to contribute to this code, please follow the following process:</p>
+<ul class="simple">
+<li><p>Check whether an issue describing your changes already exists on github, else make one.
+If one already does, it may be that someone is already working on these changes.</p></li>
+<li><p>Follow the steps in <a class="reference external" href="https://docs.github.com/en/get-started/exploring-projects-on-github/contributing-to-a-project">Contributing to a project</a>.
+Before making a pull request as described above, it is wise to ensure that you are up to date with the upstream source and also that all tests pass (<a class="reference internal" href="Getting%20Started.html#tests"><span class="std std-ref">Tests</span></a>)</p></li>
+<li><p>If you are not up to date, you will want to rebase your changes on top. The following code will attempt to rebase on top of the dev branch.</p></li>
+</ul>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>remote<span class="w"> </span>add<span class="w"> </span>upstream<span class="w"> </span>https://github.com/sid-mungale/blobmaker.git
+git<span class="w"> </span>fetch<span class="w"> </span>upstream
+git<span class="w"> </span>switch<span class="w"> </span>dev
+git<span class="w"> </span>merge<span class="w"> </span>upstream/dev
+git<span class="w"> </span>switch<span class="w"> </span>&lt;branch_with_your_changes&gt;
+git<span class="w"> </span>rebase<span class="w"> </span>dev
+</pre></div>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="Assemblies.html">Assemblies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Components.html">Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Cubit%20Functions.html">Cubit Functions</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="Cubit%20Functions.html#cubit_functions.get_last_geometry"><code class="docutils literal notranslate"><span class="pre">get_last_geometry()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="Cubit%20Functions.html#cubit_functions.cmd_geom"><code class="docutils literal notranslate"><span class="pre">cmd_geom()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="Cubit%20Functions.html#cubit_functions.cmd_group"><code class="docutils literal notranslate"><span class="pre">cmd_group()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="Cubit%20Functions.html#cubit_functions.get_id_string"><code class="docutils literal notranslate"><span class="pre">get_id_string()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="Cubit%20Functions.html#cubit_functions.get_entities_from_group"><code class="docutils literal notranslate"><span class="pre">get_entities_from_group()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="Cubit%20Functions.html#cubit_functions.add_to_new_entity"><code class="docutils literal notranslate"><span class="pre">add_to_new_entity()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="Cubit%20Functions.html#cubit_functions.to_owning_body"><code class="docutils literal notranslate"><span class="pre">to_owning_body()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="Cubit%20Functions.html#cubit_functions.to_bodies"><code class="docutils literal notranslate"><span class="pre">to_bodies()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="Cubit%20Functions.html#cubit_functions.to_volumes"><code class="docutils literal notranslate"><span class="pre">to_volumes()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="Cubit%20Functions.html#cubit_functions.to_surfaces"><code class="docutils literal notranslate"><span class="pre">to_surfaces()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="Cubit%20Functions.html#cubit_functions.subtract"><code class="docutils literal notranslate"><span class="pre">subtract()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="Cubit%20Functions.html#cubit_functions.union"><code class="docutils literal notranslate"><span class="pre">union()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="Generic%20Classes.html">Generic Classes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="Generic%20Classes.html#generic_classes.cmd"><code class="docutils literal notranslate"><span class="pre">cmd</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="Generic%20Classes.html#generic_classes.CubitInstance"><code class="docutils literal notranslate"><span class="pre">CubitInstance</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="Generic%20Classes.html#generic_classes.get_cubit_geometry"><code class="docutils literal notranslate"><span class="pre">get_cubit_geometry()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="Generic%20Classes.html#generic_classes.CubismError"><code class="docutils literal notranslate"><span class="pre">CubismError</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="Geometry.html">Geometry</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Tracking.html">Tracking &amp; Parsing</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="Tracking.html#tracking.Tracker"><code class="docutils literal notranslate"><span class="pre">Tracker</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="Tracking.html#tracking.Tracker.extract_components"><code class="docutils literal notranslate"><span class="pre">Tracker.extract_components()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="Tracking.html#tracking.Tracker.get_block_types"><code class="docutils literal notranslate"><span class="pre">Tracker.get_block_types()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="Tracking.html#tracking.Tracker.get_blocks"><code class="docutils literal notranslate"><span class="pre">Tracker.get_blocks()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="Tracking.html#tracking.Tracker.get_blocks_of_material"><code class="docutils literal notranslate"><span class="pre">Tracker.get_blocks_of_material()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="Tracking.html#tracking.Tracker.get_sidesets"><code class="docutils literal notranslate"><span class="pre">Tracker.get_sidesets()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="Tracking.html#tracking.Tracker.get_sidesets_between_components"><code class="docutils literal notranslate"><span class="pre">Tracker.get_sidesets_between_components()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="Tracking.html#tracking.Tracker.get_sidesets_between_materials"><code class="docutils literal notranslate"><span class="pre">Tracker.get_sidesets_between_materials()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="Tracking.html#tracking.Tracker.give_identifiers"><code class="docutils literal notranslate"><span class="pre">Tracker.give_identifiers()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="Tracking.html#tracking.Tracker.make_boundary_name"><code class="docutils literal notranslate"><span class="pre">Tracker.make_boundary_name()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="Tracking.html#tracking.Tracker.organise_into_groups"><code class="docutils literal notranslate"><span class="pre">Tracker.organise_into_groups()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="Tracking.html#tracking.Tracker.reset"><code class="docutils literal notranslate"><span class="pre">Tracker.reset()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="Tracking.html#tracking.Tracker.track_boundaries"><code class="docutils literal notranslate"><span class="pre">Tracker.track_boundaries()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="Tracking.html#parsing.ParameterFiller"><code class="docutils literal notranslate"><span class="pre">ParameterFiller</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="Tracking.html#parsing.ParameterFiller.log"><code class="docutils literal notranslate"><span class="pre">ParameterFiller.log</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="Tracking.html#parsing.ParameterFiller.design_tree"><code class="docutils literal notranslate"><span class="pre">ParameterFiller.design_tree</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="Tracking.html#parsing.ParameterFiller.config"><code class="docutils literal notranslate"><span class="pre">ParameterFiller.config</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="Tracking.html#parsing.ParameterFiller.add_log"><code class="docutils literal notranslate"><span class="pre">ParameterFiller.add_log()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="Tracking.html#parsing.ParameterFiller.print_log"><code class="docutils literal notranslate"><span class="pre">ParameterFiller.print_log()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="Tracking.html#parsing.ParameterFiller.process_design_tree"><code class="docutils literal notranslate"><span class="pre">ParameterFiller.process_design_tree()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="Tracking.html#parsing.get_format_extension"><code class="docutils literal notranslate"><span class="pre">get_format_extension()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="GeometryMaker.html">GeometryMaker</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="GeometryMaker.html#geometry_maker.GeometryMaker"><code class="docutils literal notranslate"><span class="pre">GeometryMaker</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="GeometryMaker.html#geometry_maker.GeometryMaker.parameter_filler"><code class="docutils literal notranslate"><span class="pre">GeometryMaker.parameter_filler</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="GeometryMaker.html#geometry_maker.GeometryMaker.tracker"><code class="docutils literal notranslate"><span class="pre">GeometryMaker.tracker</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="GeometryMaker.html#geometry_maker.GeometryMaker.design_tree"><code class="docutils literal notranslate"><span class="pre">GeometryMaker.design_tree</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="GeometryMaker.html#geometry_maker.GeometryMaker.constructed_geometry"><code class="docutils literal notranslate"><span class="pre">GeometryMaker.constructed_geometry</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="GeometryMaker.html#geometry_maker.GeometryMaker.key_route_delimiter"><code class="docutils literal notranslate"><span class="pre">GeometryMaker.key_route_delimiter</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="GeometryMaker.html#geometry_maker.GeometryMaker.change_delimiter"><code class="docutils literal notranslate"><span class="pre">GeometryMaker.change_delimiter()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="GeometryMaker.html#geometry_maker.GeometryMaker.change_params"><code class="docutils literal notranslate"><span class="pre">GeometryMaker.change_params()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="GeometryMaker.html#geometry_maker.GeometryMaker.exp_scale"><code class="docutils literal notranslate"><span class="pre">GeometryMaker.exp_scale()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="GeometryMaker.html#geometry_maker.GeometryMaker.export"><code class="docutils literal notranslate"><span class="pre">GeometryMaker.export()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="GeometryMaker.html#geometry_maker.GeometryMaker.export_exodus"><code class="docutils literal notranslate"><span class="pre">GeometryMaker.export_exodus()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="GeometryMaker.html#geometry_maker.GeometryMaker.file_to_tracked_geometry"><code class="docutils literal notranslate"><span class="pre">GeometryMaker.file_to_tracked_geometry()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="GeometryMaker.html#geometry_maker.GeometryMaker.fill_design_tree"><code class="docutils literal notranslate"><span class="pre">GeometryMaker.fill_design_tree()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="GeometryMaker.html#geometry_maker.GeometryMaker.get_param"><code class="docutils literal notranslate"><span class="pre">GeometryMaker.get_param()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="GeometryMaker.html#geometry_maker.GeometryMaker.imprint_and_merge"><code class="docutils literal notranslate"><span class="pre">GeometryMaker.imprint_and_merge()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="GeometryMaker.html#geometry_maker.GeometryMaker.make_geometry"><code class="docutils literal notranslate"><span class="pre">GeometryMaker.make_geometry()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="GeometryMaker.html#geometry_maker.GeometryMaker.make_merged_geometry"><code class="docutils literal notranslate"><span class="pre">GeometryMaker.make_merged_geometry()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="GeometryMaker.html#geometry_maker.GeometryMaker.make_tracked_geometry"><code class="docutils literal notranslate"><span class="pre">GeometryMaker.make_tracked_geometry()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="GeometryMaker.html#geometry_maker.GeometryMaker.parse_json"><code class="docutils literal notranslate"><span class="pre">GeometryMaker.parse_json()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="GeometryMaker.html#geometry_maker.GeometryMaker.reset_cubit"><code class="docutils literal notranslate"><span class="pre">GeometryMaker.reset_cubit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="GeometryMaker.html#geometry_maker.GeometryMaker.set_mesh_size"><code class="docutils literal notranslate"><span class="pre">GeometryMaker.set_mesh_size()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="GeometryMaker.html#geometry_maker.GeometryMaker.tetmesh"><code class="docutils literal notranslate"><span class="pre">GeometryMaker.tetmesh()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="GeometryMaker.html#geometry_maker.GeometryMaker.track_components_and_materials"><code class="docutils literal notranslate"><span class="pre">GeometryMaker.track_components_and_materials()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+    <div class="clearer"></div>
+  </div>
+    <div class="footer">
+      &#169;UKAEA.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.1.3</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+      |
+      <a href="_sources/Developer Guide.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

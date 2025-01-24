@@ -1,0 +1,387 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+    <title>Tracking &amp; Parsing &#8212; hypnos 0.0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="GeometryMaker" href="GeometryMaker.html" />
+    <link rel="prev" title="Geometry" href="Geometry.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  <div class="document">
+    
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">hypnos</a></h1>
+
+
+
+<p class="blurb">parametric geometry engine for breeder blanket design</p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=aurora-multiphysics&repo=hypnos&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="Overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Getting%20Started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="User%20Guide.html">User Guide</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="Developer%20Guide.html">Developer Guide</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="Assemblies.html">Assemblies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Components.html">Components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Cubit%20Functions.html">Cubit Functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Generic%20Classes.html">Generic Classes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Geometry.html">Geometry</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Tracking &amp; Parsing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="GeometryMaker.html">GeometryMaker</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="HCPB%20first%20wall.html">HCPB first wall</a></li>
+<li class="toctree-l1"><a class="reference internal" href="HCPB%20pin.html">HCPB pin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="HCPB%20blanket.html">HCPB blanket</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  <li><a href="Developer%20Guide.html">Developer Guide</a><ul>
+      <li>Previous: <a href="Geometry.html" title="previous chapter">Geometry</a></li>
+      <li>Next: <a href="GeometryMaker.html" title="next chapter">GeometryMaker</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="tracking-parsing">
+<h1>Tracking &amp; Parsing<a class="headerlink" href="#tracking-parsing" title="Permalink to this headline">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="tracking.Tracker">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tracking.</span></span><span class="sig-name descname"><span class="pre">Tracker</span></span><a class="headerlink" href="#tracking.Tracker" title="Permalink to this definition">¶</a></dt>
+<dd><p>Track materials and boundaries between all provided components</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="tracking.Tracker.extract_components">
+<span class="sig-name descname"><span class="pre">extract_components</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">root_component</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracking.Tracker.extract_components" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get all components stored in root and their materials.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>root_component</strong> (<a class="reference internal" href="Components.html#components.SimpleComponent" title="components.SimpleComponent"><em>SimpleComponent</em></a><em> | </em><a class="reference internal" href="Assemblies.html#assemblies.GenericComponentAssembly" title="assemblies.GenericComponentAssembly"><em>GenericComponentAssembly</em></a>) – component to track</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracking.Tracker.get_block_types">
+<span class="sig-name descname"><span class="pre">get_block_types</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#tracking.Tracker.get_block_types" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get block types. These are the same as the types of simple components.
+For example the type of coolant1 is coolant.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>list of block types</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>list[str]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracking.Tracker.get_blocks">
+<span class="sig-name descname"><span class="pre">get_blocks</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#tracking.Tracker.get_blocks" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get names of created blocks. Blocks are named
+the same as their corresponding simple components.
+For example the block corresponding to coolant0 is
+named coolant0.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>list of block names</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>list[str]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracking.Tracker.get_blocks_of_material">
+<span class="sig-name descname"><span class="pre">get_blocks_of_material</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">material</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#tracking.Tracker.get_blocks_of_material" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get blocks of simple components made of specified material</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>material</strong> (<em>str</em>) – name of material</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>block names made of that material</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>list[str]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracking.Tracker.get_sidesets">
+<span class="sig-name descname"><span class="pre">get_sidesets</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#tracking.Tracker.get_sidesets" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get names of created sidesets.
+Sidesets are named according to the names of the simple
+components on either side. For example the sideset between
+coolant0 and cladding0 is coolant0_cladding0. Sidesets not
+at interfaces are named like &lt;component_name&gt;_air.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>list of sideset names</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>list[str]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracking.Tracker.get_sidesets_between_components">
+<span class="sig-name descname"><span class="pre">get_sidesets_between_components</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">types</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#tracking.Tracker.get_sidesets_between_components" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get sidesets between specified simple component types.
+Providing only 1 type will assume that the other side of the
+interface is ‘air’</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>list of sidesets</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>list[str]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracking.Tracker.get_sidesets_between_materials">
+<span class="sig-name descname"><span class="pre">get_sidesets_between_materials</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">materials</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#tracking.Tracker.get_sidesets_between_materials" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get all sidesets between components made of these materials.
+Providing only 1 material will assume the other to be ‘air’.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>list of sidesets</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>list[str]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracking.Tracker.give_identifiers">
+<span class="sig-name descname"><span class="pre">give_identifiers</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">root_component</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracking.Tracker.give_identifiers" title="Permalink to this definition">¶</a></dt>
+<dd><p>Give every component a unique identifier recursively,
+if it doesn’t already have one</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>root_component</strong> (<a class="reference internal" href="Assemblies.html#assemblies.GenericComponentAssembly" title="assemblies.GenericComponentAssembly"><em>GenericComponentAssembly</em></a>) – top-level component class</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracking.Tracker.make_boundary_name">
+<span class="sig-name descname"><span class="pre">make_boundary_name</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parts_of_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">internal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#tracking.Tracker.make_boundary_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate a standardised boundary name</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>parts_of_name</strong> (<em>list</em><em>[</em><em>str</em><em>]</em>) – list of components or materials</p></li>
+<li><p><strong>internal</strong> (<em>bool</em><em>, </em><em>optional</em>) – whether this name is only to be used internally, by default False</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>standardised boundary name</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracking.Tracker.organise_into_groups">
+<span class="sig-name descname"><span class="pre">organise_into_groups</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tracking.Tracker.organise_into_groups" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create groups for material, component, component boundary,
+and material boundary groups in cubit</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracking.Tracker.reset">
+<span class="sig-name descname"><span class="pre">reset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tracking.Tracker.reset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reset internal state</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracking.Tracker.track_boundaries">
+<span class="sig-name descname"><span class="pre">track_boundaries</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tracking.Tracker.track_boundaries" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find boundaries between simple components.
+Make component-component and material-material groups.
+Add simple components to blocks and groups.
+Add component interfaces to sidesets and groups.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="parsing.ParameterFiller">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">parsing.</span></span><span class="sig-name descname"><span class="pre">ParameterFiller</span></span><a class="headerlink" href="#parsing.ParameterFiller" title="Permalink to this definition">¶</a></dt>
+<dd><p>Process json files. Fill in missed input parameters with defaults.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="parsing.ParameterFiller.log">
+<span class="sig-name descname"><span class="pre">log</span></span><a class="headerlink" href="#parsing.ParameterFiller.log" title="Permalink to this definition">¶</a></dt>
+<dd><p>stores info about the json processing step</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>list</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="parsing.ParameterFiller.design_tree">
+<span class="sig-name descname"><span class="pre">design_tree</span></span><a class="headerlink" href="#parsing.ParameterFiller.design_tree" title="Permalink to this definition">¶</a></dt>
+<dd><p>stores the design tree for the geometry we want to construct</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="parsing.ParameterFiller.config">
+<span class="sig-name descname"><span class="pre">config</span></span><a class="headerlink" href="#parsing.ParameterFiller.config" title="Permalink to this definition">¶</a></dt>
+<dd><p>stores the default configuration for our design tree (if any)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="parsing.ParameterFiller.add_log">
+<span class="sig-name descname"><span class="pre">add_log</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#parsing.ParameterFiller.add_log" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add message to log</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="parsing.ParameterFiller.print_log">
+<span class="sig-name descname"><span class="pre">print_log</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#parsing.ParameterFiller.print_log" title="Permalink to this definition">¶</a></dt>
+<dd><p>Print messages in log</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="parsing.ParameterFiller.process_design_tree">
+<span class="sig-name descname"><span class="pre">process_design_tree</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">design_tree</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="headerlink" href="#parsing.ParameterFiller.process_design_tree" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fill in missing parameters of design tree with default config values</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>design_tree</strong> (<em>dict</em>) – Parametrical description of geometry</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Filled design tree</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="parsing.get_format_extension">
+<span class="sig-prename descclassname"><span class="pre">parsing.</span></span><span class="sig-name descname"><span class="pre">get_format_extension</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">format_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#parsing.get_format_extension" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the extension given a file format</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>format_type</strong> (<em>str</em>) – file format</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>file extension</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+    <div class="clearer"></div>
+  </div>
+    <div class="footer">
+      &copy;UKAEA.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.3.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/Tracking.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

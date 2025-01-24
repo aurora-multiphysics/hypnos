@@ -1,0 +1,157 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+    <title>Overview &#8212; hypnos 0.0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Getting Started" href="Getting%20Started.html" />
+    <link rel="prev" title="hypnos" href="index.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  <div class="document">
+    
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">hypnos</a></h1>
+
+
+
+<p class="blurb">parametric geometry engine for breeder blanket design</p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=aurora-multiphysics&repo=hypnos&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Getting%20Started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="User%20Guide.html">User Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Developer%20Guide.html">Developer Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="HCPB%20first%20wall.html">HCPB first wall</a></li>
+<li class="toctree-l1"><a class="reference internal" href="HCPB%20pin.html">HCPB pin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="HCPB%20blanket.html">HCPB blanket</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="index.html" title="previous chapter">hypnos</a></li>
+      <li>Next: <a href="Getting%20Started.html" title="next chapter">Getting Started</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="overview">
+<h1>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h1>
+<p>Hypnos’ goal is to construct a geometry from the parameters you give it. The workflow is as follows:</p>
+<ul class="simple">
+<li><p>Import parameters from a json file</p></li>
+<li><p>Build geometry in cubit, imprint and merge</p></li>
+<li><p>Add blocks, sidesets, and groups</p></li>
+<li><p>Mesh and/or Export</p></li>
+</ul>
+<p>This can be achieved either through running main.py, or in your own python script using the GeometryMaker class.
+These are explained in <a class="reference internal" href="User%20Guide.html"><span class="doc">User Guide</span></a>.</p>
+<p class="rubric">types of geometries</p>
+<p>The following terminology will be used when describing geometries:</p>
+<ul class="simple">
+<li><p>simple component: A single geometrical entity or collection of entities made of the same material.
+For example, the cladding of a pin is described by a ‘cladding’ simple component.
+These need not be ‘simple’ geometrically.</p></li>
+<li><p>assembly: A collection of other components</p></li>
+<li><p>component: A simple component or an assembly</p></li>
+</ul>
+<div class="admonition caution">
+<p class="admonition-title">Caution</p>
+<p>This is probably a silly way of naming things.</p>
+</div>
+<p class="rubric">json files</p>
+<p>Hypnos uses json files to describe parameters of a component.
+Components are represented by dictionaries of parameters <code class="docutils literal notranslate"><span class="pre">{&quot;key&quot;:</span> <span class="pre">value</span> <span class="pre">}</span></code>.</p>
+<p>These will usually contain the following parameters:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;class&quot;</span></code>: This must be declared to select a specific component</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;material&quot;</span></code>: The material this simple component is made of or a dictionary of materials used in this assembly</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;geometry&quot;</span></code>: The geometrical parameters describing this component.</p></li>
+</ul>
+<p>Json file names containing a json object describing a component (ex. hcpb_pin.json)
+can be used where such a json object is expected by using a string with the file name
+(ex. <code class="docutils literal notranslate"><span class="pre">{&quot;class&quot;:</span> <span class="pre">&quot;blanket&quot;</span> <span class="pre">...</span> <span class="pre">&quot;components&quot;</span> <span class="pre">:</span> <span class="pre">[&quot;hpcb_pin.json&quot;]}</span></code>)</p>
+<p>Examples are given in sample json files in <code class="docutils literal notranslate"><span class="pre">examples/</span></code>.</p>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+    <div class="clearer"></div>
+  </div>
+    <div class="footer">
+      &copy;UKAEA.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.3.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/Overview.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

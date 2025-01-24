@@ -1,0 +1,273 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+    <title>Assemblies &#8212; hypnos 0.0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Components" href="Components.html" />
+    <link rel="prev" title="Developer Guide" href="Developer%20Guide.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  <div class="document">
+    
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">hypnos</a></h1>
+
+
+
+<p class="blurb">parametric geometry engine for breeder blanket design</p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=aurora-multiphysics&repo=hypnos&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="Overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Getting%20Started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="User%20Guide.html">User Guide</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="Developer%20Guide.html">Developer Guide</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Assemblies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Components.html">Components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Cubit%20Functions.html">Cubit Functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Generic%20Classes.html">Generic Classes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Geometry.html">Geometry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Tracking.html">Tracking &amp; Parsing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="GeometryMaker.html">GeometryMaker</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="HCPB%20first%20wall.html">HCPB first wall</a></li>
+<li class="toctree-l1"><a class="reference internal" href="HCPB%20pin.html">HCPB pin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="HCPB%20blanket.html">HCPB blanket</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  <li><a href="Developer%20Guide.html">Developer Guide</a><ul>
+      <li>Previous: <a href="Developer%20Guide.html" title="previous chapter">Developer Guide</a></li>
+      <li>Next: <a href="Components.html" title="next chapter">Components</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="assemblies">
+<h1>Assemblies<a class="headerlink" href="#assemblies" title="Permalink to this headline">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="assemblies.GenericComponentAssembly">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">assemblies.</span></span><span class="sig-name descname"><span class="pre">GenericComponentAssembly</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#assemblies.GenericComponentAssembly" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generic assembly to store components</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="assemblies.GenericComponentAssembly.find_parent_component">
+<span class="sig-name descname"><span class="pre">find_parent_component</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">geometry</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">hypnos.generic_classes.CubitInstance</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#assemblies.GenericComponentAssembly.find_parent_component" title="Permalink to this definition">¶</a></dt>
+<dd><p>If this assembly contains given geometry, return owning component.
+Else return None.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>geometry</strong> (<a class="reference internal" href="Generic%20Classes.html#generic_classes.CubitInstance" title="generic_classes.CubitInstance"><em>CubitInstance</em></a>) – Child geometry</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Parent component | None</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="Components.html#components.SimpleComponent" title="components.SimpleComponent">SimpleComponent</a> | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="assemblies.GenericComponentAssembly.get_all_components">
+<span class="sig-name descname"><span class="pre">get_all_components</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">hypnos.components.SimpleComponent</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#assemblies.GenericComponentAssembly.get_all_components" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return all simple components stored in this assembly recursively</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>list of simple components</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>list[<a class="reference internal" href="Components.html#components.SimpleComponent" title="components.SimpleComponent">SimpleComponent</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="assemblies.GenericComponentAssembly.get_components">
+<span class="sig-name descname"><span class="pre">get_components</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span></span></span><a class="headerlink" href="#assemblies.GenericComponentAssembly.get_components" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return components stored in this assembly at the top-level,
+i.e. SimpleComponents and GenericComponentAssemblys, if any.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>list of components</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>list</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="assemblies.GenericComponentAssembly.get_components_of_class">
+<span class="sig-name descname"><span class="pre">get_components_of_class</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">classes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span></span></span><a class="headerlink" href="#assemblies.GenericComponentAssembly.get_components_of_class" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find components of with given classnames.
+Searches through assemblies recursively.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>classes</strong> (<em>list</em>) – list of component classes</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>list of components</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>list</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="assemblies.GenericComponentAssembly.get_geometries_from">
+<span class="sig-name descname"><span class="pre">get_geometries_from</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">class_list</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">hypnos.generic_classes.CubitInstance</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#assemblies.GenericComponentAssembly.get_geometries_from" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get list of geometries with given classnames</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>class_list</strong> (<em>list</em><em>[</em><em>str</em><em>]</em>) – list of classnames</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>list of geometries</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>list[<a class="reference internal" href="Generic%20Classes.html#generic_classes.CubitInstance" title="generic_classes.CubitInstance">CubitInstance</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="assemblies.CreatedComponentAssembly">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">assemblies.</span></span><span class="sig-name descname"><span class="pre">CreatedComponentAssembly</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#assemblies.CreatedComponentAssembly" title="Permalink to this definition">¶</a></dt>
+<dd><p>Assembly to handle components created natively. Takes a list of
+required classnames to set up a specific assembly. Instantiating
+will fail without at least one component of the given classnames.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="assemblies.CreatedComponentAssembly.check_for_overlaps">
+<span class="sig-name descname"><span class="pre">check_for_overlaps</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#assemblies.CreatedComponentAssembly.check_for_overlaps" title="Permalink to this definition">¶</a></dt>
+<dd><p>Raise an error if any overlaps exist between children volumes</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="assemblies.CreatedComponentAssembly.check_sanity">
+<span class="sig-name descname"><span class="pre">check_sanity</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#assemblies.CreatedComponentAssembly.check_sanity" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check whether geometrical parameters are physical on the
+assembly level.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="assemblies.CreatedComponentAssembly.enforce_structure">
+<span class="sig-name descname"><span class="pre">enforce_structure</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#assemblies.CreatedComponentAssembly.enforce_structure" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make sure an instance of this class contains the required components.
+This looks at the classnames specified in the json file</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="assemblies.CreatedComponentAssembly.setup_assembly">
+<span class="sig-name descname"><span class="pre">setup_assembly</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#assemblies.CreatedComponentAssembly.setup_assembly" title="Permalink to this definition">¶</a></dt>
+<dd><p>Instantiate components in cubit</p>
+</dd></dl>
+
+</dd></dl>
+
+<p>Functions in this file:</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="assemblies.construct">
+<span class="sig-prename descclassname"><span class="pre">assemblies.</span></span><span class="sig-name descname"><span class="pre">construct</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">json_object</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#assemblies.construct" title="Permalink to this definition">¶</a></dt>
+<dd><p>Instantiate component in python and cubit</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>json_object</strong> (<em>dict</em>) – json input for component</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Instantiated python class</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="Components.html#components.SimpleComponent" title="components.SimpleComponent">SimpleComponent</a> | <a class="reference internal" href="#assemblies.GenericComponentAssembly" title="assemblies.GenericComponentAssembly">GenericComponentAssembly</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+    <div class="clearer"></div>
+  </div>
+    <div class="footer">
+      &copy;UKAEA.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.3.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/Assemblies.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
