@@ -55,7 +55,11 @@ The following flags are also available:
 
 The names given to flags -f, -o, and -d will be preferred over their equivalent options in the config file (file, root name, destination)
 
-## References
+## Citing
+Please cite the following paper if using this code.
+
+Humphrey L, Brooks H, Mungale S, Davis A and Foster D (2026) Accelerating the engineering design of breeder blankets with parametric optimisation and sequential learning. Front. Nucl. Eng. 4:1694684. doi: 10.3389/fnuen.2025.1694684
+
 Users are suggested to cite the below work(s) if using parts of this code based off of them.
 
 The HCPB geometry parametrised in this code was based off of a design for the DEMO reactor from the following paper:
